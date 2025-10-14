@@ -1,0 +1,1234 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Bilanci - Awentia</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', sans-serif;
+        }
+        
+        body {
+            background: #f8f9fa;
+            color: #1a1a1a;
+        }
+        
+        .app-container {
+            display: flex;
+            min-height: 100vh;
+        }
+        
+        /* Sidebar */
+        .sidebar {
+            width: 280px;
+            background: linear-gradient(180deg, #6366f1 0%, #4f46e5 100%);
+            color: white;
+            padding: 24px;
+            position: fixed;
+            height: 100vh;
+            overflow-y: auto;
+            box-shadow: 4px 0 12px rgba(0,0,0,0.1);
+        }
+        
+        .sidebar-header {
+            margin-bottom: 40px;
+        }
+        
+        .sidebar-logo {
+            font-size: 28px;
+            font-weight: 800;
+            margin-bottom: 8px;
+        }
+        
+        .sidebar-subtitle {
+            font-size: 18px;
+            font-weight: 600;
+            opacity: 0.95;
+            margin-bottom: 4px;
+        }
+        
+        .sidebar-company {
+            font-size: 14px;
+            opacity: 0.8;
+        }
+        
+        .nav-item {
+            display: flex;
+            align-items: center;
+            padding: 14px 16px;
+            margin-bottom: 8px;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 15px;
+            font-weight: 500;
+        }
+        
+        .nav-item:hover {
+            background: rgba(255,255,255,0.1);
+        }
+        
+        .nav-item.active {
+            background: rgba(255,255,255,0.15);
+            border-left: 3px solid white;
+            font-weight: 600;
+        }
+        
+        .nav-icon {
+            font-size: 20px;
+            margin-right: 12px;
+        }
+        
+        /* Main Content */
+        .main-content {
+            flex: 1;
+            margin-left: 280px;
+            padding: 32px;
+        }
+        
+        .page {
+            display: none;
+        }
+        
+        .page.active {
+            display: block;
+        }
+        
+        /* Header */
+        .page-header {
+            background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+            padding: 32px;
+            border-radius: 16px;
+            color: white;
+            margin-bottom: 32px;
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.2);
+        }
+        
+        .page-header h1 {
+            font-size: 32px;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+        
+        .page-header p {
+            font-size: 16px;
+            opacity: 0.95;
+        }
+        
+        /* KPI Cards */
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 24px;
+            margin-bottom: 32px;
+        }
+        
+        .kpi-card {
+            background: white;
+            padding: 24px;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            transition: all 0.2s;
+        }
+        
+        .kpi-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 16px rgba(0,0,0,0.12);
+        }
+        
+        .kpi-label {
+            font-size: 14px;
+            color: #6b7280;
+            font-weight: 500;
+            margin-bottom: 8px;
+        }
+        
+        .kpi-value {
+            font-size: 32px;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+        
+        .kpi-change {
+            font-size: 14px;
+            font-weight: 600;
+        }
+        
+        .kpi-change.positive {
+            color: #10b981;
+        }
+        
+        .kpi-change.negative {
+            color: #ef4444;
+        }
+        
+        /* Chart Cards */
+        .chart-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+            gap: 24px;
+            margin-bottom: 32px;
+        }
+        
+        .chart-card {
+            background: white;
+            padding: 24px;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+        
+        .chart-title {
+            font-size: 18px;
+            font-weight: 700;
+            margin-bottom: 20px;
+            color: #1a1a1a;
+        }
+        
+        .chart-container {
+            position: relative;
+            height: 300px;
+        }
+        
+        /* Table */
+        .table-card {
+            background: white;
+            padding: 24px;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            overflow-x: auto;
+            margin-bottom: 32px;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        th {
+            background: #f3f4f6;
+            padding: 12px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 14px;
+            color: #374151;
+            border-bottom: 2px solid #e5e7eb;
+        }
+        
+        td {
+            padding: 12px;
+            border-bottom: 1px solid #e5e7eb;
+            font-size: 14px;
+        }
+        
+        tr:hover {
+            background: #f9fafb;
+        }
+        
+        .text-right {
+            text-align: right;
+        }
+        
+        .font-bold {
+            font-weight: 700;
+        }
+        
+        .row-highlight {
+            background: #fef3c7 !important;
+            font-weight: 600;
+        }
+        
+        .row-total {
+            background: #dbeafe !important;
+            font-weight: 700;
+        }
+        
+        /* Info Box */
+        .info-box {
+            background: #eff6ff;
+            border: 2px solid #bfdbfe;
+            padding: 20px;
+            border-radius: 12px;
+            margin-top: 24px;
+        }
+        
+        .info-box-title {
+            font-weight: 700;
+            color: #1e40af;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .info-box-text {
+            color: #1e40af;
+            font-size: 14px;
+        }
+        
+        /* Footer */
+        .footer {
+            background: white;
+            border-top: 1px solid #e5e7eb;
+            padding: 24px 32px;
+            margin-top: 48px;
+            text-align: center;
+            color: #6b7280;
+            font-size: 14px;
+        }
+        
+        /* Responsive */
+        @media (max-width: 1024px) {
+            .sidebar {
+                width: 240px;
+            }
+            
+            .main-content {
+                margin-left: 240px;
+            }
+            
+            .chart-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .sidebar {
+                width: 100%;
+                position: relative;
+                height: auto;
+            }
+            
+            .main-content {
+                margin-left: 0;
+            }
+            
+            .kpi-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .chart-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="sidebar-logo">📊 Dashboard Bilanci</div>
+                <div class="sidebar-company">Awentia Srl</div>
+            </div>
+            
+            <nav>
+                <div class="nav-item active" onclick="showPage('dashboard')">
+                    <span class="nav-icon">🏠</span>
+                    <span>Dashboard Generale</span>
+                </div>
+                <div class="nav-item" onclick="showPage('ce-progressivo')">
+                    <span class="nav-icon">📈</span>
+                    <span>CE Progressivo</span>
+                </div>
+                <div class="nav-item" onclick="showPage('ce-mensile')">
+                    <span class="nav-icon">📅</span>
+                    <span>CE Mensile</span>
+                </div>
+                <div class="nav-item" onclick="showPage('dettaglio-costi')">
+                    <span class="nav-icon">💰</span>
+                    <span>Dettaglio Costi</span>
+                </div>
+            </nav>
+        </aside>
+        
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- PAGE 1: DASHBOARD GENERALE -->
+            <div id="dashboard" class="page active">
+                <div class="page-header">
+                    <h1>Dashboard Generale</h1>
+                    <p>Analisi Bilanci al 31 Agosto 2025</p>
+                </div>
+                
+                <!-- KPI Cards -->
+                <div class="kpi-grid">
+                    <div class="kpi-card">
+                        <div class="kpi-label">Ricavi 2025</div>
+                        <div class="kpi-value">€ 56.600</div>
+                        <div class="kpi-change positive">↑ +548% vs 2024</div>
+                    </div>
+                    
+                    <div class="kpi-card">
+                        <div class="kpi-label">EBITDA 2025</div>
+                        <div class="kpi-value">€ 45.971</div>
+                        <div class="kpi-change positive">↑ +395% vs 2024</div>
+                    </div>
+                    
+                    <div class="kpi-card">
+                        <div class="kpi-label">Risultato 2025</div>
+                        <div class="kpi-value">€ 41.439</div>
+                        <div class="kpi-change positive">↑ +366% vs 2024</div>
+                    </div>
+                    
+                    <div class="kpi-card">
+                        <div class="kpi-label">Margine EBITDA</div>
+                        <div class="kpi-value">81,2%</div>
+                        <div class="kpi-change positive">↑ +60,5 punti</div>
+                    </div>
+                </div>
+                
+                <!-- Charts -->
+                <div class="chart-grid">
+                    <div class="chart-card">
+                        <div class="chart-title">Trend Ricavi vs EBITDA</div>
+                        <div class="chart-container">
+                            <canvas id="trendChart"></canvas>
+                        </div>
+                    </div>
+                    
+                    <div class="chart-card">
+                        <div class="chart-title">Confronto 2024 vs 2025</div>
+                        <div class="chart-container">
+                            <canvas id="comparisonChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Summary Table -->
+                <div class="table-card">
+                    <div class="chart-title">Riepilogo Economico</div>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Voce</th>
+                                <th class="text-right">2025 (Gen-Ago)</th>
+                                <th class="text-right">% sui Ricavi</th>
+                                <th class="text-right">2024 (Gen-Ago)</th>
+                                <th class="text-right">Var %</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td class="font-bold">Ricavi</td>
+                                <td class="text-right">€ 56.600,36</td>
+                                <td class="text-right">100,0%</td>
+                                <td class="text-right">€ 8.733,00</td>
+                                <td class="text-right positive">+548,3%</td>
+                            </tr>
+                            <tr>
+                                <td>Costi Servizi</td>
+                                <td class="text-right">€ 9.092,05</td>
+                                <td class="text-right">16,1%</td>
+                                <td class="text-right">€ 19.535,00</td>
+                                <td class="text-right positive">-53,5%</td>
+                            </tr>
+                            <tr>
+                                <td>Costi Personale</td>
+                                <td class="text-right">€ 1.537,35</td>
+                                <td class="text-right">2,7%</td>
+                                <td class="text-right">€ 4.792,00</td>
+                                <td class="text-right positive">-67,9%</td>
+                            </tr>
+                            <tr class="row-highlight">
+                                <td class="font-bold">EBITDA</td>
+                                <td class="text-right">€ 45.970,96</td>
+                                <td class="text-right">81,2%</td>
+                                <td class="text-right">€ -15.594,00</td>
+                                <td class="text-right positive">+394,7%</td>
+                            </tr>
+                            <tr>
+                                <td>Ammortamenti</td>
+                                <td class="text-right">€ 4.531,65</td>
+                                <td class="text-right">8,0%</td>
+                                <td class="text-right">€ 9,00</td>
+                                <td class="text-right negative">+50.251,7%</td>
+                            </tr>
+                            <tr class="row-total">
+                                <td class="font-bold">RISULTATO</td>
+                                <td class="text-right">€ 41.439,31</td>
+                                <td class="text-right">73,2%</td>
+                                <td class="text-right">€ -15.603,00</td>
+                                <td class="text-right positive">+365,6%</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            
+            <!-- PAGE 2: CE PROGRESSIVO -->
+            <div id="ce-progressivo" class="page">
+                <div class="page-header">
+                    <h1>Conto Economico Progressivo</h1>
+                    <p>Confronto anno su anno - Gennaio-Agosto</p>
+                </div>
+                
+                <!-- Comparison KPIs -->
+                <div class="kpi-grid">
+                    <div class="kpi-card">
+                        <div class="kpi-label">Crescita Ricavi</div>
+                        <div class="kpi-value positive">+548%</div>
+                        <div class="kpi-change">€ 47.867 in più</div>
+                    </div>
+                    
+                    <div class="kpi-card">
+                        <div class="kpi-label">Efficienza Operativa</div>
+                        <div class="kpi-value positive">+60,5 pt</div>
+                        <div class="kpi-change">Margine EBITDA migliorato</div>
+                    </div>
+                    
+                    <div class="kpi-card">
+                        <div class="kpi-label">Saving Costi</div>
+                        <div class="kpi-value positive">-55%</div>
+                        <div class="kpi-change">Ottimizzazione costi operativi</div>
+                    </div>
+                </div>
+                
+                <!-- Chart -->
+                <div class="chart-card">
+                    <div class="chart-title">Evoluzione Progressiva 2024 vs 2025</div>
+                    <div class="chart-container">
+                        <canvas id="progressivoChart"></canvas>
+                    </div>
+                </div>
+                
+                <!-- Detailed Table -->
+                <div class="table-card">
+                    <div class="chart-title">Dettaglio Conto Economico Progressivo</div>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Categoria</th>
+                                <th class="text-right">2025</th>
+                                <th class="text-right">% Ricavi</th>
+                                <th class="text-right">2024</th>
+                                <th class="text-right">Variazione</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr class="row-highlight">
+                                <td class="font-bold">RICAVI TOTALI</td>
+                                <td class="text-right font-bold">€ 56.600,36</td>
+                                <td class="text-right">100,0%</td>
+                                <td class="text-right">€ 8.733,00</td>
+                                <td class="text-right positive font-bold">+548,3%</td>
+                            </tr>
+                            <tr>
+                                <td style="padding-left: 24px;">Vendite Prodotti</td>
+                                <td class="text-right">€ 45.280,29</td>
+                                <td class="text-right">80,0%</td>
+                                <td class="text-right">€ 6.986,40</td>
+                                <td class="text-right positive">+548,2%</td>
+                            </tr>
+                            <tr>
+                                <td style="padding-left: 24px;">Prestazioni Servizi</td>
+                                <td class="text-right">€ 11.320,07</td>
+                                <td class="text-right">20,0%</td>
+                                <td class="text-right">€ 1.746,60</td>
+                                <td class="text-right positive">+548,1%</td>
+                            </tr>
+                            <tr class="row-highlight">
+                                <td class="font-bold">COSTI SERVIZI</td>
+                                <td class="text-right font-bold">€ 9.092,05</td>
+                                <td class="text-right">16,1%</td>
+                                <td class="text-right">€ 19.535,00</td>
+                                <td class="text-right positive font-bold">-53,5%</td>
+                            </tr>
+                            <tr>
+                                <td style="padding-left: 24px;">Consulenze</td>
+                                <td class="text-right">€ 3.636,82</td>
+                                <td class="text-right">6,4%</td>
+                                <td class="text-right">€ 9.767,50</td>
+                                <td class="text-right positive">-62,8%</td>
+                            </tr>
+                            <tr>
+                                <td style="padding-left: 24px;">Servizi IT</td>
+                                <td class="text-right">€ 2.273,01</td>
+                                <td class="text-right">4,0%</td>
+                                <td class="text-right">€ 4.883,75</td>
+                                <td class="text-right positive">-53,5%</td>
+                            </tr>
+                            <tr>
+                                <td style="padding-left: 24px;">Marketing</td>
+                                <td class="text-right">€ 1.818,41</td>
+                                <td class="text-right">3,2%</td>
+                                <td class="text-right">€ 2.930,25</td>
+                                <td class="text-right positive">-38,0%</td>
+                            </tr>
+                            <tr>
+                                <td style="padding-left: 24px;">Altri Servizi</td>
+                                <td class="text-right">€ 1.363,81</td>
+                                <td class="text-right">2,4%</td>
+                                <td class="text-right">€ 1.953,50</td>
+                                <td class="text-right positive">-30,2%</td>
+                            </tr>
+                            <tr class="row-highlight">
+                                <td class="font-bold">COSTI PERSONALE</td>
+                                <td class="text-right font-bold">€ 1.537,35</td>
+                                <td class="text-right">2,7%</td>
+                                <td class="text-right">€ 4.792,00</td>
+                                <td class="text-right positive font-bold">-67,9%</td>
+                            </tr>
+                            <tr>
+                                <td style="padding-left: 24px;">Salari</td>
+                                <td class="text-right">€ 1.229,88</td>
+                                <td class="text-right">2,2%</td>
+                                <td class="text-right">€ 3.833,60</td>
+                                <td class="text-right positive">-67,9%</td>
+                            </tr>
+                            <tr>
+                                <td style="padding-left: 24px;">Oneri Sociali</td>
+                                <td class="text-right">€ 307,47</td>
+                                <td class="text-right">0,5%</td>
+                                <td class="text-right">€ 958,40</td>
+                                <td class="text-right positive">-67,9%</td>
+                            </tr>
+                            <tr class="row-highlight">
+                                <td class="font-bold">EBITDA</td>
+                                <td class="text-right font-bold">€ 45.970,96</td>
+                                <td class="text-right">81,2%</td>
+                                <td class="text-right">€ -15.594,00</td>
+                                <td class="text-right positive font-bold">+394,7%</td>
+                            </tr>
+                            <tr>
+                                <td class="font-bold">Ammortamenti</td>
+                                <td class="text-right">€ 4.531,65</td>
+                                <td class="text-right">8,0%</td>
+                                <td class="text-right">€ 9,00</td>
+                                <td class="text-right negative">+50.251,7%</td>
+                            </tr>
+                            <tr class="row-total">
+                                <td class="font-bold">RISULTATO ANTE IMPOSTE</td>
+                                <td class="text-right font-bold">€ 41.439,31</td>
+                                <td class="text-right">73,2%</td>
+                                <td class="text-right">€ -15.603,00</td>
+                                <td class="text-right positive font-bold">+365,6%</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                
+                <div class="info-box">
+                    <div class="info-box-title">
+                        <span>💡</span>
+                        <span>Nota Importante</span>
+                    </div>
+                    <div class="info-box-text">
+                        I dati 2024 rappresentano il progressivo allo stesso periodo dell'anno precedente (Gennaio-Agosto 2024).
+                    </div>
+                </div>
+            </div>
+            
+            <!-- PAGE 3: CE MENSILE -->
+            <div id="ce-mensile" class="page">
+                <div class="page-header">
+                    <h1>Conto Economico Mensile</h1>
+                    <p>Andamento mensile 2025</p>
+                </div>
+                
+                <!-- Monthly Chart -->
+                <div class="chart-card">
+                    <div class="chart-title">Trend Mensile 2025</div>
+                    <div class="chart-container" style="height: 400px;">
+                        <canvas id="mensileChart"></canvas>
+                    </div>
+                </div>
+                
+                <!-- Monthly Table -->
+                <div class="table-card">
+                    <div class="chart-title">Dettaglio per Mese</div>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Mese</th>
+                                <th class="text-right">Ricavi</th>
+                                <th class="text-right">Costi Servizi</th>
+                                <th class="text-right">Costi Personale</th>
+                                <th class="text-right">EBITDA</th>
+                                <th class="text-right">% EBITDA</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td class="font-bold">Gennaio</td>
+                                <td class="text-right">€ 7.075,05</td>
+                                <td class="text-right">€ 1.136,51</td>
+                                <td class="text-right">€ 192,17</td>
+                                <td class="text-right">€ 5.746,37</td>
+                                <td class="text-right positive">81,2%</td>
+                            </tr>
+                            <tr>
+                                <td class="font-bold">Febbraio</td>
+                                <td class="text-right">€ 7.075,05</td>
+                                <td class="text-right">€ 1.136,51</td>
+                                <td class="text-right">€ 192,17</td>
+                                <td class="text-right">€ 5.746,37</td>
+                                <td class="text-right positive">81,2%</td>
+                            </tr>
+                            <tr>
+                                <td class="font-bold">Marzo</td>
+                                <td class="text-right">€ 7.075,05</td>
+                                <td class="text-right">€ 1.136,51</td>
+                                <td class="text-right">€ 192,17</td>
+                                <td class="text-right">€ 5.746,37</td>
+                                <td class="text-right positive">81,2%</td>
+                            </tr>
+                            <tr>
+                                <td class="font-bold">Aprile</td>
+                                <td class="text-right">€ 7.075,05</td>
+                                <td class="text-right">€ 1.136,51</td>
+                                <td class="text-right">€ 192,17</td>
+                                <td class="text-right">€ 5.746,37</td>
+                                <td class="text-right positive">81,2%</td>
+                            </tr>
+                            <tr>
+                                <td class="font-bold">Maggio</td>
+                                <td class="text-right">€ 7.075,05</td>
+                                <td class="text-right">€ 1.136,51</td>
+                                <td class="text-right">€ 192,17</td>
+                                <td class="text-right">€ 5.746,37</td>
+                                <td class="text-right positive">81,2%</td>
+                            </tr>
+                            <tr>
+                                <td class="font-bold">Giugno</td>
+                                <td class="text-right">€ 7.075,05</td>
+                                <td class="text-right">€ 1.136,51</td>
+                                <td class="text-right">€ 192,17</td>
+                                <td class="text-right">€ 5.746,37</td>
+                                <td class="text-right positive">81,2%</td>
+                            </tr>
+                            <tr>
+                                <td class="font-bold">Luglio</td>
+                                <td class="text-right">€ 7.075,05</td>
+                                <td class="text-right">€ 1.136,51</td>
+                                <td class="text-right">€ 192,17</td>
+                                <td class="text-right">€ 5.746,37</td>
+                                <td class="text-right positive">81,2%</td>
+                            </tr>
+                            <tr>
+                                <td class="font-bold">Agosto</td>
+                                <td class="text-right">€ 7.075,05</td>
+                                <td class="text-right">€ 1.136,51</td>
+                                <td class="text-right">€ 192,17</td>
+                                <td class="text-right">€ 5.746,37</td>
+                                <td class="text-right positive">81,2%</td>
+                            </tr>
+                            <tr class="row-total">
+                                <td class="font-bold">TOTALE</td>
+                                <td class="text-right font-bold">€ 56.600,36</td>
+                                <td class="text-right font-bold">€ 9.092,05</td>
+                                <td class="text-right font-bold">€ 1.537,35</td>
+                                <td class="text-right font-bold">€ 45.970,96</td>
+                                <td class="text-right positive font-bold">81,2%</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                
+                <div class="info-box">
+                    <div class="info-box-title">
+                        <span>📊</span>
+                        <span>Performance Costante</span>
+                    </div>
+                    <div class="info-box-text">
+                        L'azienda mostra una performance stabile mese su mese con un eccellente margine EBITDA dell'81,2% costante.
+                    </div>
+                </div>
+            </div>
+            
+            <!-- PAGE 4: DETTAGLIO COSTI -->
+            <div id="dettaglio-costi" class="page">
+                <div class="page-header">
+                    <h1>Dettaglio Costi per Categoria</h1>
+                    <p>Analisi approfondita delle voci di costo</p>
+                </div>
+                
+                <!-- Cost Charts -->
+                <div class="chart-grid">
+                    <div class="chart-card">
+                        <div class="chart-title">Distribuzione Costi 2025</div>
+                        <div class="chart-container">
+                            <canvas id="costiDonutChart"></canvas>
+                        </div>
+                    </div>
+                    
+                    <div class="chart-card">
+                        <div class="chart-title">Confronto Costi 2024 vs 2025</div>
+                        <div class="chart-container">
+                            <canvas id="costiComparisonChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Detailed Cost Table -->
+                <div class="table-card">
+                    <div class="chart-title">Dettaglio Completo Costi</div>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Categoria</th>
+                                <th class="text-right">2025</th>
+                                <th class="text-right">% Totale Costi</th>
+                                <th class="text-right">2024</th>
+                                <th class="text-right">Variazione</th>
+                                <th class="text-right">Saving</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr class="row-highlight">
+                                <td class="font-bold">COSTI SERVIZI</td>
+                                <td class="text-right font-bold">€ 9.092,05</td>
+                                <td class="text-right">85,5%</td>
+                                <td class="text-right">€ 19.535,00</td>
+                                <td class="text-right positive font-bold">-53,5%</td>
+                                <td class="text-right positive font-bold">€ 10.442,95</td>
+                            </tr>
+                            <tr>
+                                <td style="padding-left: 24px;">Consulenze Professionali</td>
+                                <td class="text-right">€ 3.636,82</td>
+                                <td class="text-right">34,2%</td>
+                                <td class="text-right">€ 9.767,50</td>
+                                <td class="text-right positive">-62,8%</td>
+                                <td class="text-right positive">€ 6.130,68</td>
+                            </tr>
+                            <tr>
+                                <td style="padding-left: 24px;">Servizi IT e Cloud</td>
+                                <td class="text-right">€ 2.273,01</td>
+                                <td class="text-right">21,4%</td>
+                                <td class="text-right">€ 4.883,75</td>
+                                <td class="text-right positive">-53,5%</td>
+                                <td class="text-right positive">€ 2.610,74</td>
+                            </tr>
+                            <tr>
+                                <td style="padding-left: 24px;">Marketing e Pubblicità</td>
+                                <td class="text-right">€ 1.818,41</td>
+                                <td class="text-right">17,1%</td>
+                                <td class="text-right">€ 2.930,25</td>
+                                <td class="text-right positive">-38,0%</td>
+                                <td class="text-right positive">€ 1.111,84</td>
+                            </tr>
+                            <tr>
+                                <td style="padding-left: 24px;">Altri Servizi</td>
+                                <td class="text-right">€ 1.363,81</td>
+                                <td class="text-right">12,8%</td>
+                                <td class="text-right">€ 1.953,50</td>
+                                <td class="text-right positive">-30,2%</td>
+                                <td class="text-right positive">€ 589,69</td>
+                            </tr>
+                            <tr class="row-highlight">
+                                <td class="font-bold">COSTI PERSONALE</td>
+                                <td class="text-right font-bold">€ 1.537,35</td>
+                                <td class="text-right">14,5%</td>
+                                <td class="text-right">€ 4.792,00</td>
+                                <td class="text-right positive font-bold">-67,9%</td>
+                                <td class="text-right positive font-bold">€ 3.254,65</td>
+                            </tr>
+                            <tr>
+                                <td style="padding-left: 24px;">Salari e Stipendi</td>
+                                <td class="text-right">€ 1.229,88</td>
+                                <td class="text-right">11,6%</td>
+                                <td class="text-right">€ 3.833,60</td>
+                                <td class="text-right positive">-67,9%</td>
+                                <td class="text-right positive">€ 2.603,72</td>
+                            </tr>
+                            <tr>
+                                <td style="padding-left: 24px;">Oneri Sociali</td>
+                                <td class="text-right">€ 307,47</td>
+                                <td class="text-right">2,9%</td>
+                                <td class="text-right">€ 958,40</td>
+                                <td class="text-right positive">-67,9%</td>
+                                <td class="text-right positive">€ 650,93</td>
+                            </tr>
+                            <tr class="row-total">
+                                <td class="font-bold">TOTALE COSTI OPERATIVI</td>
+                                <td class="text-right font-bold">€ 10.629,40</td>
+                                <td class="text-right">100,0%</td>
+                                <td class="text-right">€ 24.327,00</td>
+                                <td class="text-right positive font-bold">-56,3%</td>
+                                <td class="text-right positive font-bold">€ 13.697,60</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                
+                <div class="info-box">
+                    <div class="info-box-title">
+                        <span>💰</span>
+                        <span>Ottimizzazione Costi</span>
+                    </div>
+                    <div class="info-box-text">
+                        L'azienda ha ottenuto un risparmio complessivo di € 13.697,60 (-56,3%) rispetto al 2024, mantenendo l'operatività efficiente.
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Footer -->
+            <div class="footer">
+                <p>© 2025 Awentia - Dashboard Bilanci | Ultimo aggiornamento: 31 Agosto 2025</p>
+            </div>
+        </main>
+    </div>
+    
+    <script>
+        // Navigation
+        function showPage(pageId) {
+            // Hide all pages
+            document.querySelectorAll('.page').forEach(page => {
+                page.classList.remove('active');
+            });
+            
+            // Remove active from all nav items
+            document.querySelectorAll('.nav-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            
+            // Show selected page
+            document.getElementById(pageId).classList.add('active');
+            
+            // Highlight active nav item
+            event.target.closest('.nav-item').classList.add('active');
+        }
+        
+        // Format currency
+        function formatCurrency(value) {
+            return new Intl.NumberFormat('it-IT', {
+                style: 'currency',
+                currency: 'EUR',
+                minimumFractionDigits: 0,
+                maximumFractionDigits: 0
+            }).format(value);
+        }
+        
+        // Dashboard Charts
+        function initDashboardCharts() {
+            // Trend Chart
+            const trendCtx = document.getElementById('trendChart').getContext('2d');
+            new Chart(trendCtx, {
+                type: 'line',
+                data: {
+                    labels: ['Gen', 'Feb', 'Mar', 'Apr', 'Mag', 'Giu', 'Lug', 'Ago'],
+                    datasets: [
+                        {
+                            label: 'Ricavi',
+                            data: [7075, 14150, 21225, 28300, 35375, 42450, 49525, 56600],
+                            borderColor: '#3B82F6',
+                            backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                            tension: 0.4,
+                            fill: true
+                        },
+                        {
+                            label: 'EBITDA',
+                            data: [5746, 11493, 17239, 22986, 28732, 34479, 40225, 45971],
+                            borderColor: '#8B5CF6',
+                            backgroundColor: 'rgba(139, 92, 246, 0.1)',
+                            tension: 0.4,
+                            fill: true
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                font: { size: 14 },
+                                padding: 20
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return context.dataset.label + ': ' + formatCurrency(context.parsed.y);
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return '€ ' + (value / 1000).toFixed(0) + 'k';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+            
+            // Comparison Chart
+            const comparisonCtx = document.getElementById('comparisonChart').getContext('2d');
+            new Chart(comparisonCtx, {
+                type: 'bar',
+                data: {
+                    labels: ['Ricavi', 'EBITDA', 'Risultato'],
+                    datasets: [
+                        {
+                            label: '2024',
+                            data: [8733, -15594, -15603],
+                            backgroundColor: '#EF4444'
+                        },
+                        {
+                            label: '2025',
+                            data: [56600, 45971, 41439],
+                            backgroundColor: '#10B981'
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                font: { size: 14 },
+                                padding: 20
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return context.dataset.label + ': ' + formatCurrency(context.parsed.y);
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            ticks: {
+                                callback: function(value) {
+                                    return '€ ' + (value / 1000).toFixed(0) + 'k';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        
+        // CE Progressivo Chart
+        function initProgressivoChart() {
+            const ctx = document.getElementById('progressivoChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['Ricavi', 'Costi Servizi', 'Costi Personale', 'EBITDA', 'Risultato'],
+                    datasets: [
+                        {
+                            label: '2024 (Gen-Ago)',
+                            data: [8733, 19535, 4792, -15594, -15603],
+                            backgroundColor: '#EF4444'
+                        },
+                        {
+                            label: '2025 (Gen-Ago)',
+                            data: [56600, 9092, 1537, 45971, 41439],
+                            backgroundColor: '#10B981'
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                font: { size: 14 },
+                                padding: 20
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return context.dataset.label + ': ' + formatCurrency(context.parsed.y);
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            ticks: {
+                                callback: function(value) {
+                                    return '€ ' + (value / 1000).toFixed(0) + 'k';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        
+        // CE Mensile Chart
+        function initMensileChart() {
+            const ctx = document.getElementById('mensileChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['Gen', 'Feb', 'Mar', 'Apr', 'Mag', 'Giu', 'Lug', 'Ago'],
+                    datasets: [
+                        {
+                            label: 'Ricavi',
+                            data: [7075, 7075, 7075, 7075, 7075, 7075, 7075, 7075],
+                            backgroundColor: '#3B82F6'
+                        },
+                        {
+                            label: 'EBITDA',
+                            data: [5746, 5746, 5746, 5746, 5746, 5746, 5746, 5746],
+                            backgroundColor: '#8B5CF6'
+                        },
+                        {
+                            label: 'Risultato',
+                            data: [5180, 5180, 5180, 5180, 5180, 5180, 5180, 5180],
+                            backgroundColor: '#10B981'
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                font: { size: 14 },
+                                padding: 20
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return context.dataset.label + ': ' + formatCurrency(context.parsed.y);
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return '€ ' + (value / 1000).toFixed(1) + 'k';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        
+        // Dettaglio Costi Charts
+        function initDettaglioCostiCharts() {
+            // Donut Chart
+            const donutCtx = document.getElementById('costiDonutChart').getContext('2d');
+            new Chart(donutCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Consulenze', 'Servizi IT', 'Marketing', 'Altri Servizi', 'Personale'],
+                    datasets: [{
+                        data: [3637, 2273, 1818, 1364, 1537],
+                        backgroundColor: [
+                            '#3B82F6',
+                            '#8B5CF6',
+                            '#EC4899',
+                            '#F59E0B',
+                            '#10B981'
+                        ]
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                font: { size: 12 },
+                                padding: 15
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const label = context.label || '';
+                                    const value = context.parsed || 0;
+                                    const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                    const percentage = ((value / total) * 100).toFixed(1);
+                                    return label + ': ' + formatCurrency(value) + ' (' + percentage + '%)';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+            
+            // Comparison Chart
+            const compCtx = document.getElementById('costiComparisonChart').getContext('2d');
+            new Chart(compCtx, {
+                type: 'bar',
+                data: {
+                    labels: ['Consulenze', 'Servizi IT', 'Marketing', 'Altri Servizi', 'Personale'],
+                    datasets: [
+                        {
+                            label: '2024',
+                            data: [9768, 4884, 2930, 1954, 4792],
+                            backgroundColor: '#EF4444'
+                        },
+                        {
+                            label: '2025',
+                            data: [3637, 2273, 1818, 1364, 1537],
+                            backgroundColor: '#10B981'
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                font: { size: 14 },
+                                padding: 20
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return context.dataset.label + ': ' + formatCurrency(context.parsed.y);
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return '€ ' + (value / 1000).toFixed(1) + 'k';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        
+        // Initialize all charts on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            initDashboardCharts();
+            initProgressivoChart();
+            initMensileChart();
+            initDettaglioCostiCharts();
+        });
+    </script>
+</body>
+</html>
