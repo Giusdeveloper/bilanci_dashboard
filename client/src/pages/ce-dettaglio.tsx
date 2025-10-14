@@ -1,8 +1,10 @@
 import PageHeader from "@/components/PageHeader";
 import DataTable from "@/components/DataTable";
+import { financialData, formatCurrency, formatPercentage, calculateVariance } from "@/data/financialData";
 
 export default function CEDettaglio() {
-  //todo: remove mock functionality
+  const { progressivo2025, progressivo2024 } = financialData.ceDettaglio;
+
   const columns = [
     { key: "voce", label: "Voce", align: "left" as const },
     { key: "value2025", label: "2025 (Gen-Ago)", align: "right" as const },
@@ -11,182 +13,108 @@ export default function CEDettaglio() {
     { key: "variance", label: "Var %", align: "right" as const },
   ];
 
+  const createRow = (label: string, value2025: number, value2024: number, isBold = false) => {
+    const percentage = (value2025 / progressivo2025.totaleRicavi) * 100;
+    const variance = calculateVariance(value2025, value2024);
+    return {
+      voce: label,
+      value2025: formatCurrency(value2025),
+      percentage: formatPercentage(percentage, 1),
+      value2024: formatCurrency(value2024),
+      variance: value2024 === 0 && value2025 === 0 ? "n/a" : `${variance >= 0 ? '+' : ''}${formatPercentage(variance, 1)}`,
+      ...(isBold && { className: "font-bold" }),
+    };
+  };
+
+  const emptyRow = { voce: "", value2025: "", percentage: "", value2024: "", variance: "" };
+
   const data = [
-    {
-      voce: "RICAVI DELLE VENDITE",
-      value2025: "€ 56.600,36",
-      percentage: "100,0%",
-      value2024: "€ 8.733,00",
-      variance: "+548,3%",
-    },
-    {
-      voce: "Vendite prodotti",
-      value2025: "€ 45.200,00",
-      percentage: "79,9%",
-      value2024: "€ 6.500,00",
-      variance: "+595,4%",
-    },
-    {
-      voce: "Prestazioni servizi",
-      value2025: "€ 11.400,36",
-      percentage: "20,1%",
-      value2024: "€ 2.233,00",
-      variance: "+410,5%",
-    },
-    {
-      voce: "",
-      value2025: "",
-      percentage: "",
-      value2024: "",
-      variance: "",
-    },
-    {
-      voce: "COSTI PER SERVIZI",
-      value2025: "€ 9.092,05",
-      percentage: "16,1%",
-      value2024: "€ 19.535,00",
-      variance: "-53,5%",
-    },
-    {
-      voce: "Costi commerciali",
-      value2025: "€ 3.450,00",
-      percentage: "6,1%",
-      value2024: "€ 8.200,00",
-      variance: "-57,9%",
-    },
-    {
-      voce: "Consulenze professionali",
-      value2025: "€ 2.800,00",
-      percentage: "4,9%",
-      value2024: "€ 5.100,00",
-      variance: "-45,1%",
-    },
-    {
-      voce: "Spese generali",
-      value2025: "€ 1.542,05",
-      percentage: "2,7%",
-      value2024: "€ 3.235,00",
-      variance: "-52,3%",
-    },
-    {
-      voce: "Marketing e pubblicità",
-      value2025: "€ 1.300,00",
-      percentage: "2,3%",
-      value2024: "€ 3.000,00",
-      variance: "-56,7%",
-    },
-    {
-      voce: "",
-      value2025: "",
-      percentage: "",
-      value2024: "",
-      variance: "",
-    },
-    {
-      voce: "COSTI DEL PERSONALE",
-      value2025: "€ 1.537,20",
-      percentage: "2,7%",
-      value2024: "€ 0,00",
-      variance: "n/a",
-    },
-    {
-      voce: "Salari e stipendi",
-      value2025: "€ 1.200,00",
-      percentage: "2,1%",
-      value2024: "€ 0,00",
-      variance: "n/a",
-    },
-    {
-      voce: "Oneri sociali",
-      value2025: "€ 337,20",
-      percentage: "0,6%",
-      value2024: "€ 0,00",
-      variance: "n/a",
-    },
-    {
-      voce: "",
-      value2025: "",
-      percentage: "",
-      value2024: "",
-      variance: "",
-    },
-    {
-      voce: "VALORE AGGIUNTO",
-      value2025: "€ 45.971,11",
-      percentage: "81,2%",
-      value2024: "€ -10.802,00",
-      variance: "+525,5%",
-    },
-    {
-      voce: "",
-      value2025: "",
-      percentage: "",
-      value2024: "",
-      variance: "",
-    },
-    {
-      voce: "Altri proventi operativi",
-      value2025: "€ 0,00",
-      percentage: "0,0%",
-      value2024: "€ 20.095,00",
-      variance: "-100,0%",
-    },
-    {
-      voce: "",
-      value2025: "",
-      percentage: "",
-      value2024: "",
-      variance: "",
-    },
-    {
-      voce: "EBITDA",
-      value2025: "€ 45.971,11",
-      percentage: "81,2%",
-      value2024: "€ 9.293,00",
-      variance: "+395,0%",
-    },
-    {
-      voce: "",
-      value2025: "",
-      percentage: "",
-      value2024: "",
-      variance: "",
-    },
-    {
-      voce: "Ammortamenti immobilizzazioni",
-      value2025: "€ 4.532,00",
-      percentage: "8,0%",
-      value2024: "€ 400,00",
-      variance: "+1033,0%",
-    },
-    {
-      voce: "",
-      value2025: "",
-      percentage: "",
-      value2024: "",
-      variance: "",
-    },
-    {
-      voce: "RISULTATO OPERATIVO",
-      value2025: "€ 41.439,11",
-      percentage: "73,2%",
-      value2024: "€ 8.893,00",
-      variance: "+366,0%",
-    },
+    createRow("Ricavi caratteristici", progressivo2025.ricaviCaratteristici, progressivo2024.ricaviCaratteristici, true),
+    createRow("Altri ricavi", progressivo2025.altriRicavi, progressivo2024.altriRicavi),
+    createRow("TOTALE RICAVI", progressivo2025.totaleRicavi, progressivo2024.totaleRicavi, true),
+    emptyRow,
+    createRow("Servizi diretti", progressivo2025.serviziDiretti, progressivo2024.serviziDiretti),
+    createRow("Consulenze dirette", progressivo2025.consulenzeDirette, progressivo2024.consulenzeDirette),
+    createRow("Servizi informatici web", progressivo2025.serviziInformatici, progressivo2024.serviziInformatici),
+    createRow("Servizi cloud", progressivo2025.serviziCloud, progressivo2024.serviziCloud),
+    createRow("COSTI DIRETTI", progressivo2025.costiDiretti, progressivo2024.costiDiretti, true),
+    createRow("Altri servizi e prestazioni", progressivo2025.altriServizi, progressivo2024.altriServizi),
+    createRow("COSTI INDIRETTI", progressivo2025.costiIndiretti, progressivo2024.costiIndiretti, true),
+    createRow("TOTALE COSTI DIRETTI E INDIRETTI", progressivo2025.totaleCostiDirettiIndiretti, progressivo2024.totaleCostiDirettiIndiretti, true),
+    createRow("GROSS PROFIT", progressivo2025.grossProfit, progressivo2024.grossProfit, true),
+    emptyRow,
+    { voce: "SPESE COMMERCIALI", value2025: "", percentage: "", value2024: "", variance: "", className: "font-bold bg-muted/30" },
+    createRow("Spese viaggio", progressivo2025.speseViaggio, progressivo2024.speseViaggio),
+    createRow("Pedaggi autostradali", progressivo2025.pedaggi, progressivo2024.pedaggi),
+    createRow("Pubblicità", progressivo2025.pubblicita, progressivo2024.pubblicita),
+    createRow("Materiale pubblicitario", progressivo2025.materialePubblicitario, progressivo2024.materialePubblicitario),
+    createRow("Omaggi", progressivo2025.omaggi, progressivo2024.omaggi),
+    createRow("Spese di rappresentanza", progressivo2025.speseRappresentanza, progressivo2024.speseRappresentanza),
+    createRow("Mostre e fiere", progressivo2025.mostreFiere, progressivo2024.mostreFiere),
+    createRow("Servizi commerciali", progressivo2025.serviziCommerciali, progressivo2024.serviziCommerciali),
+    createRow("Carburante", progressivo2025.carburante, progressivo2024.carburante),
+    createRow("SPESE COMMERCIALI", progressivo2025.speseCommerciali, progressivo2024.speseCommerciali, true),
+    emptyRow,
+    { voce: "SPESE DI STRUTTURA", value2025: "", percentage: "", value2024: "", variance: "", className: "font-bold bg-muted/30" },
+    createRow("Beni indeducibili", progressivo2025.beniIndeducibili, progressivo2024.beniIndeducibili),
+    createRow("Spese generali", progressivo2025.speseGenerali, progressivo2024.speseGenerali),
+    createRow("Materiale vario e di consumo", progressivo2025.materialeConsumo, progressivo2024.materialeConsumo),
+    createRow("Spese di pulizia", progressivo2025.spesePulizia, progressivo2024.spesePulizia),
+    createRow("Utenze", progressivo2025.utenze, progressivo2024.utenze),
+    createRow("Assicurazioni", progressivo2025.assicurazioni, progressivo2024.assicurazioni),
+    createRow("Rimanenze", progressivo2025.rimanenze, progressivo2024.rimanenze),
+    createRow("Tasse e valori bollati", progressivo2025.tasseValori, progressivo2024.tasseValori),
+    createRow("Sanzioni e multe", progressivo2025.sanzioniMulte, progressivo2024.sanzioniMulte),
+    createRow("Compensi amministratore", progressivo2025.compensiAmministratore, progressivo2024.compensiAmministratore),
+    createRow("Rimborsi amministratore", progressivo2025.rimborsiAmministratore, progressivo2024.rimborsiAmministratore),
+    createRow("Personale", progressivo2025.personale, progressivo2024.personale),
+    createRow("Servizi amministrativi contabilità", progressivo2025.serviziAmministrativi, progressivo2024.serviziAmministrativi),
+    createRow("Servizi amministrativi paghe", progressivo2025.serviziAmministrativiPaghe, progressivo2024.serviziAmministrativiPaghe),
+    createRow("Consulenze tecniche", progressivo2025.consulenzeTecniche, progressivo2024.consulenzeTecniche),
+    createRow("Consulenze legali", progressivo2025.consulenzeLegali, progressivo2024.consulenzeLegali),
+    createRow("Locazioni e noleggi", progressivo2025.locazioniNoleggi, progressivo2024.locazioniNoleggi),
+    createRow("Servizi indeducibili", progressivo2025.serviziIndeducibili, progressivo2024.serviziIndeducibili),
+    createRow("Utili e perdite su cambi", progressivo2025.utiliPerditeCambi, progressivo2024.utiliPerditeCambi),
+    createRow("Perdite su crediti", progressivo2025.perditeSuCrediti, progressivo2024.perditeSuCrediti),
+    createRow("Licenze d'uso", progressivo2025.licenzeUso, progressivo2024.licenzeUso),
+    createRow("Utenze telefoniche e cellulari", progressivo2025.utenzeTelefoniche, progressivo2024.utenzeTelefoniche),
+    createRow("Altri oneri", progressivo2025.altriOneri, progressivo2024.altriOneri),
+    createRow("Abbuoni e arrotondamenti", progressivo2025.abbuoniArrotondamenti, progressivo2024.abbuoniArrotondamenti),
+    createRow("SPESE DI STRUTTURA", progressivo2025.speseStruttura, progressivo2024.speseStruttura, true),
+    emptyRow,
+    createRow("TOTALE GESTIONE STRUTTURA", progressivo2025.totaleGestioneStruttura, progressivo2024.totaleGestioneStruttura, true),
+    createRow("EBITDA", progressivo2025.ebitda, progressivo2024.ebitda, true),
+    emptyRow,
+    createRow("Ammortamenti immateriali", progressivo2025.ammortamentiImmateriali, progressivo2024.ammortamentiImmateriali),
+    createRow("Ammortamenti materiali", progressivo2025.ammortamentiMateriali, progressivo2024.ammortamentiMateriali),
+    createRow("Svalutazioni e accantonamenti", progressivo2025.svalutazioni, progressivo2024.svalutazioni),
+    createRow("AMMORTAMENTI, ACCANT. SVALUTAZIONI", progressivo2025.totaleAmmortamenti, progressivo2024.totaleAmmortamenti, true),
+    emptyRow,
+    createRow("Gestione straordinaria", progressivo2025.gestioneStraordinaria, progressivo2024.gestioneStraordinaria),
+    createRow("EBIT", progressivo2025.ebit, progressivo2024.ebit, true),
+    emptyRow,
+    createRow("Spese e commissioni bancarie", progressivo2025.speseCommissioniBancarie, progressivo2024.speseCommissioniBancarie),
+    createRow("Interessi passivi su mutui", progressivo2025.interessiPassiviMutui, progressivo2024.interessiPassiviMutui),
+    createRow("Altri interessi", progressivo2025.altriInteressi, progressivo2024.altriInteressi),
+    createRow("GESTIONE FINANZIARIA", progressivo2025.gestioneFinanziaria, progressivo2024.gestioneFinanziaria, true),
+    emptyRow,
+    createRow("EBT", progressivo2025.ebt, progressivo2024.ebt, true),
+    createRow("Imposte dirette", progressivo2025.imposteDirette, progressivo2024.imposteDirette),
+    createRow("RISULTATO DELL'ESERCIZIO", progressivo2025.risultatoEsercizio, progressivo2024.risultatoEsercizio, true),
   ];
 
   return (
     <div data-testid="page-ce-dettaglio">
       <PageHeader 
         title="CE Dettaglio" 
-        subtitle="Conto Economico Dettagliato - Analisi completa per voce"
+        subtitle="Conto Economico Dettagliato - Analisi completa per voce (Progressivo Gen-Ago)"
       />
 
       <DataTable 
         columns={columns} 
         data={data}
-        highlightRows={[14, 18]}
-        totalRows={[0, 4, 10, 22]}
+        highlightRows={[2, 8, 10, 11, 12, 24, 50, 51, 52, 58, 60, 66, 68, 70]}
+        totalRows={[2, 8, 11, 12, 24, 50, 51, 52, 58, 60, 66, 68, 70]}
       />
     </div>
   );
