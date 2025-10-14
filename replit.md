@@ -57,7 +57,13 @@ Preferred communication style: Simple, everyday language.
 
 **Current Schema**: Basic users table with UUID primary keys. The application is structured to support PostgreSQL but currently uses in-memory storage for development.
 
-**Data Strategy**: Financial data is currently hardcoded in `client/src/data/financialData.ts` containing comprehensive P&L data for 2024-2025 comparison and monthly trends.
+**Data Strategy**: Financial data integrated from 5 CSV files (exported from Google Sheets) into `client/src/data/financialData.ts`. The module contains:
+- Dashboard data: Overview KPIs and summary metrics (Ricavi €231,136, EBITDA -€21,178, Risultato -€57,871 for 2025)
+- CE Dettaglio: Detailed P&L with 60+ line items comparing 2025 vs 2024 progressivo (Jan-Aug)
+- CE Dettaglio Mensile: Monthly progressive breakdown with cumulative values
+- CE Sintetico: Aggregated P&L categories with KPI metrics
+- CE Sintetico Mensile: Monthly trend data for key aggregates
+- Utility functions: formatCurrency, formatPercentage, calculateVariance for consistent formatting
 
 ### Authentication & Authorization
 
