@@ -25,20 +25,22 @@ export default function AppSidebar() {
 
   return (
     <Sidebar 
-      className="border-r" 
+      className="border-none"
+      collapsible="none"
       style={{
-        background: "linear-gradient(180deg, hsl(var(--primary)) 0%, #4f46e5 100%)",
+        background: "linear-gradient(180deg, #6366f1 0%, #4f46e5 100%)",
+        boxShadow: "4px 0 12px rgba(0,0,0,0.1)",
       }}
     >
-      <SidebarHeader className="p-6">
-        <div className="text-2xl font-extrabold text-white mb-1" data-testid="text-sidebar-logo">
+      <SidebarHeader className="px-6 py-6 pb-10">
+        <div className="text-[28px] font-extrabold text-white mb-2" data-testid="text-sidebar-logo">
           📊 Dashboard Bilanci
         </div>
-        <div className="text-sm text-white/80" data-testid="text-sidebar-company">
+        <div className="text-sm text-white/80 font-medium" data-testid="text-sidebar-company">
           Awentia Srl
         </div>
       </SidebarHeader>
-      <SidebarContent>
+      <SidebarContent className="px-6">
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu>
@@ -47,10 +49,10 @@ export default function AppSidebar() {
                   <SidebarMenuButton 
                     asChild 
                     isActive={location === item.url}
-                    className="text-white/90 hover:text-white hover:bg-white/10 data-[active=true]:bg-white/15 data-[active=true]:text-white data-[active=true]:font-semibold"
+                    className="text-white/90 hover:text-white hover:bg-white/10 data-[active=true]:bg-white/15 data-[active=true]:text-white data-[active=true]:font-semibold data-[active=true]:border-l-[3px] data-[active=true]:border-l-white px-4 py-3.5 mb-2 rounded-[10px] text-[15px]"
                     data-testid={`nav-${item.title.toLowerCase().replace(/\s+/g, '-')}`}
                   >
-                    <a href={item.url}>
+                    <a href={item.url} className="flex items-center gap-3">
                       <item.icon className="w-5 h-5" />
                       <span>{item.title}</span>
                     </a>

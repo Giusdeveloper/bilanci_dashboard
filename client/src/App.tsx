@@ -37,16 +37,11 @@ export default function App() {
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <SidebarProvider style={style as React.CSSProperties}>
-          <div className="flex h-screen w-full">
+          <div className="flex min-h-screen w-full bg-background">
             <AppSidebar />
-            <div className="flex flex-col flex-1">
-              <header className="flex items-center justify-between p-4 border-b">
-                <SidebarTrigger data-testid="button-sidebar-toggle" />
-              </header>
-              <main className="flex-1 overflow-auto p-8">
-                <Router />
-              </main>
-            </div>
+            <main className="flex-1 p-8 overflow-auto">
+              <Router />
+            </main>
           </div>
         </SidebarProvider>
         <Toaster />
