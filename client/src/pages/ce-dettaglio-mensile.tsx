@@ -1,90 +1,47 @@
 import PageHeader from "@/components/PageHeader";
 import { Card } from "@/components/ui/card";
+import { financialData, formatCurrency } from "@/data/financialData";
 
 export default function CEDettaglioMensile() {
-  //todo: remove mock functionality
-  const months = ["Gen", "Feb", "Mar", "Apr", "Mag", "Giu", "Lug", "Ago"];
-  
+  const { progressivo2025 } = financialData.ceDettaglioMensile;
+  const months = progressivo2025.months;
+
+  const createRowData = (label: string, values: number[], isBold = false, isHighlight = false) => ({
+    voce: label,
+    values: values.map((v) => formatCurrency(v).replace("€", "").trim()),
+    total: formatCurrency(values[values.length - 1]).replace("€", "").trim(),
+    isBold,
+    isHighlight,
+  });
+
   const data = [
-    {
-      voce: "Ricavi",
-      gen: "5.200",
-      feb: "6.800",
-      mar: "7.100",
-      apr: "8.900",
-      mag: "9.200",
-      giu: "7.100",
-      lug: "5.800",
-      ago: "6.400",
-      total: "56.600",
-    },
-    {
-      voce: "Costi Servizi",
-      gen: "950",
-      feb: "1.100",
-      mar: "1.050",
-      apr: "1.200",
-      mag: "1.350",
-      giu: "1.100",
-      lug: "950",
-      ago: "1.392",
-      total: "9.092",
-    },
-    {
-      voce: "Costi Personale",
-      gen: "0",
-      feb: "0",
-      mar: "0",
-      apr: "512",
-      mag: "512",
-      giu: "171",
-      lug: "171",
-      ago: "171",
-      total: "1.537",
-    },
-    {
-      voce: "EBITDA",
-      gen: "4.250",
-      feb: "5.700",
-      mar: "6.050",
-      apr: "7.188",
-      mag: "7.338",
-      giu: "5.829",
-      lug: "4.679",
-      ago: "4.837",
-      total: "45.971",
-    },
-    {
-      voce: "Ammortamenti",
-      gen: "566",
-      feb: "566",
-      mar: "566",
-      apr: "566",
-      mag: "566",
-      giu: "566",
-      lug: "566",
-      ago: "570",
-      total: "4.532",
-    },
-    {
-      voce: "Risultato Operativo",
-      gen: "3.684",
-      feb: "5.134",
-      mar: "5.484",
-      apr: "6.622",
-      mag: "6.772",
-      giu: "5.263",
-      lug: "4.113",
-      ago: "4.267",
-      total: "41.439",
-    },
+    createRowData("Ricavi caratteristici", progressivo2025.ricaviCaratteristici),
+    createRowData("Altri ricavi", progressivo2025.altriRicavi),
+    createRowData("TOTALE RICAVI", progressivo2025.totaleRicavi, true, true),
+    { voce: "", values: [], total: "", isBold: false, isHighlight: false },
+    createRowData("Costi diretti", progressivo2025.costiDiretti),
+    createRowData("Costi indiretti", progressivo2025.costiIndiretti),
+    createRowData("GROSS PROFIT", progressivo2025.grossProfit, true, true),
+    { voce: "", values: [], total: "", isBold: false, isHighlight: false },
+    createRowData("Spese commerciali", progressivo2025.speseCommerciali),
+    createRowData("Personale", progressivo2025.personale),
+    createRowData("Compensi amministratore", progressivo2025.compensiAmministratore),
+    createRowData("Servizi contabili e paghe", progressivo2025.serviziContabiliPaghe),
+    createRowData("Consulenze tecniche", progressivo2025.consulenzeTecniche),
+    createRowData("Altre spese di funzionamento", progressivo2025.altreSpeseFunzionamento),
+    createRowData("TOTALE STRUTTURA", progressivo2025.totaleStruttura, true, true),
+    { voce: "", values: [], total: "", isBold: false, isHighlight: false },
+    createRowData("EBITDA", progressivo2025.ebitda, true, true),
+    createRowData("Ammortamenti", progressivo2025.ammortamenti),
+    createRowData("Gestione finanziaria", progressivo2025.gestioneFinanziaria),
+    createRowData("RISULTATO", progressivo2025.risultato, true, true),
   ];
 
   return (
     <div data-testid="page-ce-dettaglio-mensile">
       <PageHeader 
         title="CE Dettaglio Mensile" 
-        subtitle="Analisi mensile del Conto Economico - Gennaio-Agosto 2025"
+        subtitle="Analisi mensile del Conto Economico - Progressivi Gennaio-Agosto 2025"
       />
 
       <Card className="p-6 overflow-x-auto">
@@ -104,15 +61,24 @@ export default function CEDettaglioMensile() {
                   </th>
                 ))}
                 <th className="bg-muted px-3 py-3 text-sm font-semibold text-muted-foreground border-b-2 border-border text-right font-bold">
-                  Totale
+                  Ago (Finale)
                 </th>
               </tr>
             </thead>
             <tbody>
               {data.map((row, idx) => {
-                const isTotal = idx === 3 || idx === 5;
-                const rowClassName = isTotal 
+                if (row.voce === "") {
+                  return (
+                    <tr key={idx}>
+                      <td colSpan={10} className="py-1"></td>
+                    </tr>
+                  );
+                }
+
+                const rowClassName = row.isHighlight
                   ? "bg-blue-50 dark:bg-blue-950/20 font-bold" 
+                  : row.isBold
+                  ? "font-bold"
                   : "hover:bg-muted/50";
 
                 return (
@@ -120,15 +86,12 @@ export default function CEDettaglioMensile() {
                     <td className="px-3 py-3 text-sm border-b border-border font-semibold sticky left-0 bg-card">
                       {row.voce}
                     </td>
-                    <td className="px-3 py-3 text-sm border-b border-border text-right">€ {row.gen}</td>
-                    <td className="px-3 py-3 text-sm border-b border-border text-right">€ {row.feb}</td>
-                    <td className="px-3 py-3 text-sm border-b border-border text-right">€ {row.mar}</td>
-                    <td className="px-3 py-3 text-sm border-b border-border text-right">€ {row.apr}</td>
-                    <td className="px-3 py-3 text-sm border-b border-border text-right">€ {row.mag}</td>
-                    <td className="px-3 py-3 text-sm border-b border-border text-right">€ {row.giu}</td>
-                    <td className="px-3 py-3 text-sm border-b border-border text-right">€ {row.lug}</td>
-                    <td className="px-3 py-3 text-sm border-b border-border text-right">€ {row.ago}</td>
-                    <td className="px-3 py-3 text-sm border-b border-border text-right font-bold bg-blue-50 dark:bg-blue-950/20">
+                    {row.values.map((value, i) => (
+                      <td key={i} className="px-3 py-3 text-sm border-b border-border text-right whitespace-nowrap">
+                        € {value}
+                      </td>
+                    ))}
+                    <td className={`px-3 py-3 text-sm border-b border-border text-right font-bold whitespace-nowrap ${row.isHighlight ? 'bg-blue-100 dark:bg-blue-900/30' : 'bg-muted/30'}`}>
                       € {row.total}
                     </td>
                   </tr>
