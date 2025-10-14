@@ -14,6 +14,7 @@ import {
   Tooltip,
   Legend,
 } from "chart.js";
+import { financialData, formatCurrency, formatPercentage, calculateVariance } from "@/data/financialData";
 
 ChartJS.register(
   CategoryScale,
@@ -27,20 +28,26 @@ ChartJS.register(
 );
 
 export default function Dashboard() {
-  //todo: remove mock functionality
+  const { kpis, monthlyTrend, summary } = financialData.dashboard;
+
+  const ricaviVariance = calculateVariance(kpis.ricavi2025, kpis.ricavi2024);
+  const ebitdaVariance = calculateVariance(kpis.ebitda2025, kpis.ebitda2024);
+  const risultatoVariance = calculateVariance(kpis.risultato2025, kpis.risultato2024);
+  const margineVariance = kpis.margineEbitda2025 - kpis.margineEbitda2024;
+
   const trendData = {
-    labels: ["Gen", "Feb", "Mar", "Apr", "Mag", "Giu", "Lug", "Ago"],
+    labels: monthlyTrend.labels,
     datasets: [
       {
         label: "Ricavi",
-        data: [5200, 6800, 7100, 8900, 9200, 7100, 5800, 6400],
+        data: monthlyTrend.ricavi,
         borderColor: "hsl(243, 75%, 59%)",
         backgroundColor: "hsl(243, 75%, 59%, 0.1)",
         tension: 0.4,
       },
       {
         label: "EBITDA",
-        data: [4100, 5500, 5800, 7300, 7500, 5900, 4800, 5271],
+        data: monthlyTrend.ebitda,
         borderColor: "hsl(142, 76%, 36%)",
         backgroundColor: "hsl(142, 76%, 36%, 0.1)",
         tension: 0.4,
@@ -53,12 +60,12 @@ export default function Dashboard() {
     datasets: [
       {
         label: "2024 (Gen-Ago)",
-        data: [8733, 9293, 8893],
+        data: [kpis.ricavi2024, kpis.ebitda2024, kpis.risultato2024],
         backgroundColor: "hsl(220, 9%, 46%)",
       },
       {
         label: "2025 (Gen-Ago)",
-        data: [56600, 45971, 41439],
+        data: [kpis.ricavi2025, kpis.ebitda2025, kpis.risultato2025],
         backgroundColor: "hsl(243, 75%, 59%)",
       },
     ],
@@ -74,7 +81,7 @@ export default function Dashboard() {
     },
     scales: {
       y: {
-        beginAtZero: true,
+        beginAtZero: false,
       },
     },
   };
@@ -87,50 +94,16 @@ export default function Dashboard() {
     { key: "variance", label: "Var %", align: "right" as const },
   ];
 
-  const tableData = [
-    {
-      voce: "Ricavi",
-      value2025: "€ 56.600,36",
-      percentage: "100,0%",
-      value2024: "€ 8.733,00",
-      variance: "+548,3%",
-    },
-    {
-      voce: "Costi Servizi",
-      value2025: "€ 9.092,05",
-      percentage: "16,1%",
-      value2024: "€ 19.535,00",
-      variance: "-53,5%",
-    },
-    {
-      voce: "Costi Personale",
-      value2025: "€ 1.537,20",
-      percentage: "2,7%",
-      value2024: "€ 0,00",
-      variance: "+100,0%",
-    },
-    {
-      voce: "EBITDA",
-      value2025: "€ 45.971,11",
-      percentage: "81,2%",
-      value2024: "€ 9.293,00",
-      variance: "+395,0%",
-    },
-    {
-      voce: "Ammortamenti",
-      value2025: "€ 4.532,00",
-      percentage: "8,0%",
-      value2024: "€ 400,00",
-      variance: "+1033,0%",
-    },
-    {
-      voce: "Risultato Operativo",
-      value2025: "€ 41.439,11",
-      percentage: "73,2%",
-      value2024: "€ 8.893,00",
-      variance: "+366,0%",
-    },
-  ];
+  const tableData = summary.map((row) => {
+    const variance = calculateVariance(row.value2025, row.value2024);
+    return {
+      voce: row.voce,
+      value2025: formatCurrency(row.value2025),
+      percentage: formatPercentage(row.percentage),
+      value2024: formatCurrency(row.value2024),
+      variance: `${variance >= 0 ? '+' : ''}${formatPercentage(variance, 1)}`,
+    };
+  });
 
   return (
     <div data-testid="page-dashboard">
@@ -142,27 +115,27 @@ export default function Dashboard() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         <KPICard 
           label="Ricavi 2025" 
-          value="€ 56.600" 
-          change="+548% vs 2024"
-          changeType="positive"
+          value={formatCurrency(kpis.ricavi2025)}
+          change={`${ricaviVariance >= 0 ? '+' : ''}${formatPercentage(ricaviVariance, 0)} vs 2024`}
+          changeType={ricaviVariance >= 0 ? "positive" : "negative"}
         />
         <KPICard 
           label="EBITDA 2025" 
-          value="€ 45.971" 
-          change="+395% vs 2024"
-          changeType="positive"
+          value={formatCurrency(kpis.ebitda2025)}
+          change={`${ebitdaVariance >= 0 ? '+' : ''}${formatPercentage(ebitdaVariance, 0)} vs 2024`}
+          changeType={ebitdaVariance >= 0 ? "positive" : "negative"}
         />
         <KPICard 
           label="Risultato 2025" 
-          value="€ 41.439" 
-          change="+366% vs 2024"
-          changeType="positive"
+          value={formatCurrency(kpis.risultato2025)}
+          change={`${risultatoVariance >= 0 ? '+' : ''}${formatPercentage(risultatoVariance, 0)} vs 2024`}
+          changeType={risultatoVariance >= 0 ? "positive" : "negative"}
         />
         <KPICard 
           label="Margine EBITDA" 
-          value="81,2%" 
-          change="+60,5 punti"
-          changeType="positive"
+          value={formatPercentage(kpis.margineEbitda2025)}
+          change={`${margineVariance >= 0 ? '+' : ''}${formatPercentage(margineVariance, 1)} punti`}
+          changeType={margineVariance >= 0 ? "positive" : "negative"}
         />
       </div>
 
@@ -179,7 +152,7 @@ export default function Dashboard() {
         title="Riepilogo Economico" 
         columns={tableColumns} 
         data={tableData}
-        totalRows={[3, 5]}
+        totalRows={[6, 8, 10]}
       />
     </div>
   );
