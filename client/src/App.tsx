@@ -6,7 +6,6 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import AppSidebar from "@/components/AppSidebar";
 import Dashboard from "@/pages/dashboard";
-import Source from "@/pages/source";
 import CEDettaglio from "@/pages/ce-dettaglio";
 import CEDettaglioMensile from "@/pages/ce-dettaglio-mensile";
 import CESintetico from "@/pages/ce-sintetico";
@@ -17,7 +16,6 @@ function Router() {
   return (
     <Switch>
       <Route path="/" component={Dashboard} />
-      <Route path="/source" component={Source} />
       <Route path="/ce-dettaglio" component={CEDettaglio} />
       <Route path="/ce-dettaglio-mensile" component={CEDettaglioMensile} />
       <Route path="/ce-sintetico" component={CESintetico} />

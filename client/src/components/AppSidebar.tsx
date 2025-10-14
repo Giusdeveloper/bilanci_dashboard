@@ -8,12 +8,11 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
-import { Home, FileText, Calendar, TrendingUp, BarChart3, Database } from "lucide-react";
+import { Home, FileText, Calendar, TrendingUp, BarChart3 } from "lucide-react";
 import { useLocation } from "wouter";
 
 const menuItems = [
   { title: "Dashboard", icon: Home, url: "/" },
-  { title: "Source", icon: Database, url: "/source" },
   { title: "CE Dettaglio", icon: FileText, url: "/ce-dettaglio" },
   { title: "CE Dettaglio Mensile", icon: Calendar, url: "/ce-dettaglio-mensile" },
   { title: "CE Sintetico", icon: TrendingUp, url: "/ce-sintetico" },
