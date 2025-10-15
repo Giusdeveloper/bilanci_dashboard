@@ -152,7 +152,7 @@ export default function Dashboard() {
         title="Riepilogo Economico" 
         columns={tableColumns} 
         data={tableData}
-        totalRows={[0, 6, 8, 10]}
+        totalRows={[0, 3, 8, 10, 12]}
       />
     </div>
   );

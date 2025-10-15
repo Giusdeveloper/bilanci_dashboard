@@ -17,6 +17,8 @@ export const financialData = {
     },
     summary: [
       { voce: "Totale Ricavi", value2025: 231136, percentage: 100.0, value2024: 43656 },
+      { voce: "Costi Diretti", value2025: 15095, percentage: 6.5, value2024: 1710 },
+      { voce: "Costi Indiretti", value2025: 1750, percentage: 0.8, value2024: 5500 },
       { voce: "Totale Costi Diretti e Indiretti", value2025: 16845, percentage: 7.3, value2024: 7210 },
       { voce: "Gross Profit", value2025: 214290, percentage: 92.7, value2024: 36446 },
       { voce: "Spese Commerciali", value2025: 15279, percentage: 6.6, value2024: 13162 },
