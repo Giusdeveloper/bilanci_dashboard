@@ -29,7 +29,7 @@ export default function CEDettaglio() {
   const emptyRow = { voce: "", value2025: "", percentage: "", value2024: "", variance: "" };
 
   const data = [
-    createRow("Ricavi caratteristici", progressivo2025.ricaviCaratteristici, progressivo2024.ricaviCaratteristici, true),
+    createRow("Ricavi caratteristici", progressivo2025.ricaviCaratteristici, progressivo2024.ricaviCaratteristici),
     createRow("Altri ricavi", progressivo2025.altriRicavi, progressivo2024.altriRicavi),
     createRow("TOTALE RICAVI", progressivo2025.totaleRicavi, progressivo2024.totaleRicavi, true),
     emptyRow,
@@ -118,8 +118,8 @@ export default function CEDettaglio() {
       <DataTable 
         columns={columns} 
         data={data}
-        highlightRows={[2, 8, 10, 11, 12, 16, 26, 53, 54, 55, 61, 63, 69, 71, 73]}
-        totalRows={[2, 8, 11, 12, 16, 26, 53, 54, 55, 61, 63, 69, 71, 73]}
+        highlightRows={[2, 8, 10, 11, 12, 17, 29, 56, 58, 59, 64, 67, 72, 74, 76]}
+        totalRows={[2, 8, 10, 11, 12, 17, 29, 56, 58, 59, 64, 67, 72, 74, 76]}
       />
     </div>
   );
