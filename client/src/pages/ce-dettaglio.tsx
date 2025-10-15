@@ -10,23 +10,26 @@ export default function CEDettaglio() {
     { key: "value2025", label: "2025 (Gen-Ago)", align: "right" as const },
     { key: "percentage", label: "% sui Ricavi", align: "right" as const },
     { key: "value2024", label: "2024 (Gen-Ago)", align: "right" as const },
+    { key: "varianceEuro", label: "Var €", align: "right" as const },
     { key: "variance", label: "Var %", align: "right" as const },
   ];
 
   const createRow = (label: string, value2025: number, value2024: number, isBold = false) => {
     const percentage = (value2025 / progressivo2025.totaleRicavi) * 100;
     const variance = calculateVariance(value2025, value2024);
+    const varianceEuroValue = value2025 - value2024;
     return {
       voce: label,
       value2025: formatCurrency(value2025),
       percentage: formatPercentage(percentage, 1),
       value2024: formatCurrency(value2024),
+      varianceEuro: value2024 === 0 && value2025 === 0 ? "n/a" : formatCurrency(varianceEuroValue),
       variance: value2024 === 0 && value2025 === 0 ? "n/a" : `${variance >= 0 ? '+' : ''}${formatPercentage(variance, 1)}`,
       ...(isBold && { className: "font-bold" }),
     };
   };
 
-  const emptyRow = { voce: "", value2025: "", percentage: "", value2024: "", variance: "" };
+  const emptyRow = { voce: "", value2025: "", percentage: "", value2024: "", varianceEuro: "", variance: "" };
 
   const data = [
     createRow("Ricavi caratteristici", progressivo2025.ricaviCaratteristici, progressivo2024.ricaviCaratteristici),
