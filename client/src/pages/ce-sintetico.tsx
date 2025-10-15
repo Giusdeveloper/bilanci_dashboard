@@ -30,7 +30,7 @@ export default function CESintetico() {
   const emptyRow = { voce: "", value2025: "", percentage: "", value2024: "", variance: "" };
 
   const data = [
-    createRow("Ricavi caratteristici", progressivo2025.ricaviCaratteristici, progressivo2024.ricaviCaratteristici, true),
+    createRow("Ricavi caratteristici", progressivo2025.ricaviCaratteristici, progressivo2024.ricaviCaratteristici),
     createRow("Altri ricavi", progressivo2025.altriRicavi, progressivo2024.altriRicavi),
     createRow("TOTALE RICAVI", progressivo2025.totaleRicavi, progressivo2024.totaleRicavi, true),
     emptyRow,
@@ -39,8 +39,6 @@ export default function CESintetico() {
     createRow("Servizi informatici web", progressivo2025.serviziInformatici, progressivo2024.serviziInformatici),
     createRow("Servizi cloud", progressivo2025.serviziCloud, progressivo2024.serviziCloud),
     createRow("COSTI DIRETTI", progressivo2025.costiDiretti, progressivo2024.costiDiretti, true),
-    createRow("Beni strumentali", progressivo2025.beniStrumentali, progressivo2024.beniStrumentali),
-    createRow("Spese per manutenzione", progressivo2025.speseManutenzione, progressivo2024.speseManutenzione),
     createRow("Altri servizi e prestazioni", progressivo2025.altriServizi, progressivo2024.altriServizi),
     createRow("COSTI INDIRETTI", progressivo2025.costiIndiretti, progressivo2024.costiIndiretti, true),
     createRow("TOTALE COSTI DIRETTI E INDIRETTI", progressivo2025.totaleCostiDirettiIndiretti, progressivo2024.totaleCostiDirettiIndiretti, true),
@@ -106,7 +104,9 @@ export default function CESintetico() {
       <DataTable 
         columns={columns} 
         data={data}
-        totalRows={[2, 8, 12, 13, 14, 25, 26, 31, 32, 34]}
+        totalRows={[2, 8, 10, 11]}
+        keyMetricRows={[12, 24, 30]}
+        resultRow={[32]}
       />
     </div>
   );
