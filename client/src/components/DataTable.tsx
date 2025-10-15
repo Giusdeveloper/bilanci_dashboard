@@ -14,9 +14,10 @@ interface DataTableProps {
   highlightRows?: number[];
   totalRows?: number[];
   keyMetricRows?: number[];
+  resultRow?: number[];
 }
 
-export default function DataTable({ title, columns, data, highlightRows = [], totalRows = [], keyMetricRows = [] }: DataTableProps) {
+export default function DataTable({ title, columns, data, highlightRows = [], totalRows = [], keyMetricRows = [], resultRow = [] }: DataTableProps) {
   return (
     <Card className="p-6 overflow-x-auto" data-testid={title ? `table-${title.toLowerCase().replace(/\s+/g, '-')}` : "data-table"}>
       {title && (
@@ -44,12 +45,15 @@ export default function DataTable({ title, columns, data, highlightRows = [], to
               const isHighlight = highlightRows.includes(idx);
               const isTotal = totalRows.includes(idx);
               const isKeyMetric = keyMetricRows.includes(idx);
-              const rowClassName = isKeyMetric
+              const isResult = resultRow.includes(idx);
+              const rowClassName = isResult
+                ? "bg-yellow-100 dark:bg-yellow-900/40 font-bold" 
+                : isKeyMetric
                 ? "bg-blue-50 dark:bg-blue-950/20 font-bold" 
                 : isTotal 
                 ? "bg-blue-900/10 dark:bg-blue-900/30 font-bold" 
                 : isHighlight 
-                ? "bg-amber-50 dark:bg-amber-950/20 font-semibold" 
+                ? "font-semibold" 
                 : "hover:bg-muted/50";
 
               return (

@@ -116,9 +116,10 @@ export default function CEDettaglio() {
       <DataTable 
         columns={columns} 
         data={data}
-        highlightRows={[8, 10, 17, 28, 55, 62, 70, 74]}
+        highlightRows={[8, 10, 17, 28, 55, 62, 70]}
         totalRows={[2, 11, 56]}
         keyMetricRows={[12, 57, 65, 72]}
+        resultRow={[74]}
       />
     </div>
   );
