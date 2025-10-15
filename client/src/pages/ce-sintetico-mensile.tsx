@@ -8,7 +8,7 @@ export default function CESinteticoMensile() {
   const { progressivo2025 } = financialData.ceSinteticoMensile;
   const months = progressivo2025.months;
 
-  const createRowData = (label: string, values: number[], isPercentage = false, isBold = false, isHighlight = false) => ({
+  const createRowData = (label: string, values: number[], isPercentage = false, isBold = false) => ({
     voce: label,
     values: isPercentage 
       ? values.map((v) => `${((v / values[values.length - 1]) * 100).toFixed(1)}%`) 
@@ -18,7 +18,6 @@ export default function CESinteticoMensile() {
       : formatCurrency(values[values.length - 1]).replace("€", "").trim(),
     isPercentage,
     isBold,
-    isHighlight,
   });
 
   const marginValues = progressivo2025.grossProfit.map((gp, i) => 
@@ -28,13 +27,21 @@ export default function CESinteticoMensile() {
   const data = [
     createRowData("Ricavi caratteristici", progressivo2025.ricaviCaratteristici),
     createRowData("Altri ricavi", progressivo2025.altriRicavi),
-    createRowData("TOTALE RICAVI", progressivo2025.totaleRicavi, false, true, true),
-    { voce: "", values: [], total: "", isPercentage: false, isBold: false, isHighlight: false },
-    createRowData("Costi diretti", progressivo2025.costiDiretti),
-    createRowData("Costi indiretti", progressivo2025.costiIndiretti),
-    createRowData("TOTALE COSTI DIRETTI E INDIRETTI", progressivo2025.totaleCostiDirettiIndiretti, false, true, true),
-    createRowData("GROSS PROFIT", progressivo2025.grossProfit, false, true, true),
-    { voce: "", values: [], total: "", isPercentage: false, isBold: false, isHighlight: false },
+    createRowData("TOTALE RICAVI", progressivo2025.totaleRicavi, false, true),
+    { voce: "", values: [], total: "", isPercentage: false, isBold: false },
+    createRowData("Servizi diretti", progressivo2025.serviziDiretti),
+    createRowData("Consulenze dirette", progressivo2025.consulenzeDirette),
+    createRowData("Servizi informatici web", progressivo2025.serviziInformaticiWeb),
+    createRowData("Servizi cloud", progressivo2025.serviziCloud),
+    createRowData("COSTI DIRETTI", progressivo2025.costiDiretti, false, true),
+    createRowData("Beni strumentali", progressivo2025.beniStrumentali),
+    createRowData("Spese per manutenzione", progressivo2025.speseManutenzione),
+    createRowData("Altri servizi e prestazioni", progressivo2025.altriServiziPrestazioni),
+    createRowData("COSTI INDIRETTI", progressivo2025.costiIndiretti, false, true),
+    createRowData("TOTALE COSTI DIRETTI E INDIRETTI", progressivo2025.totaleCostiDirettiIndiretti, false, true),
+    createRowData("GROSS PROFIT", progressivo2025.grossProfit, false, true),
+    { voce: "", values: [], total: "", isPercentage: false, isBold: false },
+    createRowData("Ricavi non tipici", progressivo2025.ricaviNonTipici),
     createRowData("Costi commerciali", progressivo2025.costiCommerciali),
     createRowData("Personale", progressivo2025.personale),
     createRowData("Compensi amministratore", progressivo2025.compensiAmministratore),
@@ -43,22 +50,29 @@ export default function CESinteticoMensile() {
     createRowData("Consulenze legali", progressivo2025.consulenzeLegali),
     createRowData("Consulenze tecniche", progressivo2025.consulenzeTecniche),
     createRowData("Altre spese di funzionamento", progressivo2025.altreSpeseFunzionamento),
-    createRowData("TOTALE STRUTTURA", progressivo2025.totaleStruttura, false, true, true),
-    { voce: "", values: [], total: "", isPercentage: false, isBold: false, isHighlight: false },
-    createRowData("EBITDA", progressivo2025.ebitda, false, true, true),
+    createRowData("TOTALE STRUTTURA", progressivo2025.totaleStruttura, false, true),
+    createRowData("EBITDA", progressivo2025.ebitda, false, true),
+    { voce: "", values: [], total: "", isPercentage: false, isBold: false },
     createRowData("Ammortamenti e svalutazioni", progressivo2025.ammortamentiSvalutazioni),
+    createRowData("Gestione straordinaria", progressivo2025.gestioneStraordinaria),
     createRowData("Gestione finanziaria", progressivo2025.gestioneFinanziaria),
-    createRowData("RISULTATO ANTE IMPOSTE", progressivo2025.risultatoAnteImposte, false, true, true),
-    { voce: "", values: [], total: "", isPercentage: false, isBold: false, isHighlight: false },
+    createRowData("TOTALE ALTRE VOCI NON TIPICHE", progressivo2025.totaleAltreVociNonTipiche, false, true),
+    createRowData("RISULTATO ANTE IMPOSTE", progressivo2025.risultatoAnteImposte, false, true),
+    createRowData("Imposte", progressivo2025.imposte),
+    createRowData("RISULTATO DELL'ESERCIZIO", progressivo2025.risultatoEsercizio, false, true),
+    { voce: "", values: [], total: "", isPercentage: false, isBold: false },
     { 
       voce: "Margine Gross Profit %", 
       values: marginValues.map(v => v.toFixed(1) + '%'),
       total: ((progressivo2025.grossProfit[7] / progressivo2025.totaleRicavi[7]) * 100).toFixed(1) + '%',
       isPercentage: true, 
-      isBold: true, 
-      isHighlight: true 
+      isBold: true
     },
   ];
+
+  const totalRows = [2, 8, 12, 13, 25, 31];
+  const keyMetricRows = [14, 26, 32];
+  const resultRow = [34];
 
   const trendData = {
     labels: months,
@@ -136,15 +150,31 @@ export default function CESinteticoMensile() {
                   );
                 }
 
-                const rowClassName = row.isHighlight
-                  ? "bg-blue-50 dark:bg-blue-950/20 font-bold" 
+                const isTotal = totalRows.includes(idx);
+                const isKeyMetric = keyMetricRows.includes(idx);
+                const isResult = resultRow.includes(idx);
+
+                const rowClassName = isResult
+                  ? "bg-yellow-50 dark:bg-yellow-950/20 font-bold"
+                  : isKeyMetric
+                  ? "bg-blue-100 dark:bg-blue-900/30 font-bold"
+                  : isTotal
+                  ? "bg-blue-50 dark:bg-blue-950/20 font-bold"
                   : row.isBold
                   ? "font-bold"
                   : "hover:bg-muted/50";
 
+                const cellBg = isResult
+                  ? "bg-yellow-50 dark:bg-yellow-950/20"
+                  : isKeyMetric
+                  ? "bg-blue-100 dark:bg-blue-900/30"
+                  : isTotal
+                  ? "bg-blue-50 dark:bg-blue-950/20"
+                  : "bg-card";
+
                 return (
                   <tr key={idx} className={rowClassName}>
-                    <td className="px-3 py-3 text-sm border-b border-border font-semibold sticky left-0 bg-card">
+                    <td className={`px-3 py-3 text-sm border-b border-border font-semibold sticky left-0 ${cellBg}`}>
                       {row.voce}
                     </td>
                     {row.values.map((value, i) => (
@@ -152,7 +182,7 @@ export default function CESinteticoMensile() {
                         {row.isPercentage ? value : `€ ${value}`}
                       </td>
                     ))}
-                    <td className={`px-3 py-3 text-sm border-b border-border text-right font-bold whitespace-nowrap ${row.isHighlight ? 'bg-blue-100 dark:bg-blue-900/30' : 'bg-muted/30'}`}>
+                    <td className={`px-3 py-3 text-sm border-b border-border text-right font-bold whitespace-nowrap ${isResult ? 'bg-yellow-100 dark:bg-yellow-900/30' : isKeyMetric ? 'bg-blue-150 dark:bg-blue-800/40' : isTotal ? 'bg-blue-100 dark:bg-blue-900/30' : 'bg-muted/30'}`}>
                       {row.isPercentage ? row.total : `€ ${row.total}`}
                     </td>
                   </tr>
