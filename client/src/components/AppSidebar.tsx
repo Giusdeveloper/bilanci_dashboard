@@ -42,11 +42,11 @@ export default function AppSidebar() {
               className="w-40 h-auto brightness-0 invert"
               data-testid="img-sidebar-logo"
             />
-            <div className="text-sm text-white/80 font-medium mt-3" data-testid="text-sidebar-subtitle">
+            <div className="text-sm text-white/95 font-medium mt-3" data-testid="text-sidebar-subtitle">
               Dashboard Bilanci 2025
             </div>
           </div>
-          <SidebarTrigger className="text-white/80 hover:text-white hover:bg-white/10 rounded-md p-4 h-12 w-12 group-data-[collapsible=icon]:p-2 group-data-[collapsible=icon]:h-10 group-data-[collapsible=icon]:w-10" data-testid="button-sidebar-close" />
+          <SidebarTrigger className="text-white hover:text-white hover:bg-white/20 rounded-md p-4 h-12 w-12 group-data-[collapsible=icon]:p-2 group-data-[collapsible=icon]:h-10 group-data-[collapsible=icon]:w-10" data-testid="button-sidebar-close" />
         </div>
       </SidebarHeader>
       <SidebarContent className="px-6 group-data-[collapsible=icon]:px-0 group-data-[collapsible=icon]:hidden">
@@ -58,7 +58,7 @@ export default function AppSidebar() {
                   <SidebarMenuButton 
                     asChild 
                     isActive={location === item.url}
-                    className="text-white/90 hover:text-white hover:bg-white/10 data-[active=true]:bg-white/15 data-[active=true]:text-white data-[active=true]:font-semibold data-[active=true]:border-l-[3px] data-[active=true]:border-l-white px-4 py-3.5 mb-2 rounded-[10px] text-[15px]"
+                    className="text-white hover:text-white hover:bg-white/20 data-[active=true]:bg-white/25 data-[active=true]:text-white data-[active=true]:font-semibold data-[active=true]:border-l-[3px] data-[active=true]:border-l-white px-4 py-3.5 mb-2 rounded-[10px] text-[15px]"
                     data-testid={`nav-${item.title.toLowerCase().replace(/\s+/g, '-')}`}
                   >
                     <a href={item.url} className="flex items-center gap-3">
