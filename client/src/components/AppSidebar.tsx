@@ -26,7 +26,7 @@ export default function AppSidebar() {
   return (
     <Sidebar 
       className="border-none"
-      collapsible="none"
+      collapsible="icon"
       style={{
         background: "linear-gradient(180deg, #6366f1 0%, #4f46e5 100%)",
         boxShadow: "4px 0 12px rgba(0,0,0,0.1)",
