@@ -101,7 +101,7 @@ export default function CEDettaglio() {
     createRow("Altri interessi", progressivo2025.altriInteressi, progressivo2024.altriInteressi),
     createRow("GESTIONE FINANZIARIA", progressivo2025.gestioneFinanziaria, progressivo2024.gestioneFinanziaria, true),
     emptyRow,
-    createRow("EBT", progressivo2025.ebt, progressivo2024.ebt, true),
+    createRow("EBT (Risultato ante imposte)", progressivo2025.ebt, progressivo2024.ebt, true),
     createRow("Imposte dirette", progressivo2025.imposteDirette, progressivo2024.imposteDirette),
     createRow("RISULTATO DELL'ESERCIZIO", progressivo2025.risultatoEsercizio, progressivo2024.risultatoEsercizio, true),
   ];
