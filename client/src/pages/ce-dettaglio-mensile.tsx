@@ -71,13 +71,13 @@ export default function CEDettaglioMensile() {
     createRowData("Abbuoni e arrotondamenti", progressivo2025.abbuoniArrotondamenti),
     createRowData("SPESE DI STRUTTURA", progressivo2025.speseStruttura, "total-dark"),
     emptyRow,
-    createRowData("TOTALE GESTIONE STRUTTURA", progressivo2025.totaleGestioneStruttura, "total-dark"),
+    createRowData("TOTALE GESTIONE STRUTTURA", progressivo2025.totaleStruttura, "total-dark"),
     createRowData("EBITDA", progressivo2025.ebitda, "key-metric"),
     emptyRow,
     createRowData("Ammortamenti immateriali", progressivo2025.ammortamentiImmateriali),
     createRowData("Ammortamenti materiali", progressivo2025.ammortamentiMateriali),
     createRowData("Svalutazioni e accantonamenti", progressivo2025.svalutazioni),
-    createRowData("AMMORTAMENTI, ACCANT. SVALUTAZIONI", progressivo2025.totaleAmmortamenti, "total-dark"),
+    createRowData("AMMORTAMENTI, ACCANT. SVALUTAZIONI", progressivo2025.ammortamenti, "total-dark"),
     emptyRow,
     createRowData("Gestione straordinaria", progressivo2025.gestioneStraordinaria),
     createRowData("EBIT", progressivo2025.ebit, "key-metric"),
@@ -89,7 +89,7 @@ export default function CEDettaglioMensile() {
     emptyRow,
     createRowData("EBT (Risultato ante imposte)", progressivo2025.ebt, "key-metric"),
     createRowData("Imposte dirette", progressivo2025.imposteDirette),
-    createRowData("RISULTATO DI ESERCIZIO (UTILE / PERDITA)", progressivo2025.risultatoEsercizio, "result"),
+    createRowData("RISULTATO DI ESERCIZIO (UTILE / PERDITA)", progressivo2025.risultato, "result"),
   ];
 
   const getRowClassName = (className: string) => {
