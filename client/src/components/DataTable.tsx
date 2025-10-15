@@ -25,58 +25,56 @@ export default function DataTable({ title, columns, data, highlightRows = [], to
           {title}
         </h3>
       )}
-      <div className="overflow-x-auto -mx-3 md:mx-0">
-        <div className="inline-block min-w-full align-middle">
-          <table className="min-w-full border-collapse" data-testid="table">
-            <thead>
-              <tr>
-                {columns.map((col) => (
-                  <th
-                    key={col.key}
-                    className={`bg-muted px-2 md:px-3 py-2 md:py-3 text-xs md:text-sm font-semibold text-muted-foreground border-b-2 border-border text-${col.align || "left"} whitespace-nowrap`}
-                    data-testid={`th-${col.key}`}
-                  >
-                    {col.label}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {data.map((row, idx) => {
-                const isHighlight = highlightRows.includes(idx);
-                const isTotal = totalRows.includes(idx);
-                const isKeyMetric = keyMetricRows.includes(idx);
-                const isResult = resultRow.includes(idx);
-                const hasBold = row.className?.includes("font-bold");
-                const rowClassName = isResult
-                  ? "bg-yellow-100 dark:bg-yellow-900/40 font-bold" 
-                  : isKeyMetric
-                  ? "bg-blue-50 dark:bg-blue-950/20 font-bold" 
-                  : isTotal 
-                  ? "bg-blue-900/10 dark:bg-blue-900/30 font-bold" 
-                  : isHighlight 
-                  ? "font-semibold" 
-                  : hasBold
-                  ? "font-bold hover:bg-muted/50"
-                  : "hover:bg-muted/50";
+      <div className="overflow-x-auto -mx-3 md:mx-0 scrollbar-thin">
+        <table className="w-full border-collapse" data-testid="table">
+          <thead>
+            <tr>
+              {columns.map((col) => (
+                <th
+                  key={col.key}
+                  className={`bg-muted px-2 md:px-3 py-2 md:py-3 text-xs md:text-sm font-semibold text-muted-foreground border-b-2 border-border text-${col.align || "left"} whitespace-nowrap`}
+                  data-testid={`th-${col.key}`}
+                >
+                  {col.label}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {data.map((row, idx) => {
+              const isHighlight = highlightRows.includes(idx);
+              const isTotal = totalRows.includes(idx);
+              const isKeyMetric = keyMetricRows.includes(idx);
+              const isResult = resultRow.includes(idx);
+              const hasBold = row.className?.includes("font-bold");
+              const rowClassName = isResult
+                ? "bg-yellow-100 dark:bg-yellow-900/40 font-bold" 
+                : isKeyMetric
+                ? "bg-blue-50 dark:bg-blue-950/20 font-bold" 
+                : isTotal 
+                ? "bg-blue-900/10 dark:bg-blue-900/30 font-bold" 
+                : isHighlight 
+                ? "font-semibold" 
+                : hasBold
+                ? "font-bold hover:bg-muted/50"
+                : "hover:bg-muted/50";
 
-                return (
-                  <tr key={idx} className={rowClassName} data-testid={`row-${idx}`}>
-                    {columns.map((col) => (
-                      <td
-                        key={col.key}
-                        className={`px-2 md:px-3 py-2 md:py-3 text-xs md:text-sm border-b border-border text-${col.align || "left"} ${col.className || ""} ${col.align === 'right' ? 'whitespace-nowrap' : ''}`}
-                        data-testid={`cell-${idx}-${col.key}`}
-                      >
-                        {row[col.key]}
-                      </td>
-                    ))}
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+              return (
+                <tr key={idx} className={rowClassName} data-testid={`row-${idx}`}>
+                  {columns.map((col) => (
+                    <td
+                      key={col.key}
+                      className={`px-2 md:px-3 py-2 md:py-3 text-xs md:text-sm border-b border-border text-${col.align || "left"} ${col.className || ""} ${col.align === 'right' ? 'whitespace-nowrap' : ''}`}
+                      data-testid={`cell-${idx}-${col.key}`}
+                    >
+                      {row[col.key]}
+                    </td>
+                  ))}
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
       </div>
     </Card>
   );

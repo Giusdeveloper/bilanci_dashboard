@@ -39,7 +39,7 @@ export default function App() {
             <AppSidebar />
             <main className="flex-1 w-full overflow-auto">
               <div className="sticky top-0 z-50 bg-background border-b px-4 py-3 md:px-6 md:py-4 flex items-center gap-3">
-                <SidebarTrigger data-testid="button-sidebar-toggle" className="md:hidden" />
+                <SidebarTrigger data-testid="button-sidebar-toggle" className="md:hidden min-h-[44px] min-w-[44px]" />
                 <h1 className="text-lg font-semibold md:hidden">Awentia Bilanci</h1>
               </div>
               <div className="p-4 md:p-8">
