@@ -143,10 +143,11 @@ export default function CEDettaglioMensile() {
                 }
 
                 const rowClassName = getRowClassName(row.className);
+                const isSpecialRow = row.className !== "";
 
                 return (
                   <tr key={idx} className={rowClassName} data-testid={`row-${idx}`}>
-                    <td className={`px-3 py-3 text-sm border-b border-border font-semibold sticky left-0 z-10 ${rowClassName}`}>
+                    <td className={`px-3 py-3 text-sm border-b border-border ${isSpecialRow ? 'font-semibold' : ''} sticky left-0 z-10 ${rowClassName}`}>
                       {row.voce}
                     </td>
                     {row.values.map((value, i) => (
