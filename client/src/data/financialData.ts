@@ -28,7 +28,9 @@ export const financialData = {
       { voce: "Ammortamenti", value2025: 35091, percentage: 15.2, value2024: 5933 },
       { voce: "EBIT", value2025: -56268, percentage: -24.4, value2024: -154150 },
       { voce: "Gestione Finanziaria", value2025: 1603, percentage: 0.7, value2024: 2496 },
-      { voce: "Risultato", value2025: -57871, percentage: -25.0, value2024: -156646 },
+      { voce: "Risultato ante Imposte", value2025: -57871, percentage: -25.0, value2024: -156646 },
+      { voce: "Imposte", value2025: 0, percentage: 0.0, value2024: 0 },
+      { voce: "Risultato dell'Esercizio", value2025: -57871, percentage: -25.0, value2024: -156646 },
     ],
   },
   ceDettaglio: {
