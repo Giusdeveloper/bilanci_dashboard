@@ -16,7 +16,7 @@ export const financialData = {
       ebitda: [45971, 21850, -17092, -15105, -19148, -22632, -61, -21178],
     },
     summary: [
-      { voce: "Ricavi", value2025: 231136, percentage: 100.0, value2024: 43656 },
+      { voce: "Totale Ricavi", value2025: 231136, percentage: 100.0, value2024: 43656 },
       { voce: "Totale Costi Diretti e Indiretti", value2025: 16845, percentage: 7.3, value2024: 7210 },
       { voce: "Gross Profit", value2025: 214290, percentage: 92.7, value2024: 36446 },
       { voce: "Spese Commerciali", value2025: 15279, percentage: 6.6, value2024: 13162 },
