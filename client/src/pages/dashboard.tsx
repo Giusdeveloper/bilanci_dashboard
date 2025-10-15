@@ -57,7 +57,7 @@ export default function Dashboard() {
   };
 
   const comparisonData = {
-    labels: ["Ricavi", "EBITDA", "Risultato"],
+    labels: ["Ricavi", "EBITDA", "Risultato Esercizio"],
     datasets: [
       {
         label: "2024 (Gen-Ago)",
