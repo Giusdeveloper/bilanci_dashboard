@@ -124,7 +124,7 @@ export default function CESinteticoMensile() {
           <table className="w-full border-collapse min-w-max">
             <thead>
               <tr>
-                <th className="bg-muted px-3 py-3 text-sm font-semibold text-muted-foreground border-b-2 border-border text-left sticky left-0 bg-muted z-10">
+                <th className="bg-muted px-3 py-3 text-sm font-semibold text-muted-foreground border-b-2 border-border text-left sticky left-0 bg-muted z-20 shadow-[2px_0_4px_rgba(0,0,0,0.05)]">
                   Voce
                 </th>
                 {months.map((month) => (
@@ -174,7 +174,7 @@ export default function CESinteticoMensile() {
 
                 return (
                   <tr key={idx} className={rowClassName}>
-                    <td className={`px-3 py-3 text-sm border-b border-border ${row.isBold ? 'font-semibold' : ''} sticky left-0 ${cellBg}`}>
+                    <td className={`px-3 py-3 text-sm border-b border-border ${row.isBold ? 'font-semibold' : ''} sticky left-0 z-20 ${cellBg} shadow-[2px_0_4px_rgba(0,0,0,0.05)]`}>
                       {row.voce}
                     </td>
                     {row.values.map((value, i) => (

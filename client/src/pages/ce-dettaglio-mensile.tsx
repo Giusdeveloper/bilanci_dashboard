@@ -119,7 +119,7 @@ export default function CEDettaglioMensile() {
           <table className="w-full border-collapse min-w-max" data-testid="table-mensile">
             <thead>
               <tr>
-                <th className="bg-muted px-3 py-3 text-sm font-semibold text-muted-foreground border-b-2 border-border text-left sticky left-0 bg-muted z-10">
+                <th className="bg-muted px-3 py-3 text-sm font-semibold text-muted-foreground border-b-2 border-border text-left sticky left-0 bg-muted z-20 shadow-[2px_0_4px_rgba(0,0,0,0.05)]">
                   Voce
                 </th>
                 {months.map((month) => (
@@ -147,7 +147,7 @@ export default function CEDettaglioMensile() {
 
                 return (
                   <tr key={idx} className={rowClassName} data-testid={`row-${idx}`}>
-                    <td className={`px-3 py-3 text-sm border-b border-border ${isSpecialRow ? 'font-semibold' : ''} sticky left-0 z-10 ${rowClassName}`}>
+                    <td className={`px-3 py-3 text-sm border-b border-border ${isSpecialRow ? 'font-semibold' : ''} sticky left-0 z-20 ${rowClassName} shadow-[2px_0_4px_rgba(0,0,0,0.05)]`}>
                       {row.voce}
                     </td>
                     {row.values.map((value, i) => (
