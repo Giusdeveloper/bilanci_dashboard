@@ -26,16 +26,16 @@ export default function AppSidebar() {
 
   return (
     <Sidebar 
-      className="border-none [&>div]:!bg-gradient-to-b [&>div]:!from-indigo-500 [&>div]:!to-indigo-600"
-      collapsible="offcanvas"
+      className="border-none [&>div]:!bg-gradient-to-b [&>div]:!from-indigo-500 [&>div]:!to-indigo-600 group-data-[collapsible=icon]:w-16"
+      collapsible="icon"
       style={{
         background: "linear-gradient(180deg, #6366f1 0%, #4f46e5 100%) !important",
         boxShadow: "4px 0 12px rgba(0,0,0,0.1)",
       }}
     >
-      <SidebarHeader className="px-6 py-6 pb-8">
-        <div className="flex items-start justify-between">
-          <div>
+      <SidebarHeader className="px-6 py-6 pb-8 group-data-[collapsible=icon]:px-0 group-data-[collapsible=icon]:py-4 group-data-[collapsible=icon]:flex group-data-[collapsible=icon]:items-center group-data-[collapsible=icon]:justify-center">
+        <div className="flex items-start justify-between group-data-[collapsible=icon]:flex-col group-data-[collapsible=icon]:items-center">
+          <div className="group-data-[collapsible=icon]:hidden">
             <img 
               src={awentiaLogo} 
               alt="Awentia Logo" 
@@ -46,10 +46,10 @@ export default function AppSidebar() {
               Dashboard Bilanci 2025
             </div>
           </div>
-          <SidebarTrigger className="text-white/80 hover:text-white hover:bg-white/10 rounded-md p-4 h-12 w-12" data-testid="button-sidebar-close" />
+          <SidebarTrigger className="text-white/80 hover:text-white hover:bg-white/10 rounded-md p-4 h-12 w-12 group-data-[collapsible=icon]:p-2 group-data-[collapsible=icon]:h-10 group-data-[collapsible=icon]:w-10" data-testid="button-sidebar-close" />
         </div>
       </SidebarHeader>
-      <SidebarContent className="px-6">
+      <SidebarContent className="px-6 group-data-[collapsible=icon]:px-0 group-data-[collapsible=icon]:hidden">
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu>
