@@ -3,8 +3,8 @@ export const financialData = {
     kpis: {
       ricavi2025: 231136,
       ricavi2024: 43656,
-      costi2025: 16845, // Totale Costi Diretti e Indiretti
-      costi2024: 7210, // Totale Costi Diretti e Indiretti
+      costi2025: 289007, // Totale Costi Operativi (Diretti+Indiretti+Commerciali+Struttura+Ammortamenti+Finanziari)
+      costi2024: 200302, // Totale Costi Operativi (Diretti+Indiretti+Commerciali+Struttura+Ammortamenti+Finanziari)
       ebitda2025: -21178,
       ebitda2024: -148217,
       risultato2025: -57871,
