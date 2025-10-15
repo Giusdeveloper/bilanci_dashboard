@@ -174,7 +174,7 @@ export default function CESinteticoMensile() {
 
                 return (
                   <tr key={idx} className={rowClassName}>
-                    <td className={`px-3 py-3 text-sm border-b border-border font-semibold sticky left-0 ${cellBg}`}>
+                    <td className={`px-3 py-3 text-sm border-b border-border ${row.isBold ? 'font-semibold' : ''} sticky left-0 ${cellBg}`}>
                       {row.voce}
                     </td>
                     {row.values.map((value, i) => (
