@@ -43,7 +43,7 @@ export default function DataTable({ title, columns, data, highlightRows = [], to
               const isHighlight = highlightRows.includes(idx);
               const isTotal = totalRows.includes(idx);
               const rowClassName = isTotal 
-                ? "bg-blue-50 dark:bg-blue-950/20 font-bold" 
+                ? "bg-blue-900/10 dark:bg-blue-900/30 font-bold" 
                 : isHighlight 
                 ? "bg-amber-50 dark:bg-amber-950/20 font-semibold" 
                 : "hover:bg-muted/50";
