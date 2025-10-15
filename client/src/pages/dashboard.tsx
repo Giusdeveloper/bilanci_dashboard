@@ -113,7 +113,7 @@ export default function Dashboard() {
         subtitle="Analisi Bilanci al 31 Agosto 2025"
       />
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
         <KPICard 
           label="Ricavi 2025" 
           value={formatCurrency(kpis.ricavi2025)}
@@ -126,6 +126,9 @@ export default function Dashboard() {
           change={`${costiVariance >= 0 ? '+' : ''}${formatPercentage(costiVariance, 0)} vs 2024`}
           changeType={costiVariance >= 0 ? "negative" : "positive"}
         />
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
         <KPICard 
           label="EBITDA 2025" 
           value={formatCurrency(kpis.ebitda2025)}
