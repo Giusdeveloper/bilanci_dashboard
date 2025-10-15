@@ -26,10 +26,11 @@ export default function AppSidebar() {
 
   return (
     <Sidebar 
-      className="border-none [&>div]:!bg-gradient-to-b [&>div]:!from-indigo-500 [&>div]:!to-indigo-600 group-data-[collapsible=icon]:w-16"
+      className="border-none !bg-gradient-to-b !from-indigo-500 !to-indigo-600 group-data-[collapsible=icon]:w-16"
       collapsible="icon"
       style={{
-        background: "linear-gradient(180deg, #6366f1 0%, #4f46e5 100%) !important",
+        background: "linear-gradient(180deg, #6366f1 0%, #4f46e5 100%)",
+        backgroundColor: "#6366f1",
         boxShadow: "4px 0 12px rgba(0,0,0,0.1)",
       }}
     >
