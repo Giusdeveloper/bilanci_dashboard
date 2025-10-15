@@ -46,6 +46,7 @@ export default function DataTable({ title, columns, data, highlightRows = [], to
               const isTotal = totalRows.includes(idx);
               const isKeyMetric = keyMetricRows.includes(idx);
               const isResult = resultRow.includes(idx);
+              const hasBold = row.className?.includes("font-bold");
               const rowClassName = isResult
                 ? "bg-yellow-100 dark:bg-yellow-900/40 font-bold" 
                 : isKeyMetric
@@ -54,6 +55,8 @@ export default function DataTable({ title, columns, data, highlightRows = [], to
                 ? "bg-blue-900/10 dark:bg-blue-900/30 font-bold" 
                 : isHighlight 
                 ? "font-semibold" 
+                : hasBold
+                ? "font-bold hover:bg-muted/50"
                 : "hover:bg-muted/50";
 
               return (
