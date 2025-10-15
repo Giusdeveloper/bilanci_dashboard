@@ -59,7 +59,6 @@ export default function CEDettaglio() {
     createRow("Carburante", progressivo2025.carburante, progressivo2024.carburante),
     createRow("SPESE COMMERCIALI", progressivo2025.speseCommerciali, progressivo2024.speseCommerciali, true),
     emptyRow,
-    { voce: "SPESE DI STRUTTURA", value2025: "", percentage: "", value2024: "", variance: "", className: "font-bold bg-muted/30" },
     createRow("Beni indeducibili", progressivo2025.beniIndeducibili, progressivo2024.beniIndeducibili),
     createRow("Spese generali", progressivo2025.speseGenerali, progressivo2024.speseGenerali),
     createRow("Materiale vario e di consumo", progressivo2025.materialeConsumo, progressivo2024.materialeConsumo),
@@ -117,9 +116,9 @@ export default function CEDettaglio() {
       <DataTable 
         columns={columns} 
         data={data}
-        highlightRows={[8, 10, 17, 28, 55, 63, 71, 75]}
-        totalRows={[2, 11, 57]}
-        keyMetricRows={[12, 58, 66, 73]}
+        highlightRows={[8, 10, 17, 28, 55, 62, 70, 74]}
+        totalRows={[2, 11, 56]}
+        keyMetricRows={[12, 57, 65, 72]}
       />
     </div>
   );
