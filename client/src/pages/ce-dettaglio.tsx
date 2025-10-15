@@ -43,6 +43,8 @@ export default function CEDettaglio() {
     createRow("TOTALE COSTI DIRETTI E INDIRETTI", progressivo2025.totaleCostiDirettiIndiretti, progressivo2024.totaleCostiDirettiIndiretti, true),
     createRow("GROSS PROFIT", progressivo2025.grossProfit, progressivo2024.grossProfit, true),
     emptyRow,
+    createRow("Altri ricavi non tipici", progressivo2025.ricaviNonTipici, progressivo2024.ricaviNonTipici),
+    emptyRow,
     { voce: "SPESE COMMERCIALI", value2025: "", percentage: "", value2024: "", variance: "", className: "font-bold bg-muted/30" },
     createRow("Spese viaggio", progressivo2025.speseViaggio, progressivo2024.speseViaggio),
     createRow("Pedaggi autostradali", progressivo2025.pedaggi, progressivo2024.pedaggi),
