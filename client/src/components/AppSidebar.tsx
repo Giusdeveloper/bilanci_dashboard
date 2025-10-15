@@ -46,7 +46,7 @@ export default function AppSidebar() {
               Dashboard Bilanci 2025
             </div>
           </div>
-          <SidebarTrigger className="text-white/80 hover:text-white hover:bg-white/10 rounded-md p-2" data-testid="button-sidebar-close" />
+          <SidebarTrigger className="text-white/80 hover:text-white hover:bg-white/10 rounded-md p-3 h-10 w-10" data-testid="button-sidebar-close" />
         </div>
       </SidebarHeader>
       <SidebarContent className="px-6">
