@@ -43,7 +43,10 @@ export default function CEDettaglio() {
     createRow("TOTALE COSTI DIRETTI E INDIRETTI", progressivo2025.totaleCostiDirettiIndiretti, progressivo2024.totaleCostiDirettiIndiretti, true),
     createRow("GROSS PROFIT", progressivo2025.grossProfit, progressivo2024.grossProfit, true),
     emptyRow,
-    createRow("Altri ricavi non tipici", progressivo2025.ricaviNonTipici, progressivo2024.ricaviNonTipici),
+    createRow("Autofatture", progressivo2025.autofatture, progressivo2024.autofatture),
+    createRow("Rimborsi spese", progressivo2025.rimborsiSpese, progressivo2024.rimborsiSpese),
+    createRow("Altri proventi", progressivo2025.altriProventi, progressivo2024.altriProventi),
+    createRow("ALTRI RICAVI NON TIPICI", progressivo2025.ricaviNonTipici, progressivo2024.ricaviNonTipici, true),
     emptyRow,
     { voce: "SPESE COMMERCIALI", value2025: "", percentage: "", value2024: "", variance: "", className: "font-bold bg-muted/30" },
     createRow("Spese viaggio", progressivo2025.speseViaggio, progressivo2024.speseViaggio),
@@ -115,8 +118,8 @@ export default function CEDettaglio() {
       <DataTable 
         columns={columns} 
         data={data}
-        highlightRows={[2, 8, 10, 11, 12, 24, 50, 51, 52, 58, 60, 66, 68, 70]}
-        totalRows={[2, 8, 11, 12, 24, 50, 51, 52, 58, 60, 66, 68, 70]}
+        highlightRows={[2, 8, 10, 11, 12, 16, 26, 53, 54, 55, 61, 63, 69, 71, 73]}
+        totalRows={[2, 8, 11, 12, 16, 26, 53, 54, 55, 61, 63, 69, 71, 73]}
       />
     </div>
   );
