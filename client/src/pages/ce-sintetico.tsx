@@ -97,7 +97,7 @@ export default function CESintetico() {
           changeType={ebitdaVariance >= 0 ? "positive" : "negative"}
         />
         <KPICard 
-          label="Risultato Netto" 
+          label="Risultato Esercizio" 
           value={formatCurrency(progressivo2025.risultatoEsercizio)}
           change={`${risultatoVariance >= 0 ? '+' : ''}${formatPercentage(risultatoVariance, 0)} vs 2024`}
           changeType={risultatoVariance >= 0 ? "positive" : "negative"}
