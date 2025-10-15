@@ -136,7 +136,7 @@ export default function Dashboard() {
           changeType={ebitdaVariance >= 0 ? "positive" : "negative"}
         />
         <KPICard 
-          label="Risultato 2025" 
+          label="Risultato esercizio 2025" 
           value={formatCurrency(kpis.risultato2025)}
           change={`${risultatoVariance >= 0 ? '+' : ''}${formatPercentage(risultatoVariance, 0)} vs 2024`}
           changeType={risultatoVariance >= 0 ? "positive" : "negative"}
