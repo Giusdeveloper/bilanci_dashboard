@@ -7,8 +7,9 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarTrigger,
 } from "@/components/ui/sidebar";
-import { Home, FileText, Calendar, TrendingUp, BarChart3 } from "lucide-react";
+import { Home, FileText, Calendar, TrendingUp, BarChart3, PanelLeftClose } from "lucide-react";
 import { useLocation } from "wouter";
 import awentiaLogo from "@assets/awentia-logo-standard_1760537986689.png";
 
@@ -33,14 +34,19 @@ export default function AppSidebar() {
       }}
     >
       <SidebarHeader className="px-6 py-6 pb-8">
-        <img 
-          src={awentiaLogo} 
-          alt="Awentia Logo" 
-          className="w-40 h-auto brightness-0 invert"
-          data-testid="img-sidebar-logo"
-        />
-        <div className="text-sm text-white/80 font-medium mt-3" data-testid="text-sidebar-subtitle">
-          Dashboard Bilanci 2025
+        <div className="flex items-start justify-between">
+          <div>
+            <img 
+              src={awentiaLogo} 
+              alt="Awentia Logo" 
+              className="w-40 h-auto brightness-0 invert"
+              data-testid="img-sidebar-logo"
+            />
+            <div className="text-sm text-white/80 font-medium mt-3" data-testid="text-sidebar-subtitle">
+              Dashboard Bilanci 2025
+            </div>
+          </div>
+          <SidebarTrigger className="text-white/80 hover:text-white hover:bg-white/10 rounded-md p-2" data-testid="button-sidebar-close" />
         </div>
       </SidebarHeader>
       <SidebarContent className="px-6">
