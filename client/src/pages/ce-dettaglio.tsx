@@ -38,6 +38,8 @@ export default function CEDettaglio() {
     createRow("Servizi informatici web", progressivo2025.serviziInformatici, progressivo2024.serviziInformatici),
     createRow("Servizi cloud", progressivo2025.serviziCloud, progressivo2024.serviziCloud),
     createRow("COSTI DIRETTI", progressivo2025.costiDiretti, progressivo2024.costiDiretti, true),
+    createRow("Beni strumentali", progressivo2025.beniStrumentali, progressivo2024.beniStrumentali),
+    createRow("Spese per manutenzione", progressivo2025.speseManutenzione, progressivo2024.speseManutenzione),
     createRow("Altri servizi e prestazioni", progressivo2025.altriServizi, progressivo2024.altriServizi),
     createRow("COSTI INDIRETTI", progressivo2025.costiIndiretti, progressivo2024.costiIndiretti, true),
     createRow("TOTALE COSTI DIRETTI E INDIRETTI", progressivo2025.totaleCostiDirettiIndiretti, progressivo2024.totaleCostiDirettiIndiretti, true),
