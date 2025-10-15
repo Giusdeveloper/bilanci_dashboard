@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/sidebar";
 import { Home, FileText, Calendar, TrendingUp, BarChart3 } from "lucide-react";
 import { useLocation } from "wouter";
+import awentiaLogo from "@assets/awentia-logo-standard_1760537986689.png";
 
 const menuItems = [
   { title: "Dashboard", icon: Home, url: "/" },
@@ -31,12 +32,15 @@ export default function AppSidebar() {
         boxShadow: "4px 0 12px rgba(0,0,0,0.1)",
       }}
     >
-      <SidebarHeader className="px-6 py-6 pb-10">
-        <div className="text-[28px] font-extrabold text-white mb-2" data-testid="text-sidebar-logo">
-          📊 Dashboard Bilanci
-        </div>
-        <div className="text-sm text-white/80 font-medium" data-testid="text-sidebar-company">
-          Awentia Srl
+      <SidebarHeader className="px-6 py-6 pb-8">
+        <img 
+          src={awentiaLogo} 
+          alt="Awentia Logo" 
+          className="w-40 h-auto brightness-0 invert"
+          data-testid="img-sidebar-logo"
+        />
+        <div className="text-sm text-white/80 font-medium mt-3" data-testid="text-sidebar-subtitle">
+          Dashboard Bilanci 2025
         </div>
       </SidebarHeader>
       <SidebarContent className="px-6">
