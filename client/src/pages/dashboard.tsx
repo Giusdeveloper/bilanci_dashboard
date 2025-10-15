@@ -31,6 +31,7 @@ export default function Dashboard() {
   const { kpis, monthlyTrend, summary } = financialData.dashboard;
 
   const ricaviVariance = calculateVariance(kpis.ricavi2025, kpis.ricavi2024);
+  const costiVariance = calculateVariance(kpis.costiTotali2025, kpis.costiTotali2024);
   const ebitdaVariance = calculateVariance(kpis.ebitda2025, kpis.ebitda2024);
   const risultatoVariance = calculateVariance(kpis.risultato2025, kpis.risultato2024);
   const margineVariance = kpis.margineEbitda2025 - kpis.margineEbitda2024;
@@ -112,12 +113,18 @@ export default function Dashboard() {
         subtitle="Analisi Bilanci al 31 Agosto 2025"
       />
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
         <KPICard 
           label="Ricavi 2025" 
           value={formatCurrency(kpis.ricavi2025)}
           change={`${ricaviVariance >= 0 ? '+' : ''}${formatPercentage(ricaviVariance, 0)} vs 2024`}
           changeType={ricaviVariance >= 0 ? "positive" : "negative"}
+        />
+        <KPICard 
+          label="Costi Totali 2025" 
+          value={formatCurrency(kpis.costiTotali2025)}
+          change={`${costiVariance >= 0 ? '+' : ''}${formatPercentage(costiVariance, 0)} vs 2024`}
+          changeType={costiVariance >= 0 ? "negative" : "positive"}
         />
         <KPICard 
           label="EBITDA 2025" 
