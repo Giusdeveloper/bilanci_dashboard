@@ -9,7 +9,7 @@ import {
   SidebarMenuItem,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
-import { Home, FileText, Calendar, TrendingUp, BarChart3, PanelLeftClose } from "lucide-react";
+import { Home, FileText, Calendar, TrendingUp, BarChart3, PanelLeftClose, Github } from "lucide-react";
 import { useLocation } from "wouter";
 import awentiaLogo from "@assets/awentia-logo-standard_1760537986689.png";
 
@@ -19,6 +19,7 @@ const menuItems = [
   { title: "CE Dettaglio Mensile", icon: Calendar, url: "/ce-dettaglio-mensile" },
   { title: "CE Sintetico", icon: TrendingUp, url: "/ce-sintetico" },
   { title: "CE Sintetico Mensile", icon: BarChart3, url: "/ce-sintetico-mensile" },
+  { title: "GitHub", icon: Github, url: "/github" },
 ];
 
 export default function AppSidebar() {
