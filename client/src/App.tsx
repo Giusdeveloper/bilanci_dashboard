@@ -10,6 +10,7 @@ import CEDettaglio from "@/pages/ce-dettaglio";
 import CEDettaglioMensile from "@/pages/ce-dettaglio-mensile";
 import CESintetico from "@/pages/ce-sintetico";
 import CESinteticoMensile from "@/pages/ce-sintetico-mensile";
+import Partitari from "@/pages/partitari";
 import GitHubSync from "@/pages/github-sync";
 import NotFound from "@/pages/not-found";
 
@@ -21,6 +22,7 @@ function Router() {
       <Route path="/ce-dettaglio-mensile" component={CEDettaglioMensile} />
       <Route path="/ce-sintetico" component={CESintetico} />
       <Route path="/ce-sintetico-mensile" component={CESinteticoMensile} />
+      <Route path="/partitari" component={Partitari} />
       <Route path="/github" component={GitHubSync} />
       <Route component={NotFound} />
     </Switch>
