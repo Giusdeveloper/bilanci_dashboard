@@ -8,6 +8,30 @@
   background: linear-gradient(180deg, #6366f1 0%, #4f46e5 100%) !important;
 }
 
+/* Always show scrollbars for tables */
+.table-scroll-container {
+  scrollbar-width: thin;
+  scrollbar-color: hsl(var(--border)) transparent;
+}
+
+.table-scroll-container::-webkit-scrollbar {
+  height: 12px;
+  width: 12px;
+}
+
+.table-scroll-container::-webkit-scrollbar-track {
+  background: hsl(var(--muted));
+}
+
+.table-scroll-container::-webkit-scrollbar-thumb {
+  background: hsl(var(--border));
+  border-radius: 6px;
+}
+
+.table-scroll-container::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--muted-foreground));
+}
+
 /* LIGHT MODE */
 :root {
   --button-outline: rgba(0,0,0, .10);
