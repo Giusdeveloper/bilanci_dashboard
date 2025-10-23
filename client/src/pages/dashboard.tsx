@@ -1,4 +1,4 @@
-import React, { useRef } from "react";
+import React from "react";
 import PageHeader from "@/components/PageHeader";
 import KPICard from "@/components/KPICard";
 import ChartCard from "@/components/ChartCard";
@@ -35,48 +35,51 @@ export default function Dashboard() {
   const [allMonthsData, setAllMonthsData] = React.useState<any>(null);
   const [loading, setLoading] = React.useState(true);
   const { selectedCompany, getDashboardData } = useFinancialData();
-  const getDashboardDataRef = useRef(getDashboardData);
-  
-  // Aggiorna il ref quando la funzione cambia
-  getDashboardDataRef.current = getDashboardData;
 
   React.useEffect(() => {
-    console.log('🔄 useEffect triggered - selectedCompany:', selectedCompany?.id, 'loading:', loading);
+    if (!selectedCompany) return;
+    
+    console.log('🔄 useEffect triggered - selectedCompany:', selectedCompany.id);
+    
+    let isMounted = true;
     
     const loadData = async () => {
       try {
-        console.log('📊 Dashboard: Tentativo caricamento dati dal database per azienda:', selectedCompany?.id);
+        console.log('📊 Dashboard: Tentativo caricamento dati dal database per azienda:', selectedCompany.id);
         setLoading(true);
         
-        // Prova prima a caricare dal database
-        if (selectedCompany) {
-          const dbData = await getDashboardDataRef.current(selectedCompany.id);
-          console.log('📊 Dashboard: Risultato query database:', dbData);
-          
-          if (dbData && dbData.length > 0) {
-            console.log('📊 Dashboard: Dati caricati dal database:', dbData[0].data);
-            setAllMonthsData(dbData[0].data);
-            setLoading(false);
-            return;
-          }
-        }
+        const dbData = await getDashboardData(selectedCompany.id);
+        console.log('📊 Dashboard: Risultato query database:', dbData);
         
-        // Fallback ai dati CSV
-        console.log('📊 Dashboard: Fallback ai dati CSV');
-        const data = await getAllMonthsData();
-        setAllMonthsData(data);
+        if (!isMounted) return; // Previene aggiornamenti se unmounted
+        
+        if (dbData && dbData.length > 0) {
+          console.log('📊 Dashboard: Dati caricati dal database:', dbData[0].data);
+          setAllMonthsData(dbData[0].data);
+        } else {
+          console.log('📊 Dashboard: Fallback ai dati CSV');
+          const csvData = await getAllMonthsData();
+          setAllMonthsData(csvData);
+        }
       } catch (error) {
         console.error('❌ Errore nel caricamento dei dati:', error);
-        // Fallback ai dati CSV in caso di errore
-        const data = await getAllMonthsData();
-        setAllMonthsData(data);
+        if (isMounted) {
+          const csvData = await getAllMonthsData();
+          setAllMonthsData(csvData);
+        }
       } finally {
-        setLoading(false);
+        if (isMounted) {
+          setLoading(false);
+        }
       }
     };
 
     loadData();
-  }, [selectedCompany?.id]); // Solo selectedCompany come dipendenza
+    
+    return () => {
+      isMounted = false; // Cleanup
+    };
+  }, [selectedCompany?.id, getDashboardData]);
 
   // Debug logging
   console.log('📊 Dashboard - selectedCompany:', selectedCompany)
