@@ -1,32 +1,45 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import PageHeader from "@/components/PageHeader";
 import { Card } from "@/components/ui/card";
-import { formatCurrency } from "@/data/financialData";
-import { getAllMonthsData } from "@/data/csvData";
-import { Link } from "wouter";
-import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
+import { getAllMonthsData } from "@/data/csvData";
 
-export default function CEDettaglioMensile() {
-  const [allMonthsData, setAllMonthsData] = React.useState<any>(null);
-  const [loading, setLoading] = React.useState(true);
-  const [, setLocation] = useLocation();
+export default function CEDettaglioMensilePuntuale2025() {
+  const [allMonthsData, setAllMonthsData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
 
-  React.useEffect(() => {
+  useEffect(() => {
     const loadData = async () => {
       try {
-        setLoading(true);
         const data = await getAllMonthsData();
         setAllMonthsData(data);
       } catch (error) {
-        console.error('Errore nel caricamento dei dati:', error);
+        console.error('Errore caricamento dati:', error);
       } finally {
         setLoading(false);
       }
     };
-
     loadData();
   }, []);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
+
+  if (!allMonthsData) {
+    return (
+      <div className="p-6">
+        <PageHeader 
+          title="CE Dettaglio Mensile - Puntuale 2025" 
+          subtitle="Dati non disponibili"
+        />
+      </div>
+    );
+  }
 
   const months = ["Gen", "Feb", "Mar", "Apr", "Mag", "Giu", "Lug", "Ago", "Set", "Ott", "Nov", "Dic"];
 
@@ -51,13 +64,13 @@ export default function CEDettaglioMensile() {
     
     const values = months.map(month => {
       const monthKey = monthUrlMap[month];
-      const monthData = allMonthsData[monthKey]?.progressivo2025;
+      const monthData = allMonthsData[monthKey]?.puntuale2025;
       return monthData ? monthData[field] || 0 : 0;
     });
 
     return {
       voce: label,
-      values: values.map((v) => formatCurrency(v).replace("€", "").trim()),
+      values: values.map((v) => v.toLocaleString()),
       className,
     };
   };
@@ -157,42 +170,17 @@ export default function CEDettaglioMensile() {
     }
   };
 
-  if (loading) {
-    return (
-      <div data-testid="page-ce-dettaglio-mensile">
-        <PageHeader 
-          title="CE Dettaglio Mensile" 
-          subtitle="Caricamento dati in corso..."
-        />
-        <Card className="p-6">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-            <p className="text-muted-foreground">Caricamento dati mensili...</p>
-          </div>
-        </Card>
-      </div>
-    );
-  }
-
   return (
-    <div data-testid="page-ce-dettaglio-mensile">
+    <div data-testid="page-ce-dettaglio-mensile-puntuale-2025" className="p-6">
       <PageHeader 
-        title="CE Dettaglio Mensile" 
-        subtitle="Conto Economico Dettagliato - Analisi mensile progressiva (Gen-Ago 2025). Clicca su un mese per vedere il dettaglio."
+        title="CE Dettaglio Mensile - Puntuale 2025" 
+        subtitle="Conto Economico Dettagliato - Analisi mensile puntuale 2025"
       />
-
-      {/* Navigazione tra le sottopagine */}
+      
       <div className="mb-6">
         <div className="flex space-x-2">
-          <Button variant="default">Progressivo 2025</Button>
-          <Button variant="outline" onClick={() => setLocation('/ce-dettaglio-mensile/puntuale-2025')}>
-            Puntuale 2025
-          </Button>
-          <Button variant="outline" onClick={() => setLocation('/ce-dettaglio-mensile/progressivo-2024')}>
-            Progressivo 2024
-          </Button>
-          <Button variant="outline" onClick={() => setLocation('/ce-dettaglio-mensile/puntuale-2024')}>
-            Puntuale 2024
+          <Button variant="outline" onClick={() => window.history.back()}>
+            ← Torna alla pagina principale
           </Button>
         </div>
       </div>
@@ -211,11 +199,7 @@ export default function CEDettaglioMensile() {
                     key={month}
                     className="bg-muted px-3 py-3 text-sm font-semibold border-b-2 border-border text-right whitespace-nowrap"
                   >
-                    <Link href={`/ce-dettaglio-mensile/${monthUrlMap[month]}`}>
-                      <a className="text-primary hover:underline cursor-pointer">
-                        {month}
-                      </a>
-                    </Link>
+                    {month}
                   </th>
                 ))}
               </tr>

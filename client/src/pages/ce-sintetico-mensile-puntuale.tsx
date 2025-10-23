@@ -8,7 +8,7 @@ import { getAllMonthsData } from "@/data/csvData";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 
-export default function CESinteticoMensile() {
+export default function CESinteticoMensilePuntuale() {
   const [allMonthsData, setAllMonthsData] = React.useState<any>(null);
   const [loading, setLoading] = React.useState(true);
   const [, setLocation] = useLocation();
@@ -36,7 +36,7 @@ export default function CESinteticoMensile() {
     if (!allMonthsData) return { voce: label, values: [], isPercentage, isBold };
     
     const values = monthKeys.map(monthKey => {
-      const monthData = allMonthsData[monthKey]?.progressivo2025;
+      const monthData = allMonthsData[monthKey]?.puntuale2025;
       return monthData ? monthData[field] || 0 : 0;
     });
 
@@ -51,7 +51,7 @@ export default function CESinteticoMensile() {
   };
 
   const marginValues = allMonthsData ? monthKeys.map(monthKey => {
-    const monthData = allMonthsData[monthKey]?.progressivo2025;
+    const monthData = allMonthsData[monthKey]?.puntuale2025;
     const grossProfit = monthData?.grossProfit || 0;
     const totaleRicavi = monthData?.totaleRicavi || 1;
     return (grossProfit / totaleRicavi) * 100;
@@ -137,15 +137,15 @@ export default function CESinteticoMensile() {
 
   if (loading) {
     return (
-      <div data-testid="page-ce-sintetico-mensile">
+      <div data-testid="page-ce-sintetico-mensile-puntuale">
         <PageHeader 
-          title="CE Sintetico Mensile" 
+          title="CE Sintetico Mensile - Puntuale" 
           subtitle="Caricamento dati in corso..."
         />
         <Card className="p-6">
           <div className="text-center">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-            <p className="text-muted-foreground">Caricamento dati sintetici mensili...</p>
+            <p className="text-muted-foreground">Caricamento dati sintetici mensili puntuali...</p>
           </div>
         </Card>
       </div>
@@ -153,29 +153,29 @@ export default function CESinteticoMensile() {
   }
 
   return (
-    <div data-testid="page-ce-sintetico-mensile">
+    <div data-testid="page-ce-sintetico-mensile-puntuale">
       <PageHeader 
-        title="CE Sintetico Mensile" 
-        subtitle="Andamento mensile degli aggregati economici principali (Progressivi)"
+        title="CE Sintetico Mensile - Puntuale" 
+        subtitle="Andamento mensile degli aggregati economici principali (Puntuali)"
       />
 
       <div className="mb-6 flex gap-4">
         <Button 
           variant="outline" 
-          onClick={() => setLocation("/ce-sintetico-mensile/puntuale")}
+          onClick={() => setLocation("/ce-sintetico-mensile")}
         >
-          Visualizza Puntuale
+          ← Torna al Progressivo
         </Button>
       </div>
 
       <div className="mb-8">
-        <ChartCard title="Trend Margine Gross Profit Mensile">
+        <ChartCard title="Trend Margine Gross Profit Mensile (Puntuale)">
           <Line data={trendData} options={chartOptions} />
         </ChartCard>
       </div>
 
       <Card className="p-6 overflow-x-auto">
-        <h3 className="text-lg font-bold mb-5">Riepilogo Mensile Sintetico</h3>
+        <h3 className="text-lg font-bold mb-5">Riepilogo Mensile Sintetico - Puntuale</h3>
         <div className="overflow-x-auto">
           <table className="w-full border-collapse min-w-max">
             <thead>

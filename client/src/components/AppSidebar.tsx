@@ -9,8 +9,9 @@ import {
   SidebarMenuItem,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
-import { Home, FileText, Calendar, TrendingUp, BarChart3, PanelLeftClose, BookOpen } from "lucide-react";
+import { Home, FileText, Calendar, TrendingUp, BarChart3, PanelLeftClose, BookOpen, LogOut } from "lucide-react";
 import { useLocation } from "wouter";
+import { useAuth } from "@/hooks/useAuth";
 import awentiaLogo from "@assets/awentia-logo-standard_1760537986689.png";
 
 const menuItems = [
@@ -24,6 +25,7 @@ const menuItems = [
 
 export default function AppSidebar() {
   const [location] = useLocation();
+  const { user, signOut, isAdmin } = useAuth();
 
   return (
     <Sidebar 
@@ -47,6 +49,16 @@ export default function AppSidebar() {
             <div className="text-sm text-white/95 font-medium mt-3" data-testid="text-sidebar-subtitle">
               Dashboard Bilanci 2025
             </div>
+            {user && (
+              <div className="text-xs text-white/80 mt-2">
+                {user.email}
+                {isAdmin && (
+                  <div className="text-xs text-yellow-300 font-semibold mt-1">
+                    ADMIN
+                  </div>
+                )}
+              </div>
+            )}
           </div>
           <SidebarTrigger className="text-white hover:text-white hover:bg-white/20 rounded-md p-4 h-12 w-12 group-data-[collapsible=icon]:p-2 group-data-[collapsible=icon]:h-10 group-data-[collapsible=icon]:w-10" data-testid="button-sidebar-close" />
         </div>
@@ -70,6 +82,24 @@ export default function AppSidebar() {
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+        
+        {/* Logout Button */}
+        <SidebarGroup className="mt-auto">
+          <SidebarGroupContent>
+            <SidebarMenu>
+              <SidebarMenuItem>
+                <SidebarMenuButton 
+                  onClick={signOut}
+                  className="text-white hover:text-white hover:bg-white/20 px-4 py-3.5 mb-2 rounded-[10px] text-[15px]"
+                  data-testid="button-logout"
+                >
+                  <LogOut className="w-5 h-5" />
+                  <span>Logout</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
