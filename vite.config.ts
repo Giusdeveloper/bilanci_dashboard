@@ -31,6 +31,7 @@ export default defineConfig({
     outDir: path.resolve(import.meta.dirname, "dist/public"),
     emptyOutDir: true,
   },
+  base: "/bilanci_dashboard/",
   server: {
     fs: {
       strict: true,
