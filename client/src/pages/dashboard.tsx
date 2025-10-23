@@ -16,7 +16,7 @@ import {
   Legend,
 } from "chart.js";
 import { formatCurrency, formatPercentage, calculateVariance } from "@/data/financialData";
-import { getAllMonthsData } from "@/data/csvData";
+import { fallbackData } from "@/data/csvData";
 import { Building2 } from "lucide-react";
 
 ChartJS.register(
@@ -34,14 +34,14 @@ export default function Dashboard() {
   const [allMonthsData, setAllMonthsData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
-  // Carica i dati CSV al mount
+  // Carica i dati di fallback al mount
   useEffect(() => {
     const loadData = async () => {
       try {
-        const data = await getAllMonthsData();
-        setAllMonthsData(data);
+        // Usa direttamente i dati di fallback per evitare problemi con file CSV
+        setAllMonthsData(fallbackData);
       } catch (error) {
-        console.error('Errore nel caricamento dati CSV:', error);
+        console.error('Errore nel caricamento dati:', error);
       } finally {
         setLoading(false);
       }
