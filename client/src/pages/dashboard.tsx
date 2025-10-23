@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import PageHeader from "@/components/PageHeader";
 import KPICard from "@/components/KPICard";
 import ChartCard from "@/components/ChartCard";
@@ -17,7 +17,6 @@ import {
 } from "chart.js";
 import { formatCurrency, formatPercentage, calculateVariance } from "@/data/financialData";
 import { getAllMonthsData } from "@/data/csvData";
-import { useFinancialData } from "@/hooks/useFinancialData";
 import { Building2 } from "lucide-react";
 
 ChartJS.register(
@@ -32,81 +31,26 @@ ChartJS.register(
 );
 
 export default function Dashboard() {
-  const [allMonthsData, setAllMonthsData] = React.useState<any>(null);
-  const [loading, setLoading] = React.useState(true);
-  const { selectedCompany, getDashboardData } = useFinancialData();
+  const [allMonthsData, setAllMonthsData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
 
-  React.useEffect(() => {
-    if (!selectedCompany) return;
-    
-    console.log('🔄 useEffect triggered - selectedCompany:', selectedCompany.id);
-    
-    let isMounted = true;
-    
+  // Carica i dati CSV al mount
+  useEffect(() => {
     const loadData = async () => {
       try {
-        console.log('📊 Dashboard: Tentativo caricamento dati dal database per azienda:', selectedCompany.id);
-        setLoading(true);
-        
-        const dbData = await getDashboardData(selectedCompany.id);
-        console.log('📊 Dashboard: Risultato query database:', dbData);
-        
-        if (!isMounted) return; // Previene aggiornamenti se unmounted
-        
-        if (dbData && dbData.length > 0) {
-          console.log('📊 Dashboard: Dati caricati dal database:', dbData[0].data);
-          setAllMonthsData(dbData[0].data);
-        } else {
-          console.log('📊 Dashboard: Fallback ai dati CSV');
-          const csvData = await getAllMonthsData();
-          setAllMonthsData(csvData);
-        }
+        const data = await getAllMonthsData();
+        setAllMonthsData(data);
       } catch (error) {
-        console.error('❌ Errore nel caricamento dei dati:', error);
-        if (isMounted) {
-          const csvData = await getAllMonthsData();
-          setAllMonthsData(csvData);
-        }
+        console.error('Errore nel caricamento dati CSV:', error);
       } finally {
-        if (isMounted) {
-          setLoading(false);
-        }
+        setLoading(false);
       }
     };
 
     loadData();
-    
-    return () => {
-      isMounted = false; // Cleanup
-    };
-  }, [selectedCompany?.id, getDashboardData]);
+  }, []);
 
-  // Debug logging
-  console.log('📊 Dashboard - selectedCompany:', selectedCompany)
-  console.log('📊 Dashboard - loading:', loading)
-  console.log('📊 Dashboard - getDashboardData function:', getDashboardData.toString().substring(0, 100))
-
-  // Mostra messaggio se nessuna azienda è selezionata
-  if (!selectedCompany) {
-    console.log('❌ No company selected, showing selection message')
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="text-center">
-          <div className="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <Building2 className="w-8 h-8 text-yellow-600" />
-          </div>
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">
-            Seleziona un'azienda
-          </h3>
-          <p className="text-gray-600">
-            Scegli un'azienda dal selettore sopra per visualizzare i dati della dashboard.
-          </p>
-        </div>
-      </div>
-    );
-  }
-
-  // Calcola i KPIs dai dati dinamici
+  // Calcola i KPIs dai dati
   const calculateKPIs = () => {
     if (!allMonthsData) return null;
     
@@ -131,7 +75,7 @@ export default function Dashboard() {
 
   const kpis = calculateKPIs();
 
-  if (loading || !kpis) {
+  if (loading) {
     return (
       <div data-testid="page-dashboard">
         <PageHeader 
@@ -141,6 +85,20 @@ export default function Dashboard() {
         <div className="text-center p-8">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
           <p className="text-muted-foreground">Caricamento dashboard...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!kpis) {
+    return (
+      <div data-testid="page-dashboard">
+        <PageHeader 
+          title="Dashboard" 
+          subtitle="Errore nel caricamento dati"
+        />
+        <div className="text-center p-8">
+          <p className="text-red-600">Errore nel caricamento dei dati della dashboard</p>
         </div>
       </div>
     );

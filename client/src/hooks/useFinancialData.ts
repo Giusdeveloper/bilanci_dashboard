@@ -7,6 +7,7 @@ export const useFinancialData = () => {
   const [companies, setCompanies] = useState<Company[]>([])
   const [selectedCompany, setSelectedCompany] = useState<Company | null>(null)
   const [loading, setLoading] = useState(true)
+  
 
   // Funzione per salvare l'azienda selezionata nel localStorage
   const saveSelectedCompany = (company: Company | null) => {
@@ -33,9 +34,7 @@ export const useFinancialData = () => {
   // Carica le aziende (solo per admin)
   useEffect(() => {
     const loadCompanies = async () => {
-      console.log('🏢 useFinancialData: isAdmin:', isAdmin, 'loading:', loading)
       if (!isAdmin) {
-        console.log('❌ User is not admin, skipping company loading')
         setLoading(false)
         return
       }
@@ -46,13 +45,12 @@ export const useFinancialData = () => {
           .select('*')
           .order('name')
         
-        if (error) {
-          console.error('❌ Errore nel caricamento aziende:', error)
-          return
-        }
-        
-        console.log('✅ Aziende caricate:', data)
-        setCompanies(data || [])
+      if (error) {
+        console.error('Errore nel caricamento aziende:', error)
+        return
+      }
+      
+      setCompanies(data || [])
         
         // Carica l'azienda salvata dal localStorage
         const savedCompany = loadSelectedCompany()
@@ -73,8 +71,8 @@ export const useFinancialData = () => {
     loadCompanies()
   }, [isAdmin])
 
-  // Carica i dati finanziari per l'azienda selezionata
-  const loadFinancialData = async (companyId: string, dataType: string, year?: number, month?: number) => {
+  // Carica i dati finanziari per l'azienda selezionata - STABILIZZATA
+  const loadFinancialData = useCallback(async (companyId: string, dataType: string, year?: number, month?: number) => {
     try {
       let query = supabase
         .from('financial_data')
@@ -97,7 +95,7 @@ export const useFinancialData = () => {
       console.error('Errore generale:', err)
       return null
     }
-  }
+  }, []) // Nessuna dipendenza perché usa solo supabase
 
   // Salva dati finanziari
   const saveFinancialData = async (
@@ -126,13 +124,30 @@ export const useFinancialData = () => {
     return result
   }
 
-  // Ottieni i dati per la dashboard
+  // Ottieni i dati per la dashboard - COMPLETAMENTE STABILE
   const getDashboardData = useCallback(async (companyId: string) => {
-    console.log('📊 getDashboardData: Caricamento dati dashboard per azienda:', companyId)
-    const result = await loadFinancialData(companyId, 'dashboard', 2025, 8) // Agosto 2025
-    console.log('📊 getDashboardData: Risultato:', result)
-    return result
-  }, [])
+    // Implementazione diretta senza dipendenze
+    try {
+      const { data, error } = await supabase
+        .from('financial_data')
+        .select('*')
+        .eq('company_id', companyId)
+        .eq('data_type', 'dashboard')
+        .eq('year', 2025)
+        .eq('month', 8)
+        .order('created_at', { ascending: false })
+      
+      if (error) {
+        console.error('Errore nel caricamento dati dashboard:', error)
+        return null
+      }
+      
+      return data
+    } catch (err) {
+      console.error('Errore generale getDashboardData:', err)
+      return null
+    }
+  }, []) // NESSUNA DIPENDENZA - completamente stabile
 
   // Ottieni i dati per CE Dettaglio
   const getCEDettaglioData = async (companyId: string) => {

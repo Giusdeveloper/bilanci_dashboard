@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { User, Session } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabase'
 
@@ -11,34 +11,35 @@ export const useAuth = () => {
   const [user, setUser] = useState<AuthUser | null>(null)
   const [loading, setLoading] = useState(true)
   const [session, setSession] = useState<Session | null>(null)
+  
 
   useEffect(() => {
     let mounted = true
+    let hasInitialized = false
 
     // Ottieni la sessione corrente
     supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!mounted) return
+      if (!mounted || hasInitialized) return
+      hasInitialized = true
       
-      console.log('🔐 Auth session:', session)
       setSession(session)
       if (session?.user) {
-        console.log('✅ User authenticated:', session.user.email)
         setUser({
           ...session.user,
           role: 'admin',
           company_id: null
         })
-      } else {
-        console.log('❌ No user session')
       }
       setLoading(false)
     })
 
-    // Ascolta i cambiamenti di autenticazione
+    // Ascolta i cambiamenti di autenticazione - SOLO se non è già inizializzato
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
         if (!mounted) return
         
+        // Evita chiamate multiple per lo stesso stato
+        if (event === 'INITIAL_SESSION' && hasInitialized) return
         setSession(session)
         if (session?.user) {
           setUser({
@@ -111,10 +112,11 @@ export const useAuth = () => {
     if (error) throw error
   }
 
-  const isAdmin = user?.role === 'admin'
-  const isClient = user?.role === 'client'
+  // Memoizza i valori per evitare re-render
+  const isAdmin = useMemo(() => user?.role === 'admin', [user?.role])
+  const isClient = useMemo(() => user?.role === 'client', [user?.role])
 
-  return {
+  const returnValue = useMemo(() => ({
     user,
     session,
     loading,
@@ -123,5 +125,7 @@ export const useAuth = () => {
     signOut,
     isAdmin,
     isClient
-  }
+  }), [user, session, loading, isAdmin, isClient])
+
+  return returnValue
 }
