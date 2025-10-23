@@ -37,14 +37,20 @@ export default function Dashboard() {
   const { selectedCompany, getDashboardData } = useFinancialData();
 
   React.useEffect(() => {
+    console.log('🔄 useEffect triggered - selectedCompany:', selectedCompany?.id, 'loading:', loading);
+    
     const loadData = async () => {
       try {
+        console.log('📊 Dashboard: Tentativo caricamento dati dal database per azienda:', selectedCompany?.id);
         setLoading(true);
+        
         // Prova prima a caricare dal database
         if (selectedCompany) {
           const dbData = await getDashboardData(selectedCompany.id);
+          console.log('📊 Dashboard: Risultato query database:', dbData);
           
           if (dbData && dbData.length > 0) {
+            console.log('📊 Dashboard: Dati caricati dal database:', dbData[0].data);
             setAllMonthsData(dbData[0].data);
             setLoading(false);
             return;
@@ -52,10 +58,11 @@ export default function Dashboard() {
         }
         
         // Fallback ai dati CSV
+        console.log('📊 Dashboard: Fallback ai dati CSV');
         const data = await getAllMonthsData();
         setAllMonthsData(data);
       } catch (error) {
-        console.error('Errore nel caricamento dei dati:', error);
+        console.error('❌ Errore nel caricamento dei dati:', error);
         // Fallback ai dati CSV in caso di errore
         const data = await getAllMonthsData();
         setAllMonthsData(data);
@@ -70,6 +77,7 @@ export default function Dashboard() {
   // Debug logging
   console.log('📊 Dashboard - selectedCompany:', selectedCompany)
   console.log('📊 Dashboard - loading:', loading)
+  console.log('📊 Dashboard - getDashboardData function:', getDashboardData.toString().substring(0, 100))
 
   // Mostra messaggio se nessuna azienda è selezionata
   if (!selectedCompany) {
