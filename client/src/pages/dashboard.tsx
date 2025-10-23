@@ -70,8 +70,13 @@ export default function Dashboard() {
     loadData();
   }, [selectedCompany?.id, stableGetDashboardData]); // Dipendenze stabili
 
+  // Debug logging
+  console.log('📊 Dashboard - selectedCompany:', selectedCompany)
+  console.log('📊 Dashboard - loading:', loading)
+
   // Mostra messaggio se nessuna azienda è selezionata
   if (!selectedCompany) {
+    console.log('❌ No company selected, showing selection message')
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="text-center">

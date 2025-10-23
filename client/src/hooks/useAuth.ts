@@ -19,13 +19,17 @@ export const useAuth = () => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (!mounted) return
       
+      console.log('🔐 Auth session:', session)
       setSession(session)
       if (session?.user) {
+        console.log('✅ User authenticated:', session.user.email)
         setUser({
           ...session.user,
           role: 'admin',
           company_id: null
         })
+      } else {
+        console.log('❌ No user session')
       }
       setLoading(false)
     })

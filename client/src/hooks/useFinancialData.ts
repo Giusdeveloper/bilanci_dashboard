@@ -33,8 +33,9 @@ export const useFinancialData = () => {
   // Carica le aziende (solo per admin)
   useEffect(() => {
     const loadCompanies = async () => {
-      // console.log('🏢 useFinancialData: isAdmin:', isAdmin, 'loading:', loading)
+      console.log('🏢 useFinancialData: isAdmin:', isAdmin, 'loading:', loading)
       if (!isAdmin) {
+        console.log('❌ User is not admin, skipping company loading')
         setLoading(false)
         return
       }
@@ -46,10 +47,11 @@ export const useFinancialData = () => {
           .order('name')
         
         if (error) {
-          console.error('Errore nel caricamento aziende:', error)
+          console.error('❌ Errore nel caricamento aziende:', error)
           return
         }
         
+        console.log('✅ Aziende caricate:', data)
         setCompanies(data || [])
         
         // Carica l'azienda salvata dal localStorage
