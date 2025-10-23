@@ -1,4 +1,4 @@
-import React, { useCallback } from "react";
+import React from "react";
 import PageHeader from "@/components/PageHeader";
 import KPICard from "@/components/KPICard";
 import ChartCard from "@/components/ChartCard";
@@ -36,16 +36,13 @@ export default function Dashboard() {
   const [loading, setLoading] = React.useState(true);
   const { selectedCompany, getDashboardData } = useFinancialData();
 
-  // Crea una versione stabile di getDashboardData
-  const stableGetDashboardData = useCallback(getDashboardData, []);
-
   React.useEffect(() => {
     const loadData = async () => {
       try {
         setLoading(true);
         // Prova prima a caricare dal database
         if (selectedCompany) {
-          const dbData = await stableGetDashboardData(selectedCompany.id);
+          const dbData = await getDashboardData(selectedCompany.id);
           
           if (dbData && dbData.length > 0) {
             setAllMonthsData(dbData[0].data);
@@ -68,7 +65,7 @@ export default function Dashboard() {
     };
 
     loadData();
-  }, [selectedCompany?.id, stableGetDashboardData]); // Dipendenze stabili
+  }, [selectedCompany?.id, getDashboardData]); // Dipendenze stabili
 
   // Debug logging
   console.log('📊 Dashboard - selectedCompany:', selectedCompany)

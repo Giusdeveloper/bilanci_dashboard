@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { supabase, FinancialData, Company } from '@/lib/supabase'
 import { useAuth } from './useAuth'
 
@@ -127,9 +127,12 @@ export const useFinancialData = () => {
   }
 
   // Ottieni i dati per la dashboard
-  const getDashboardData = async (companyId: string) => {
-    return await loadFinancialData(companyId, 'dashboard', 2025, 8) // Agosto 2025
-  }
+  const getDashboardData = useCallback(async (companyId: string) => {
+    console.log('📊 getDashboardData: Caricamento dati dashboard per azienda:', companyId)
+    const result = await loadFinancialData(companyId, 'dashboard', 2025, 8) // Agosto 2025
+    console.log('📊 getDashboardData: Risultato:', result)
+    return result
+  }, [])
 
   // Ottieni i dati per CE Dettaglio
   const getCEDettaglioData = async (companyId: string) => {
