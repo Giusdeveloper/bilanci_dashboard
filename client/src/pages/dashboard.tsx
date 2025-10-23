@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useRef } from "react";
 import PageHeader from "@/components/PageHeader";
 import KPICard from "@/components/KPICard";
 import ChartCard from "@/components/ChartCard";
@@ -35,6 +35,10 @@ export default function Dashboard() {
   const [allMonthsData, setAllMonthsData] = React.useState<any>(null);
   const [loading, setLoading] = React.useState(true);
   const { selectedCompany, getDashboardData } = useFinancialData();
+  const getDashboardDataRef = useRef(getDashboardData);
+  
+  // Aggiorna il ref quando la funzione cambia
+  getDashboardDataRef.current = getDashboardData;
 
   React.useEffect(() => {
     console.log('🔄 useEffect triggered - selectedCompany:', selectedCompany?.id, 'loading:', loading);
@@ -46,7 +50,7 @@ export default function Dashboard() {
         
         // Prova prima a caricare dal database
         if (selectedCompany) {
-          const dbData = await getDashboardData(selectedCompany.id);
+          const dbData = await getDashboardDataRef.current(selectedCompany.id);
           console.log('📊 Dashboard: Risultato query database:', dbData);
           
           if (dbData && dbData.length > 0) {
@@ -72,7 +76,7 @@ export default function Dashboard() {
     };
 
     loadData();
-  }, [selectedCompany?.id, getDashboardData]); // Dipendenze stabili
+  }, [selectedCompany?.id]); // Solo selectedCompany come dipendenza
 
   // Debug logging
   console.log('📊 Dashboard - selectedCompany:', selectedCompany)
