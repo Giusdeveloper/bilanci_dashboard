@@ -33,7 +33,6 @@ ChartJS.register(
 export default function Dashboard() {
   // Versione completamente sincrona - nessun useEffect, nessun loop possibile
   const allMonthsData = useMemo(() => fallbackData, []);
-  const loading = false;
 
   // Calcola i KPIs dai dati - memoizzato per evitare re-render
   const kpis = useMemo(() => {
@@ -58,21 +57,7 @@ export default function Dashboard() {
     };
   }, [allMonthsData]);
 
-  if (loading) {
-    return (
-      <div data-testid="page-dashboard">
-        <PageHeader 
-          title="Dashboard" 
-          subtitle="Caricamento dati in corso..."
-        />
-        <div className="text-center p-8">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-muted-foreground">Caricamento dashboard...</p>
-        </div>
-      </div>
-    );
-  }
-
+  // Rimuovi completamente il controllo loading - sempre pronto
   if (!kpis) {
     return (
       <div data-testid="page-dashboard">
@@ -93,8 +78,8 @@ export default function Dashboard() {
   const risultatoVariance = calculateVariance(kpis.risultato2025, kpis.risultato2024);
   const margineVariance = kpis.margineEbitda2025 - kpis.margineEbitda2024;
 
-  // Calcola i dati del trend dai dati dinamici
-  const calculateTrendData = () => {
+  // Calcola i dati del trend dai dati dinamici - memoizzato
+  const trendData = useMemo(() => {
     if (!allMonthsData) return { labels: [], ricavi: [], ebitda: [] };
     
     const months = ["Gen", "Feb", "Mar", "Apr", "Mag", "Giu", "Lug", "Ago"];
@@ -111,11 +96,10 @@ export default function Dashboard() {
     });
     
     return { labels: months, ricavi, ebitda };
-  };
+  }, [allMonthsData]);
 
-  const trendData = calculateTrendData();
-
-  const chartData = {
+  // Memoizza chartData e comparisonData per evitare re-render
+  const chartData = useMemo(() => ({
     labels: trendData.labels,
     datasets: [
       {
@@ -133,9 +117,9 @@ export default function Dashboard() {
         tension: 0.4,
       },
     ],
-  };
+  }), [trendData]);
 
-  const comparisonData = {
+  const comparisonData = useMemo(() => ({
     labels: ["Ricavi", "EBITDA", "Risultato Esercizio"],
     datasets: [
       {
@@ -149,7 +133,7 @@ export default function Dashboard() {
         backgroundColor: "hsl(243, 75%, 59%)",
       },
     ],
-  };
+  }), [kpis]);
 
   const chartOptions = {
     responsive: true,
