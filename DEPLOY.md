@@ -39,7 +39,8 @@ Le variabili vengono caricate automaticamente dai GitHub Secrets:
 
 ### **URL di Deploy**
 L'applicazione sarà disponibile su:
-`https://[username].github.io/bilanci_dashboard/`
+- **GitHub Pages**: `https://[username].github.io/bilanci_dashboard/`
+- **Dominio Personalizzato** (se configurato): Segui la guida in [.github/CUSTOM_DOMAIN.md](.github/CUSTOM_DOMAIN.md)
 
 ## 🚨 Troubleshooting
 
@@ -68,6 +69,7 @@ L'applicazione sarà disponibile su:
 - [ ] Applicazione accessibile online
 - [ ] Autenticazione Supabase funzionante
 - [ ] Dati caricati dal database
+- [ ] (Opzionale) Dominio personalizzato configurato - vedi [.github/CUSTOM_DOMAIN.md](.github/CUSTOM_DOMAIN.md)
 
 ## 🎯 Risultato Atteso
 
