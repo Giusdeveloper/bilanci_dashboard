@@ -58,6 +58,20 @@ jobs:
         echo "✅ Build completato con successo"
         ls -la dist/public/ | head -20
         
+        # Verifica che 404.html esista (necessario per SPA routing su GitHub Pages)
+        if [ ! -f "dist/public/404.html" ]; then
+          echo "⚠️  404.html non trovato, creazione manuale..."
+          cp client/public/404.html dist/public/404.html || echo "Errore nel copiare 404.html"
+        fi
+        
+        # Verifica che index.html esista
+        if [ ! -f "dist/public/index.html" ]; then
+          echo "❌ Errore: index.html non esiste dopo il build"
+          exit 1
+        fi
+        
+        echo "✅ File HTML verificati"
+        
     - name: Upload build artifacts
       uses: actions/upload-artifact@v4
       with:
