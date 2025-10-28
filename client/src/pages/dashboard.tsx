@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useMemo } from "react";
 import PageHeader from "@/components/PageHeader";
 import KPICard from "@/components/KPICard";
 import ChartCard from "@/components/ChartCard";
@@ -31,27 +31,12 @@ ChartJS.register(
 );
 
 export default function Dashboard() {
-  const [allMonthsData, setAllMonthsData] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
+  // Versione completamente sincrona - nessun useEffect, nessun loop possibile
+  const allMonthsData = useMemo(() => fallbackData, []);
+  const loading = false;
 
-  // Carica i dati di fallback al mount
-  useEffect(() => {
-    const loadData = async () => {
-      try {
-        // Usa direttamente i dati di fallback per evitare problemi con file CSV
-        setAllMonthsData(fallbackData);
-      } catch (error) {
-        console.error('Errore nel caricamento dati:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadData();
-  }, []);
-
-  // Calcola i KPIs dai dati
-  const calculateKPIs = () => {
+  // Calcola i KPIs dai dati - memoizzato per evitare re-render
+  const kpis = useMemo(() => {
     if (!allMonthsData) return null;
     
     const agosto2025 = allMonthsData.agosto?.progressivo2025;
@@ -71,9 +56,7 @@ export default function Dashboard() {
       margineEbitda2025: agosto2025.totaleRicavi > 0 ? (agosto2025.ebitda / agosto2025.totaleRicavi) * 100 : 0,
       margineEbitda2024: agosto2024.totaleRicavi > 0 ? (agosto2024.ebitda / agosto2024.totaleRicavi) * 100 : 0,
     };
-  };
-
-  const kpis = calculateKPIs();
+  }, [allMonthsData]);
 
   if (loading) {
     return (
@@ -118,12 +101,12 @@ export default function Dashboard() {
     const monthKeys = ["gennaio", "febbraio", "marzo", "aprile", "maggio", "giugno", "luglio", "agosto"];
     
     const ricavi = monthKeys.map(monthKey => {
-      const monthData = allMonthsData[monthKey]?.progressivo2025;
+      const monthData = (allMonthsData as any)[monthKey]?.progressivo2025;
       return monthData?.totaleRicavi || 0;
     });
     
     const ebitda = monthKeys.map(monthKey => {
-      const monthData = allMonthsData[monthKey]?.progressivo2025;
+      const monthData = (allMonthsData as any)[monthKey]?.progressivo2025;
       return monthData?.ebitda || 0;
     });
     
