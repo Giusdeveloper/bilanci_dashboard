@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Dashboard Bilanci - Awentia</title>
+    <script>
+      // GitHub Pages SPA routing fix
+      // This page will be served for 404s, redirect to index.html
+      var base = '/bilanci_dashboard';
+      var path = window.location.pathname;
+      
+      // Remove base path if present
+      if (path.startsWith(base)) {
+        path = path.substring(base.length);
+      }
+      
+      // Redirect to index.html, preserving the path
+      window.location.replace(base + '/index.html' + path);
+    </script>
+  </head>
+  <body>
+    <p>Redirecting to dashboard...</p>
+  </body>
+</html>
+
