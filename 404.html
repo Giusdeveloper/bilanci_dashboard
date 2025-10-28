@@ -5,17 +5,30 @@
     <title>Dashboard Bilanci - Awentia</title>
     <script>
       // GitHub Pages SPA routing fix
-      // This page will be served for 404s, redirect to index.html
       var base = '/bilanci_dashboard';
       var path = window.location.pathname;
+      var search = window.location.search;
+      var hash = window.location.hash;
+      
+      // Se siamo sulla root di GitHub Pages, redirect alla base
+      if (path === '/' || path === '') {
+        window.location.replace(base + '/');
+        return;
+      }
       
       // Remove base path if present
       if (path.startsWith(base)) {
         path = path.substring(base.length);
+        // Se path è vuoto o solo /, vai alla root della base
+        if (path === '' || path === '/') {
+          window.location.replace(base + '/');
+          return;
+        }
       }
       
       // Redirect to index.html, preserving the path
-      window.location.replace(base + '/index.html' + path);
+      var target = base + '/index.html' + path + search + hash;
+      window.location.replace(target);
     </script>
   </head>
   <body>
