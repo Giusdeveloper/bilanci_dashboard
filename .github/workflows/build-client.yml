@@ -25,24 +25,30 @@ jobs:
       
     - name: Build client
       env:
-        SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
-        SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+        VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+        VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
       run: |
-        cd client
         # Crea un file .env.production con i valori dai secrets
-        echo "VITE_SUPABASE_URL=${SUPABASE_URL}" > .env.production
-        echo "VITE_SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY}" >> .env.production
+        echo "VITE_SUPABASE_URL=${VITE_SUPABASE_URL}" > .env.production
+        echo "VITE_SUPABASE_ANON_KEY=${VITE_SUPABASE_ANON_KEY}" >> .env.production
         echo "NODE_ENV=production" >> .env.production
         
         # Verifica se i secrets sono configurati
-        if [ -z "${SUPABASE_URL}" ] || [ -z "${SUPABASE_ANON_KEY}" ]; then
+        if [ -z "${VITE_SUPABASE_URL}" ] || [ -z "${VITE_SUPABASE_ANON_KEY}" ]; then
           echo "⚠️  Attenzione: I secrets VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY non sono configurati."
           echo "   Il build continuerà con valori vuoti. Configura i secrets per un build completo."
         else
           echo "✅ Secrets configurati correttamente"
         fi
         
+        # Build del client usando vite
         npm run build
+        
+        # Verifica che il build sia stato creato
+        if [ ! -d "dist/public" ]; then
+          echo "❌ Errore: La cartella dist/public non esiste dopo il build"
+          exit 1
+        fi
         
     - name: Upload build artifacts
       uses: actions/upload-artifact@v4
@@ -56,4 +62,4 @@ jobs:
       uses: peaceiris/actions-gh-pages@v3
       with:
         github_token: ${{ secrets.GITHUB_TOKEN }}
-        publish_dir: ./client/dist
+        publish_dir: ./dist/public
