@@ -16,6 +16,7 @@ export const useAuth = () => {
   useEffect(() => {
     let mounted = true
     let hasInitialized = false
+    let timeoutId: ReturnType<typeof setTimeout> | null = null
 
     // Ottieni la sessione corrente
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -29,33 +30,46 @@ export const useAuth = () => {
           role: 'admin',
           company_id: null
         })
+      } else {
+        setUser(null)
       }
+      setLoading(false)
+    }).catch((error) => {
+      console.error('Errore nel recupero sessione:', error)
+      if (!mounted) return
       setLoading(false)
     })
 
-    // Ascolta i cambiamenti di autenticazione - SOLO se non è già inizializzato
+    // Ascolta i cambiamenti di autenticazione - con debounce per evitare loop
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
         if (!mounted) return
         
-        // Evita chiamate multiple per lo stesso stato
+        // Ignora INITIAL_SESSION se già gestito
         if (event === 'INITIAL_SESSION' && hasInitialized) return
-        setSession(session)
-        if (session?.user) {
-          setUser({
-            ...session.user,
-            role: 'admin',
-            company_id: null
-          })
-        } else {
-          setUser(null)
-        }
-        setLoading(false)
+        
+        // Debounce per evitare chiamate multiple
+        if (timeoutId) clearTimeout(timeoutId)
+        timeoutId = setTimeout(() => {
+          if (!mounted) return
+          setSession(session)
+          if (session?.user) {
+            setUser({
+              ...session.user,
+              role: 'admin',
+              company_id: null
+            })
+          } else {
+            setUser(null)
+          }
+          setLoading(false)
+        }, 100)
       }
     )
 
     return () => {
       mounted = false
+      if (timeoutId) clearTimeout(timeoutId)
       subscription.unsubscribe()
     }
   }, [])
