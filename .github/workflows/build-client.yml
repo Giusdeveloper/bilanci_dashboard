@@ -41,14 +41,18 @@ jobs:
           echo "✅ Secrets configurati correttamente"
         fi
         
-        # Build del client usando vite
-        npm run build
+        # Build del client usando vite (solo client, non server)
+        npx vite build
         
         # Verifica che il build sia stato creato
         if [ ! -d "dist/public" ]; then
           echo "❌ Errore: La cartella dist/public non esiste dopo il build"
+          ls -la dist/ || echo "Cartella dist non esiste"
           exit 1
         fi
+        
+        echo "✅ Build completato con successo"
+        ls -la dist/public/ | head -20
         
     - name: Upload build artifacts
       uses: actions/upload-artifact@v4
