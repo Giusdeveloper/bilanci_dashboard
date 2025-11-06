@@ -4,8 +4,8 @@ import { createClient } from '@supabase/supabase-js'
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://caubhppwypkymsixsrco.supabase.co'
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNhdWJocHB3eXBreW1zaXhzcmNvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjEyMTkwODcsImV4cCI6MjA3Njc5NTA4N30.OqfYc2Xj4YULWrINf_eS6Hhj-SJf_iO8Ejp6KHDlBxI'
 
-// Verifica che le variabili d'ambiente siano configurate
-if (!supabaseUrl || supabaseUrl.includes('caubhppwypkymsixsrco')) {
+// Verifica che le variabili d'ambiente siano configurate (solo in sviluppo)
+if (import.meta.env.DEV && (!supabaseUrl || supabaseUrl.includes('caubhppwypkymsixsrco'))) {
   console.warn('⚠️ Supabase URL non configurato o usando valore di default. Verifica il file .env')
 }
 

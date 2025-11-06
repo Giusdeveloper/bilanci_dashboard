@@ -32,20 +32,27 @@ jobs:
         VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
         VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
       run: |
-        # Crea un file .env.production con i valori dai secrets
-        echo "VITE_SUPABASE_URL=${VITE_SUPABASE_URL}" > .env.production
-        echo "VITE_SUPABASE_ANON_KEY=${VITE_SUPABASE_ANON_KEY}" >> .env.production
-        echo "NODE_ENV=production" >> .env.production
-        
         # Verifica se i secrets sono configurati
         if [ -z "${VITE_SUPABASE_URL}" ] || [ -z "${VITE_SUPABASE_ANON_KEY}" ]; then
           echo "⚠️  Attenzione: I secrets VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY non sono configurati."
-          echo "   Il build continuerà con valori vuoti. Configura i secrets per un build completo."
+          echo "   Il build continuerà con valori di default. Configura i secrets per un build completo."
+          echo "   Vai su: Settings > Secrets and variables > Actions > New repository secret"
         else
           echo "✅ Secrets configurati correttamente"
+          echo "   VITE_SUPABASE_URL: ${VITE_SUPABASE_URL:0:30}..." # Mostra solo i primi 30 caratteri
         fi
         
+        # Crea un file .env.production nella root del progetto
+        echo "VITE_SUPABASE_URL=${VITE_SUPABASE_URL:-https://caubhppwypkymsixsrco.supabase.co}" > .env.production
+        echo "VITE_SUPABASE_ANON_KEY=${VITE_SUPABASE_ANON_KEY:-eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNhdWJocHB3eXBreW1zaXhzcmNvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjEyMTkwODcsImV4cCI6MjA3Njc5NTA4N30.OqfYc2Xj4YULWrINf_eS6Hhj-SJf_iO8Ejp6KHDlBxI}" >> .env.production
+        echo "NODE_ENV=production" >> .env.production
+        
+        # Verifica che il file sia stato creato
+        echo "📄 File .env.production creato:"
+        cat .env.production | sed 's/\(VITE_SUPABASE_ANON_KEY=\)\(.*\)/\1***/' # Nasconde la chiave per sicurezza
+        
         # Build del client usando vite (solo client, non server)
+        # Le variabili d'ambiente vengono passate sia tramite env: che tramite .env.production
         npx vite build
         
         # Verifica che il build sia stato creato
