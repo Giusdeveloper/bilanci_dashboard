@@ -38,9 +38,8 @@ Le variabili vengono caricate automaticamente dai GitHub Secrets:
 - Controlla che il build sia completato con successo
 
 ### **URL di Deploy**
-L'applicazione sarà disponibile su:
-- **GitHub Pages**: `https://[username].github.io/bilanci_dashboard/`
-- **Dominio Personalizzato** (se configurato): Segui la guida in [.github/CUSTOM_DOMAIN.md](.github/CUSTOM_DOMAIN.md)
+L'applicazione è disponibile su:
+- **GitHub Pages**: `https://giusdeveloper.github.io/bilanci_dashboard/`
 
 ## 🚨 Troubleshooting
 
