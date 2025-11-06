@@ -18,10 +18,24 @@ export const useAuth = () => {
     let hasInitialized = false
     let timeoutId: ReturnType<typeof setTimeout> | null = null
 
-    // Ottieni la sessione corrente
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    // Ottieni la sessione corrente con gestione errori migliorata
+    supabase.auth.getSession().then(({ data: { session }, error }) => {
       if (!mounted || hasInitialized) return
       hasInitialized = true
+      
+      if (error) {
+        // Se è un errore di connessione, non bloccare l'app
+        if (error.message?.includes('ERR_NAME_NOT_RESOLVED') || 
+            error.message?.includes('Failed to fetch') ||
+            error.message?.includes('NetworkError')) {
+          console.warn('⚠️ Supabase non raggiungibile. L\'app funzionerà in modalità offline.')
+          console.warn('💡 Verifica le credenziali Supabase nel file .env')
+        } else {
+          console.error('Errore nel recupero sessione:', error)
+        }
+        setLoading(false)
+        return
+      }
       
       setSession(session)
       if (session?.user) {
@@ -35,6 +49,16 @@ export const useAuth = () => {
       }
       setLoading(false)
     }).catch((error) => {
+      // Gestisci errori di rete senza bloccare l'app
+      if (error.message?.includes('ERR_NAME_NOT_RESOLVED') || 
+          error.message?.includes('Failed to fetch') ||
+          error.name === 'AbortError') {
+        console.warn('⚠️ Impossibile connettersi a Supabase. Modalità offline.')
+        // Non bloccare l'app, imposta loading a false
+        if (!mounted) return
+        setLoading(false)
+        return
+      }
       console.error('Errore nel recupero sessione:', error)
       if (!mounted) return
       setLoading(false)
@@ -64,6 +88,15 @@ export const useAuth = () => {
           }
           setLoading(false)
         }, 100)
+      },
+      (error) => {
+        // Gestisci errori di connessione senza bloccare
+        if (error?.message?.includes('ERR_NAME_NOT_RESOLVED') || 
+            error?.message?.includes('Failed to fetch')) {
+          console.warn('⚠️ Errore connessione Supabase durante auth state change')
+          if (!mounted) return
+          setLoading(false)
+        }
       }
     )
 
