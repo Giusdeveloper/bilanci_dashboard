@@ -6,16 +6,16 @@ import runtimeErrorOverlay from "@replit/vite-plugin-runtime-error-modal";
 export default defineConfig(async ({ mode }) => {
   // Carica le variabili d'ambiente dalla root del progetto (dove c'è vite.config.ts)
   const env = loadEnv(mode, process.cwd(), '');
-  
+
   // Carica i plugin Replit in modo asincrono se necessario
   const replitPlugins = process.env.NODE_ENV !== "production" &&
     process.env.REPL_ID !== undefined
-      ? [
-          (await import("@replit/vite-plugin-cartographer")).cartographer(),
-          (await import("@replit/vite-plugin-dev-banner")).devBanner(),
-        ]
-      : [];
-  
+    ? [
+      (await import("@replit/vite-plugin-cartographer")).cartographer(),
+      (await import("@replit/vite-plugin-dev-banner")).devBanner(),
+    ]
+    : [];
+
   return {
     plugins: [
       react(),
@@ -30,6 +30,7 @@ export default defineConfig(async ({ mode }) => {
       },
     },
     root: path.resolve(import.meta.dirname, "client"),
+    base: mode === 'production' ? '/bilanci_dashboard/' : '/',
     build: {
       outDir: path.resolve(import.meta.dirname, "dist/public"),
       emptyOutDir: true,
