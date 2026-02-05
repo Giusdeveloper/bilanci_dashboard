@@ -1,0 +1,41 @@
+XLSX type: object
+XLSX keys: [
+  'version',       'parse_xlscfb',
+  'parse_zip',     'read',
+  'readFile',      'readFileSync',
+  'write',         'writeFile',
+  'writeFileSync', 'writeFileAsync',
+  'utils',         'writeXLSX',
+  'writeFileXLSX', 'SSF',
+  'stream',        'CFB'
+]
+Reading file: [2025] Analisi Bilanci Awentia.xlsx
+--- SHEET LIST ---
+1: set24
+2: ago24
+3: lug24
+4: giu24
+5: mag24
+6: apr24
+7: mar24
+8: feb24
+9: gen24
+10: ott24
+11: dic24
+12: apr25
+13: mar25
+14: feb25
+15: gen25
+16: ott25
+17: set25
+18: ago25
+19: lug25
+20: giu25
+21: mag25
+22: Source
+23: nov24
+24: 1_CE dettaglio
+25: CE dettaglio mensile
+26: 3_CE sintetico
+27: 4_CE sintetico mensile
+------------------

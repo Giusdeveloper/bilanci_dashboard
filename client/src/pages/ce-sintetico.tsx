@@ -1,16 +1,106 @@
 import PageHeader from "@/components/PageHeader";
 import DataTable from "@/components/DataTable";
 import KPICard from "@/components/KPICard";
-import { financialData, formatCurrency, formatPercentage, calculateVariance } from "@/data/financialData";
+import { formatCurrency, formatPercentage, calculateVariance } from "@/data/financialData";
+import { useFinancialData } from "@/contexts/FinancialDataContext";
+import { useEffect, useState } from "react";
+
+interface CESinteticoData {
+  progressivo2025: any;
+  progressivo2024: any;
+}
 
 export default function CESintetico() {
-  const { progressivo2025, progressivo2024 } = financialData.ceSintetico;
+  const { selectedCompany, getCESinteticoData } = useFinancialData();
+  const [ceData, setCeData] = useState<CESinteticoData | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [periodLabel, setPeriodLabel] = useState("Dic"); // Default a Dicembre se non specificato
+
+  useEffect(() => {
+    const loadData = async () => {
+      if (!selectedCompany) {
+        setCeData(null);
+        return;
+      }
+
+      setLoading(true);
+      try {
+        const data = await getCESinteticoData(selectedCompany.id);
+        if (data && data.length > 0 && data[0].data) {
+          setCeData(data[0].data as CESinteticoData);
+          if (data[0].month) {
+            const monthNames = ["", "Gen", "Feb", "Mar", "Apr", "Mag", "Giu", "Lug", "Ago", "Set", "Ott", "Nov", "Dic"];
+            setPeriodLabel(monthNames[data[0].month] || "Dic");
+          }
+        } else {
+          setCeData(null);
+        }
+      } catch (error) {
+        console.error('Errore nel caricamento dati CE Sintetico:', error);
+        setCeData(null);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadData();
+  }, [selectedCompany, getCESinteticoData]);
+
+  // Se nessuna azienda è selezionata, mostra un messaggio
+  if (!selectedCompany) {
+    return (
+      <div data-testid="page-ce-sintetico">
+        <PageHeader
+          title="CE Sintetico"
+          subtitle="Conto Economico Sintetico - Principali aggregati economici"
+        />
+        <div className="p-8 bg-muted rounded-lg text-center">
+          <p className="text-lg text-muted-foreground">
+            Seleziona un'azienda per visualizzare i dati del conto economico sintetico
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // Se sta caricando, mostra loading
+  if (loading) {
+    return (
+      <div data-testid="page-ce-sintetico">
+        <PageHeader
+          title="CE Sintetico"
+          subtitle="Conto Economico Sintetico - Principali aggregati economici"
+        />
+        <div className="p-8 bg-muted rounded-lg text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-lg text-muted-foreground">Caricamento dati...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Se non ci sono dati, mostra messaggio
+  if (!ceData || !ceData.progressivo2025) {
+    return (
+      <div data-testid="page-ce-sintetico">
+        <PageHeader
+          title="CE Sintetico"
+          subtitle="Conto Economico Sintetico - Principali aggregati economici"
+        />
+        <div className="p-8 bg-muted rounded-lg text-center">
+          <p className="text-lg text-muted-foreground">Dati non disponibili</p>
+        </div>
+      </div>
+    );
+  }
+
+  const { progressivo2025, progressivo2024 } = ceData;
 
   const columns = [
     { key: "voce", label: "Voce", align: "left" as const },
-    { key: "value2025", label: "2025 (Gen-Ago)", align: "right" as const },
+    { key: "value2025", label: `2025 (Gen-${periodLabel})`, align: "right" as const },
     { key: "percentage", label: "% sui Ricavi", align: "right" as const },
-    { key: "value2024", label: "2024 (Gen-Ago)", align: "right" as const },
+    { key: "value2024", label: `2024 (Gen-${periodLabel})`, align: "right" as const },
     { key: "varianceEuro", label: "Var €", align: "right" as const },
     { key: "variance", label: "Var %", align: "right" as const },
   ];
@@ -26,7 +116,7 @@ export default function CESintetico() {
       value2024: formatCurrency(value2024),
       varianceEuro: value2024 === 0 && value2025 === 0 ? "n/a" : formatCurrency(varianceEuroValue),
       variance: value2024 === 0 && value2025 === 0 ? "n/a" : `${variance >= 0 ? '+' : ''}${formatPercentage(variance, 1)}`,
-      ...(isBold && { className: "font-bold" }),
+      // Removed manual className to allow DataTable to handle styling via row indices
     };
   };
 
@@ -56,7 +146,7 @@ export default function CESintetico() {
     createRow("Consulenze legali", progressivo2025.consulenzeLegali, progressivo2024.consulenzeLegali),
     createRow("Consulenze tecniche", progressivo2025.consulenzeTecniche, progressivo2024.consulenzeTecniche),
     createRow("Altre spese di funzionamento", progressivo2025.altreSpeseFunzionamento, progressivo2024.altreSpeseFunzionamento),
-    createRow("TOTALE STRUTTURA ALTRE VOCI NON TIPICHE", progressivo2025.totaleStrutturaAltreVociNonTipiche, progressivo2024.totaleStrutturaAltreVociNonTipiche, true),
+    createRow("TOTALE GESTIONE STRUTTURA", progressivo2025.totaleStrutturaAltreVociNonTipiche || progressivo2025.totaleGestioneStruttura, progressivo2024.totaleStrutturaAltreVociNonTipiche || progressivo2024.totaleGestioneStruttura, true),
     createRow("EBITDA", progressivo2025.ebitda, progressivo2024.ebitda, true),
     emptyRow,
     createRow("Ammortamenti e svalutazioni", progressivo2025.ammortamentiSvalutazioni, progressivo2024.ammortamentiSvalutazioni),
@@ -78,36 +168,36 @@ export default function CESintetico() {
 
   return (
     <div data-testid="page-ce-sintetico">
-      <PageHeader 
-        title="CE Sintetico" 
-        subtitle="Conto Economico Sintetico - Principali aggregati economici"
+      <PageHeader
+        title="CE Sintetico"
+        subtitle={`Conto Economico Sintetico - Principali aggregati economici (Progressivo ${periodLabel})`}
       />
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <KPICard 
-          label="Margine Lordo" 
+        <KPICard
+          label="Margine Lordo"
           value={formatPercentage(margine2025Perc)}
           change={`${margineVariance >= 0 ? '+' : ''}${formatPercentage(margineVariance, 0)} vs 2024`}
           changeType={margineVariance >= 0 ? "positive" : "negative"}
         />
-        <KPICard 
-          label="EBITDA" 
+        <KPICard
+          label="EBITDA"
           value={formatCurrency(progressivo2025.ebitda)}
           change={`${ebitdaVariance >= 0 ? '+' : ''}${formatPercentage(ebitdaVariance, 0)} vs 2024`}
           changeType={ebitdaVariance >= 0 ? "positive" : "negative"}
         />
-        <KPICard 
-          label="Risultato Esercizio" 
+        <KPICard
+          label="Risultato Esercizio"
           value={formatCurrency(progressivo2025.risultatoEsercizio)}
           change={`${risultatoVariance >= 0 ? '+' : ''}${formatPercentage(risultatoVariance, 0)} vs 2024`}
           changeType={risultatoVariance >= 0 ? "positive" : "negative"}
         />
       </div>
 
-      <DataTable 
-        columns={columns} 
+      <DataTable
+        columns={columns}
         data={data}
-        totalRows={[2, 8, 10, 11]}
+        totalRows={[2, 8, 10, 11, 23, 29]}
         keyMetricRows={[12, 24, 30]}
         resultRow={[32]}
       />

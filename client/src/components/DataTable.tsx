@@ -17,6 +17,21 @@ interface DataTableProps {
   resultRow?: number[];
 }
 
+const getRowClassName = (className: string) => {
+  switch (className) {
+    case "result":
+      return "bg-yellow-100 dark:bg-yellow-900/40 font-bold";
+    case "key-metric":
+      return "bg-blue-50 dark:bg-blue-950/20 font-bold";
+    case "total-dark":
+      return "bg-blue-900/10 dark:bg-blue-900/30 font-bold";
+    case "highlight":
+      return "font-semibold";
+    default:
+      return "hover:bg-muted/50";
+  }
+};
+
 export default function DataTable({ title, columns, data, highlightRows = [], totalRows = [], keyMetricRows = [], resultRow = [] }: DataTableProps) {
   return (
     <Card className="p-3 md:p-6" data-testid={title ? `table-${title.toLowerCase().replace(/\s+/g, '-')}` : "data-table"}>
@@ -47,17 +62,26 @@ export default function DataTable({ title, columns, data, highlightRows = [], to
               const isKeyMetric = keyMetricRows.includes(idx);
               const isResult = resultRow.includes(idx);
               const hasBold = row.className?.includes("font-bold");
-              const rowClassName = isResult
-                ? "bg-yellow-100 dark:bg-yellow-900/40 font-bold" 
-                : isKeyMetric
-                ? "bg-blue-50 dark:bg-blue-950/20 font-bold" 
-                : isTotal 
-                ? "bg-blue-900/10 dark:bg-blue-900/30 font-bold" 
-                : isHighlight 
-                ? "font-semibold" 
-                : hasBold
-                ? "font-bold hover:bg-muted/50"
-                : "hover:bg-muted/50";
+
+              // Determina il className in base alle props o alla className della riga
+              let rowClassName = "";
+              if (row.className) {
+                // Se la riga ha una className custom, usa getRowClassName
+                rowClassName = getRowClassName(row.className);
+              } else {
+                // Altrimenti usa la logica basata sulle props
+                rowClassName = isResult
+                  ? "bg-yellow-100 dark:bg-yellow-900/40 font-bold" 
+                  : isKeyMetric
+                  ? "bg-blue-50 dark:bg-blue-950/20 font-bold" 
+                  : isTotal 
+                  ? "bg-blue-900/10 dark:bg-blue-900/30 font-bold" 
+                  : isHighlight 
+                  ? "font-semibold" 
+                  : hasBold
+                  ? "font-bold hover:bg-muted/50"
+                  : "hover:bg-muted/50";
+              }
 
               return (
                 <tr key={idx} className={rowClassName} data-testid={`row-${idx}`}>

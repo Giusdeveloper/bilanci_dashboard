@@ -5,25 +5,30 @@
 - **Rationale**: Information-dense financial application requiring clarity, precision, and professional credibility
 - **Core Principle**: Data clarity over visual flair - every design element serves functional purpose
 
-## Color Palette
+## Color Palette - Imment Financial Dashboard
 
-### Primary Colors (Dark Mode Ready)
-- **Primary Brand**: 250 75% 58% (Indigo #6366f1)
-- **Primary Dark**: 243 75% 59% (Deep Indigo #4f46e5)
-- **Background Light**: 210 20% 98% (#f8f9fa)
-- **Background Dark**: 222 47% 11%
+### Primary Colors (Imment Palette)
+- **Primary Brand**: 214 50% 39% (#335C96) - Blu medio vibrante - Usato per elementi principali, bottoni, link
+- **Primary Dark**: 210 55% 20% (#17334F) - Blu scuro profondo - Usato per gradienti, sidebar, header
+- **Primary Light**: 210 48% 52% (#4A82BF) - Blu medio chiaro - Usato per hover states, accent
+- **Background Light**: 210 100% 95% (#e3f0ff) - Blu chiarissimo - Usato per background secondari
+- **Background Dark**: 222 47% 11% - Mantenuto per dark mode
 
-### Semantic Colors
-- **Success/Positive**: 142 76% 36% (Green #10b981)
-- **Danger/Negative**: 0 84% 60% (Red #ef4444)
-- **Warning**: 45 93% 47% (Amber #f59e0b)
-- **Info**: 217 91% 60% (Blue #3b82f6)
+### Accent Colors (Imment Palette)
+- **Accent Light**: 207 50% 75% (#9cbfe0) - Blu pastello chiaro - Usato per dati storici, elementi secondari
+- **Alert/Error**: 325 100% 31% (#9e005c) - Magenta scuro - Usato per valori negativi, alert, errori
+
+### Semantic Colors (Financial Context)
+- **Positive/Growth**: 210 48% 52% (#4A82BF) - Blu chiaro Imment - Crescita positiva, trend positivi
+- **Negative/Alert**: 325 100% 31% (#9e005c) - Magenta Imment - Valori negativi, perdite, alert
+- **Warning**: 45 93% 47% (Amber #f59e0b) - Mantenuto per warning generici
+- **Info**: 214 50% 39% (#335C96) - Usa primary brand per info
 
 ### Neutral Scale
-- **Text Primary**: 0 0% 10% (#1a1a1a)
-- **Text Secondary**: 220 9% 46% (#6b7280)
-- **Border Light**: 220 13% 91% (#e5e7eb)
-- **Surface**: 0 0% 100% (White)
+- **Text Primary**: 210 55% 20% (#17334F) - Blu scuro Imment per testo principale
+- **Text Secondary**: 220 9% 46% (#6b7280) - Mantenuto per testo secondario
+- **Border Light**: 220 13% 91% (#e5e7eb) - Mantenuto per bordi leggeri
+- **Surface**: 0 0% 100% (White) - Mantenuto per card/surface
 
 ## Typography
 **Font Stack**: 'Inter', system-ui, -apple-system, sans-serif
@@ -46,11 +51,12 @@
 ## Component Library
 
 ### Navigation & Sidebar
-- **Fixed sidebar** (280px) with gradient background (Primary → Primary Dark)
+- **Fixed sidebar** (280px) with Imment gradient background (#335C96 → #17334F)
 - Logo section with company name and emoji icon
 - Navigation items with icons (emoji/Font Awesome), hover states with rgba(255,255,255,0.1)
 - Active state: rgba(255,255,255,0.15) background + 3px white left border
 - Sticky on desktop, collapsible on mobile
+- Shadow: rgba(23, 51, 79, 0.2) per profondità finanziaria
 
 ### KPI Cards
 - **Grid Layout**: grid-cols-1 md:grid-cols-2 lg:grid-cols-4
@@ -74,18 +80,23 @@
 - White background, rounded-xl, shadow-sm
 - Title: 18px bold, mb-5
 - Chart height: 300px (fixed for consistency)
-- Chart.js with custom color scheme matching brand
+- Chart.js with Imment color scheme:
+  - **Ricavi/Dati principali**: #335C96 (Blu medio vibrante)
+  - **EBITDA positivo**: #4A82BF (Blu chiaro)
+  - **EBITDA negativo/Alert**: #9e005c (Magenta)
+  - **Dati storici/Confronti**: #9cbfe0 (Blu pastello)
 - Tooltips with financial formatting (€ symbol, thousand separators)
 
 ### Page Headers
-- **Gradient background**: linear-gradient(135deg, Primary 0%, #8b5cf6 100%)
+- **Gradient background**: linear-gradient(135deg, #335C96 0%, #17334F 100%) - Imment palette
 - Rounded-xl, white text, p-8
 - H1 title + descriptive subtitle
-- Shadow with brand color tint
+- Shadow: rgba(23, 51, 79, 0.25) per profondità finanziaria
 - Full-width within content area
 
 ### Info Boxes
-- Light blue background (#eff6ff), blue border (#bfdbfe)
+- Light blue background (#e3f0ff - Imment Blu chiarissimo), blue border (#9cbfe0 - Imment Blu pastello)
+- Text color: #17334F (Imment Blu scuro) per leggibilità finanziaria
 - Rounded-xl, p-5
 - Icon + bold title + descriptive text
 - Used for financial notes/explanations

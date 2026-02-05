@@ -1,9 +1,8 @@
 import express, { type Express } from "express";
 import fs from "fs";
 import path from "path";
-import { createServer as createViteServer, createLogger } from "vite";
+import { createServer as createViteServer, createLogger, loadEnv } from "vite";
 import { type Server } from "http";
-import viteConfig from "../vite.config";
 import { nanoid } from "nanoid";
 
 const viteLogger = createLogger();
@@ -26,9 +25,38 @@ export async function setupVite(app: Express, server: Server) {
     allowedHosts: true as const,
   };
 
+  // Carica le variabili d'ambiente manualmente (necessario quando configFile: false)
+  const root = path.resolve(import.meta.dirname, "..");
+  const env = loadEnv("development", root, "");
+
+  // Importa e risolve la configurazione asincrona di Vite
+  const viteConfigModule = await import("../vite.config");
+  const viteConfigExport = viteConfigModule.default;
+
+  // viteConfigExport could be a function (for async config) or an object
+  const viteConfigRaw = typeof viteConfigExport === "function"
+    ? await viteConfigExport({ mode: "development", command: "serve" })
+    : viteConfigExport;
+  
+  // Assicurati che viteConfig sia un oggetto, non una Promise
+  const viteConfig = viteConfigRaw instanceof Promise ? await viteConfigRaw : viteConfigRaw;
+
+  // Prepara le variabili d'ambiente da esporre al client (solo quelle con prefisso VITE_)
+  const define: Record<string, string> = {};
+  for (const [key, value] of Object.entries(env)) {
+    if (key.startsWith("VITE_")) {
+      define[`import.meta.env.${key}`] = JSON.stringify(value);
+    }
+  }
+
   const vite = await createViteServer({
     ...viteConfig,
     configFile: false,
+    envDir: root, // Specifica la directory dove cercare i file .env
+    define: {
+      ...(viteConfig.define || {}),
+      ...define,
+    },
     customLogger: {
       ...viteLogger,
       error: (msg, options) => {

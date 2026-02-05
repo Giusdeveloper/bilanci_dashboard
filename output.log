@@ -1,0 +1,191 @@
+Loading shared/schema...
+Initializing DB...
+[dotenv@17.2.3] injecting env (5) from .env -- tip: ­ƒæÑ sync secrets across teammates & machines: https://dotenvx.com/ops
+Dotenv configured
+Checking env var...
+DATABASE_URL present: true
+DB URL (masked): postgresql://postgres.caubhppwypkymsixsrco:***@aws-1-eu-west-1.pooler.supabase.com:6543/postgres
+Creating Pool...
+Initializing Drizzle...
+Drizzle initialized.
+Schema keys: [
+  'accountMappings',
+  'companies',
+  'financialData',
+  'insertUserSchema',
+  'masterChartOfAccounts',
+  'rawImports',
+  'users'
+]
+db.query available: true
+Script loaded.
+­ƒÜÇ Starting Awentia File Import...
+Ô£à Company found: Awentia Srl
+­ƒôà Loaded base data from August (dashboard).
+
+­ƒöä Processing Settembre...
+  Found 73 records.
+  Row 1: [0]="Settembre" [1]="" [2]=""
+  Row 2: [0]="Ricavi caratteristici" [1]="" [2]="282.879 "
+  MATCH: "Ricavi caratteristici" -> Ricavi (Value: 282879)
+  Row 3: [0]="Altri ricavi" [1]="" [2]="11.347 "
+  MATCH: "Altri ricavi" -> Altri Ricavi (Value: 11347)
+  Row 4: [0]="TOTALE RICAVI" [1]="" [2]="294.226 "
+  MATCH: "TOTALE RICAVI" -> KPI_RICAVI (Value: 294226)
+  Row 5: [0]="Servizi diretti" [1]="" [2]="15.671 "
+  MATCH: "Servizi diretti" -> Costi per Servizi (Value: 15671)
+  Row 6: [0]="Cosulenze dirette" [1]="" [2]="0 "
+  MATCH: "Cosulenze dirette" -> Costi per Servizi (Value: 0)
+  Row 7: [0]="Servizi informatici web" [1]="" [2]="1.389 "
+  MATCH: "Servizi informatici web" -> Costi per Servizi (Value: 1389)
+  Row 8: [0]="Servizi cloud" [1]="" [2]="0 "
+  MATCH: "Servizi cloud" -> Costi per Servizi (Value: 0)
+  Row 9: [0]="COSTI DIRETTI" [1]="" [2]="17.060 "
+  Row 10: [0]="---" [1]="" [2]="0 "
+  Row 11: [0]="---" [1]="" [2]="0 "
+  Row 12: [0]="Altri servizi e prestazioni" [1]="" [2]="1.750 "
+  MATCH: "Altri servizi e prestazioni" -> Costi per Servizi (Value: 1750)
+  Row 13: [0]="COSTI INDIRETTI" [1]="" [2]="1.750 "
+  Row 14: [0]="TOTALE COSTI DIRETTI E INDIRETTI" [1]="" [2]="18.810 "
+  Row 15: [0]="GROSS PROFIT" [1]="" [2]="275.416 "
+  Row 16: [0]="Autofatture" [1]="" [2]="0 "
+  MATCH: "Autofatture" -> Altri Ricavi (Value: 0)
+  Row 17: [0]="Rimborsi spese" [1]="" [2]="0 "
+  MATCH: "Rimborsi spese" -> Altri Ricavi (Value: 0)
+  Row 18: [0]="Altri proventi" [1]="" [2]="0 "
+  MATCH: "Altri proventi" -> Altri Ricavi (Value: 0)
+  Row 19: [0]="ALTRI RICAVI NON TIPICI" [1]="" [2]="0 "
+  Row 20: [0]="Spese viaggio" [1]="" [2]="3.216 "
+  MATCH: "Spese viaggio" -> Costi per Servizi (Value: 3216)
+  MATCH: "Pedaggi autostradali" -> Costi per Servizi (Value: 0)
+  MATCH: "Pubblicit├á" -> Costi per Servizi (Value: 0)
+  MATCH: "Materiale pubblicitario" -> Costi per Servizi (Value: 0)
+  MATCH: "Omaggi" -> Costi per Servizi (Value: 0)
+  MATCH: "Spese di rappresentanza" -> Costi per Servizi (Value: 5008)
+  MATCH: "Mostre e fiere" -> Costi per Servizi (Value: 8102)
+  MATCH: "Servizi commerciali" -> Costi per Servizi (Value: 498)
+  MATCH: "Carburante" -> Costi per Servizi (Value: 1352)
+  MATCH: "Beni indeducibili" -> Oneri Diversi (Value: 2182)
+  MATCH: "Spese generali" -> Oneri Diversi (Value: 24766)
+  MATCH: "Materiale vario e di consumo" -> Oneri Diversi (Value: 0)
+  MATCH: "Spese di pulizia" -> Oneri Diversi (Value: 0)
+  MATCH: "Utenze" -> Godimento Beni Terzi (Value: 906)
+  MATCH: "Assicurazioni" -> Oneri Diversi (Value: 171)
+  MATCH: "Rimanenze" -> Oneri Diversi (Value: 0)
+  MATCH: "Tasse e valori bollati" -> Oneri Diversi (Value: 593)
+  MATCH: "Sanzioni e multe" -> Oneri Diversi (Value: 421)
+  MATCH: "Compensi amministratore" -> Personale (Value: 0)
+  MATCH: "Rimborsi amministratore" -> Personale (Value: 0)
+  MATCH: "Personale" -> Personale (Value: 137119)
+  MATCH: "Servizi amministrativi contabilit├á" -> Costi per Servizi (Value: 13603)
+  MATCH: "Servizi amministrativi paghe" -> Costi per Servizi (Value: 0)
+  MATCH: "Consulenze tecniche" -> Costi per Servizi (Value: 34576)
+  MATCH: "Consulenze legali" -> Costi per Servizi (Value: 1794)
+  MATCH: "Locazioni e noleggi" -> Godimento Beni Terzi (Value: 8089)
+  MATCH: "Servizi indeducibili" -> Costi per Servizi (Value: 1052)
+  MATCH: "Utili e perdite su cambi" -> Oneri Finanziari (Value: 517)
+  MATCH: "Perdite su crediti" -> Oneri Diversi (Value: 0)
+  MATCH: "Licenze d'uso" -> Godimento Beni Terzi (Value: 0)
+  MATCH: "Utenze telefoniche e cellulari" -> Godimento Beni Terzi (Value: 246)
+  MATCH: "Altri oneri" -> Oneri Diversi (Value: 3455)
+  MATCH: "Abbuoni e arrotondamenti" -> Oneri Diversi (Value: 12)
+  MATCH: "EBITDA" -> KPI_EBITDA (Value: 27738)
+  MATCH: "Ammortamenti immateriali" -> Ammortamenti (Value: 38773)
+  MATCH: "Ammortamenti materiali" -> Ammortamenti (Value: 641)
+  MATCH: "Svalutazioni e accantonamenti" -> Ammortamenti (Value: 0)
+  MATCH: "EBIT" -> EBIT (Value: -11676)
+  MATCH: "Spese e commissioni bancarie" -> Oneri Finanziari (Value: 274)
+  MATCH: "Interessi passivi su mutui" -> Oneri Finanziari (Value: 1294)
+  MATCH: "Altri interessi" -> Oneri Finanziari (Value: 295)
+  MATCH: "EBT" -> Risultato Ante Imposte (Value: -13540)
+  MATCH: "Imposte dirette" -> Imposte (Value: 0)
+  MATCH: "RISULTATO DELL'ESERCIZIO" -> KPI_RISULTATO (Value: -13540)
+  ­ƒôè KPIs: Ricavi=294226, EBITDA=27738
+  ­ƒôê Monthly: Ricavi=63090, EBITDA=48916
+  ­ƒöä Updating existing record (ID: 5f15a81f-d823-4a6b-8cff-5a3211e7e13a)...
+Ô£à Saved Settembre.
+
+­ƒöä Processing Ottobre...
+  Found 73 records.
+  Row 1: [0]="Ottobre" [1]="" [2]=""
+  Row 2: [0]="Ricavi caratteristici" [1]="" [2]="306.189 "
+  MATCH: "Ricavi caratteristici" -> Ricavi (Value: 306189)
+  Row 3: [0]="Altri ricavi" [1]="" [2]="13.694 "
+  MATCH: "Altri ricavi" -> Altri Ricavi (Value: 13694)
+  Row 4: [0]="TOTALE RICAVI" [1]="" [2]="319.882 "
+  MATCH: "TOTALE RICAVI" -> KPI_RICAVI (Value: 319882)
+  Row 5: [0]="Servizi diretti" [1]="" [2]="18.626 "
+  MATCH: "Servizi diretti" -> Costi per Servizi (Value: 18626)
+  Row 6: [0]="Cosulenze dirette" [1]="" [2]="0 "
+  MATCH: "Cosulenze dirette" -> Costi per Servizi (Value: 0)
+  Row 7: [0]="Servizi informatici web" [1]="" [2]="1.389 "
+  MATCH: "Servizi informatici web" -> Costi per Servizi (Value: 1389)
+  Row 8: [0]="Servizi cloud" [1]="" [2]="0 "
+  MATCH: "Servizi cloud" -> Costi per Servizi (Value: 0)
+  Row 9: [0]="COSTI DIRETTI" [1]="" [2]="20.014 "
+  Row 10: [0]="---" [1]="" [2]="0 "
+  Row 11: [0]="---" [1]="" [2]="0 "
+  Row 12: [0]="Altri servizi e prestazioni" [1]="" [2]="1.750 "
+  MATCH: "Altri servizi e prestazioni" -> Costi per Servizi (Value: 1750)
+  Row 13: [0]="COSTI INDIRETTI" [1]="" [2]="1.750 "
+  Row 14: [0]="TOTALE COSTI DIRETTI E INDIRETTI" [1]="" [2]="21.764 "
+  Row 15: [0]="GROSS PROFIT" [1]="" [2]="298.118 "
+  Row 16: [0]="Autofatture" [1]="" [2]="0 "
+  MATCH: "Autofatture" -> Altri Ricavi (Value: 0)
+  Row 17: [0]="Rimborsi spese" [1]="" [2]="0 "
+  MATCH: "Rimborsi spese" -> Altri Ricavi (Value: 0)
+  Row 18: [0]="Altri proventi" [1]="" [2]="0 "
+  MATCH: "Altri proventi" -> Altri Ricavi (Value: 0)
+  Row 19: [0]="ALTRI RICAVI NON TIPICI" [1]="" [2]="0 "
+  Row 20: [0]="Spese viaggio" [1]="" [2]="3.652 "
+  MATCH: "Spese viaggio" -> Costi per Servizi (Value: 3652)
+  MATCH: "Pedaggi autostradali" -> Costi per Servizi (Value: 0)
+  MATCH: "Pubblicit├á" -> Costi per Servizi (Value: 0)
+  MATCH: "Materiale pubblicitario" -> Costi per Servizi (Value: 0)
+  MATCH: "Omaggi" -> Costi per Servizi (Value: 0)
+  MATCH: "Spese di rappresentanza" -> Costi per Servizi (Value: 6060)
+  MATCH: "Mostre e fiere" -> Costi per Servizi (Value: 10815)
+  MATCH: "Servizi commerciali" -> Costi per Servizi (Value: 553)
+  MATCH: "Carburante" -> Costi per Servizi (Value: 1651)
+  MATCH: "Beni indeducibili" -> Oneri Diversi (Value: 2222)
+  MATCH: "Spese generali" -> Oneri Diversi (Value: 25276)
+  MATCH: "Materiale vario e di consumo" -> Oneri Diversi (Value: 0)
+  MATCH: "Spese di pulizia" -> Oneri Diversi (Value: 0)
+  MATCH: "Utenze" -> Godimento Beni Terzi (Value: 998)
+  MATCH: "Assicurazioni" -> Oneri Diversi (Value: 171)
+  MATCH: "Rimanenze" -> Oneri Diversi (Value: 0)
+  MATCH: "Tasse e valori bollati" -> Oneri Diversi (Value: 610)
+  MATCH: "Sanzioni e multe" -> Oneri Diversi (Value: 421)
+  MATCH: "Compensi amministratore" -> Personale (Value: 0)
+  MATCH: "Rimborsi amministratore" -> Personale (Value: 0)
+  MATCH: "Personale" -> Personale (Value: 166241)
+  MATCH: "Servizi amministrativi contabilit├á" -> Costi per Servizi (Value: 14698)
+  MATCH: "Servizi amministrativi paghe" -> Costi per Servizi (Value: 0)
+  MATCH: "Consulenze tecniche" -> Costi per Servizi (Value: 34576)
+  MATCH: "Consulenze legali" -> Costi per Servizi (Value: 1794)
+  MATCH: "Locazioni e noleggi" -> Godimento Beni Terzi (Value: 9252)
+  MATCH: "Servizi indeducibili" -> Costi per Servizi (Value: 1052)
+  MATCH: "Utili e perdite su cambi" -> Oneri Finanziari (Value: 517)
+  MATCH: "Perdite su crediti" -> Oneri Diversi (Value: 0)
+  MATCH: "Licenze d'uso" -> Godimento Beni Terzi (Value: 204)
+  MATCH: "Utenze telefoniche e cellulari" -> Godimento Beni Terzi (Value: 267)
+  MATCH: "Altri oneri" -> Oneri Diversi (Value: 3455)
+  MATCH: "Abbuoni e arrotondamenti" -> Oneri Diversi (Value: 12)
+  MATCH: "EBITDA" -> KPI_EBITDA (Value: 13621)
+  MATCH: "Ammortamenti immateriali" -> Ammortamenti (Value: 43182)
+  MATCH: "Ammortamenti materiali" -> Ammortamenti (Value: 714)
+  MATCH: "Svalutazioni e accantonamenti" -> Ammortamenti (Value: 0)
+  MATCH: "EBIT" -> EBIT (Value: -30275)
+  MATCH: "Spese e commissioni bancarie" -> Oneri Finanziari (Value: 317)
+  MATCH: "Interessi passivi su mutui" -> Oneri Finanziari (Value: 1415)
+  MATCH: "Altri interessi" -> Oneri Finanziari (Value: 495)
+  MATCH: "EBT" -> Risultato Ante Imposte (Value: -32503)
+  MATCH: "Imposte dirette" -> Imposte (Value: 0)
+  MATCH: "RISULTATO DELL'ESERCIZIO" -> KPI_RISULTATO (Value: -32503)
+  ­ƒôè KPIs: Ricavi=319882, EBITDA=13621
+  ­ƒôê Monthly: Ricavi=25656, EBITDA=-14117
+  ­ƒöä Updating existing record (ID: 854cb8b2-9675-4fd4-a361-d6d0e0c30a8e)...
+Ô£à Saved Ottobre.
+
+­ƒÄë Import completed!
+Script finished.

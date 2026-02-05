@@ -1,0 +1,33 @@
+Analyzing file: [2025] Analisi Bilanci Awentia.xlsx
+
+✅ Analyzing Sheet: 1_CE dettaglio
+Flux headers check (first 5 rows):
+Row 0: [null,null,"PROGRESSIVO",null,null,null,null,null,null,null,null,null,"OTTOBRE",null,null,null,null,null,null,null,null,null,"PREVISIONI DI FINE ANNO"]
+Row 1: ["CONTO ECONOMICO",null,2025,null,null,2024,null,null,"VARIAZIONE",null,null,null,2025,null,null,2024,null,null,"VARIAZIONE",null,null,null,"MESE CORRENTE + BUDGET",null,null,2024,null,null,"VARIAZIONE"]
+Row 2: ["Ottobre",null,null,null,"% RICAVI",null,null,"% RICAVI",null,null,null,null,null,null,"% RICAVI",null,null,"% RICAVI",null,null,null,null,null,null,"% RICAVI",null,null,"% RICAVI",null,null,"% RICAVI",null,null,"CONTO ECONOMICO","TRASCODIFICA"]
+Row 3: ["Ricavi caratteristici",null,306188.52,null,null,41649.53,null,null,264538.99,null,null,null,23310,null," ",0,null,null,23310,null,null,null,"#ERROR!",null,null,0,null,null,"#ERROR!",null,null,null,null,"Ricavi caratteristici","Ricavi caratteristici"]
+Row 4: ["Altri ricavi",null,13693.58,null,null,52646,null,null,-38952.42,null,null,null,2346.23,null,null,50639.82,null,null,-48293.59,null,null,null,"#ERROR!",null,null,0,null,null,"#ERROR!",null,null,null,null,"Altri ricavi","Altri ricavi"]
+
+✅ Analyzing Sheet: CE dettaglio mensile
+Flux headers check (first 5 rows):
+Row 0: [10,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,10,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,10,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,10]
+Row 1: [null,1,2,3,4,5,6,7,8,9,10,11,12,null,null,null,null,1,2,3,4,5,6,7,8,9,10,11,12,null,null,null,null,null,1,2,3,4,5,6,7,8,9,10,11,12,null,null,null,null,1,2,3,4,5,6,7,8,9,10,11,12]
+Row 2: ["CONTO ECONOMICO","Gennaio","Febbraio","Marzo","Aprile","Maggio","Giugno","Luglio","Agosto","Settembre","Ottobre","Novembre","Dicembre","Totale Progressivo","%",null,"CONTO ECONOMICO","Gennaio","Febbraio","Marzo","Aprile","Maggio","Giugno","Luglio","Agosto","Settembre","Ottobre","Novembre","Dicembre","Totale Progressivo","%",null,null,"CONTO ECONOMICO","Gennaio","Febbraio","Marzo","Aprile","Maggio","Giugno","Luglio","Agosto","Settembre","Ottobre","Novembre","Dicembre","Totale Progressivo","%",null,"CONTO ECONOMICO","Gennaio","Febbraio","Marzo","Aprile","Maggio","Giugno","Luglio","Agosto","Settembre","Ottobre","Novembre","Dicembre","Totale Progressivo","%",null,"CONTO ECONOMICO","TRASCODIFICA"]
+Row 3: ["Ricavi caratteristici",56600,82100,107100,132600,151200,176200,219788.53,219788.53,282878.52,306188.52,0,0,306188.52,null,null,"Ricavi caratteristici",56600,25500,25000,25500,18600,25000,43588.53,0,63089.99,23310,-306188.52,0,23310,null,null,null,"Ricavi caratteristici",0,0,0,0,0,30068.3,30068.3,41649.53,41649.53,41649.53,72149.53,0,41649.53,null,null,"Ricavi caratteristici",0,0,0,0,0,30068.3,0,11581.23,0,0,30500,-72149.53,0,null,null,"Ricavi caratteristici","Ricavi caratteristici"]
+Row 4: ["Altri ricavi",0.36,0.44,10240.14,10240.44,10240.99,10240.99,10241.12,11347.35,11347.35,13693.58,0,0,13693.58,null,null,"Altri ricavi",0.36,0.08,10239.7,0.3,0.55,0,0.13,1106.23,0,2346.23,-13693.58,0,2346.23,null,null,null,"Altri ricavi caratteristici",0.47,0.47,0.52,226.53,2002.82,2006.18,2006.18,2006.18,2006.18,52646,52859.02,0,52646,null,null,"Altri ricavi caratteristici",0.47,0,0.05,226.01,1776.29,3.36,0,0,0,50639.82,213.02,-52859.02,50639.82,null,null,"Altri ricavi","Altri ricavi"]
+
+✅ Analyzing Sheet: 3_CE sintetico
+Flux headers check (first 5 rows):
+Row 0: [null,null,"PROGRESSIVO",null,null,null,null,null,null,null,null,null,"OTTOBRE"]
+Row 1: ["CONTO ECONOMICO",null,2025,null,null,2024,null,null,"VARIAZIONE",null,null,null,2025,null,null,2024,null,null,"VARIAZIONE"]
+Row 2: ["Ottobre",null,null,null,"% RICAVI",null,null,"% RICAVI",null,null,null,null,null,null,"% RICAVI",null,null,"% RICAVI"]
+Row 3: ["Ricavi caratteristici",null,306188.52,null,null,41649.53,null,null,264538.99,null,null,null,23310,null,null,0,null,null,23310]
+Row 4: ["Altri ricavi",null,13693.58,null,null,52646,null,null,-38952.42,null,null,null,2346.23,null,null,50639.82,null,null,-48293.59]
+
+✅ Analyzing Sheet: 4_CE sintetico mensile
+Flux headers check (first 5 rows):
+Row 0: [10,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,10]
+Row 1: ["CONTO ECONOMICO",null,1,2,3,4,5,6,7,8,9,10,11,12,null,null,null,"CONTO ECONOMICO",null,1,2,3,4,5,6,7,8,9,10,11,12]
+Row 2: ["Ottobre",null,"Gennaio","Febbraio","Marzo","Aprile","Maggio","Giugno","Luglio","Agosto","Settembre","Ottobre","Novembre","Dicembre","Totale Progressivo","%",null,"Ottobre",null,"Gennaio","Febbraio","Marzo","Aprile","Maggio","Giugno","Luglio","Agosto","Settembre","Ottobre","Novembre","Dicembre","Totale Progressivo","%"]
+Row 3: ["Ricavi caratteristici",null,56600,82100,107100,132600,151200,176200,219788.53,219788.53,282878.52,306188.52,0,0,0,null,null,"Ricavi caratteristici",null,56600,25500,25000,25500,18600,25000,43588.53,0,63089.99,23310,-306188.52,0,0]
+Row 4: ["Altri ricavi",null,0.36,0.44,10240.14,10240.44,10240.99,10240.99,10241.12,11347.35,11347.35,13693.58,0,0,0,null,null,"Altri ricavi",null,0.36,0.08,10239.7,0.3,0.55,0,0.13,1106.23,0,2346.23,-13693.58,0,0]
