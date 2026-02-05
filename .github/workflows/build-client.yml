@@ -1,0 +1,94 @@
+name: Build Client
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pages: write
+      id-token: write
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+        
+    - name: Install dependencies
+      run: npm ci
+      
+    - name: Build client
+      env:
+        VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+        VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+      run: |
+        # Verifica se i secrets sono configurati
+        if [ -z "${VITE_SUPABASE_URL}" ] || [ -z "${VITE_SUPABASE_ANON_KEY}" ]; then
+          echo "⚠️  Attenzione: I secrets VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY non sono configurati."
+          echo "   Il build continuerà con valori di default. Configura i secrets per un build completo."
+          echo "   Vai su: Settings > Secrets and variables > Actions > New repository secret"
+        else
+          echo "✅ Secrets configurati correttamente"
+          echo "   VITE_SUPABASE_URL: ${VITE_SUPABASE_URL:0:30}..." # Mostra solo i primi 30 caratteri
+        fi
+        
+        # Crea un file .env.production nella root del progetto
+        echo "VITE_SUPABASE_URL=${VITE_SUPABASE_URL:-https://caubhppwypkymsixsrco.supabase.co}" > .env.production
+        echo "VITE_SUPABASE_ANON_KEY=${VITE_SUPABASE_ANON_KEY:-eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNhdWJocHB3eXBreW1zaXhzcmNvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjEyMTkwODcsImV4cCI6MjA3Njc5NTA4N30.OqfYc2Xj4YULWrINf_eS6Hhj-SJf_iO8Ejp6KHDlBxI}" >> .env.production
+        echo "NODE_ENV=production" >> .env.production
+        
+        # Verifica che il file sia stato creato
+        echo "📄 File .env.production creato:"
+        cat .env.production | sed 's/\(VITE_SUPABASE_ANON_KEY=\)\(.*\)/\1***/' # Nasconde la chiave per sicurezza
+        
+        # Build del client usando vite (solo client, non server)
+        # Le variabili d'ambiente vengono passate sia tramite env: che tramite .env.production
+        npx vite build
+        
+        # Verifica che il build sia stato creato
+        if [ ! -d "dist/public" ]; then
+          echo "❌ Errore: La cartella dist/public non esiste dopo il build"
+          ls -la dist/ || echo "Cartella dist non esiste"
+          exit 1
+        fi
+        
+        echo "✅ Build completato con successo"
+        ls -la dist/public/ | head -20
+        
+        # Verifica che 404.html esista (necessario per SPA routing su GitHub Pages)
+        if [ ! -f "dist/public/404.html" ]; then
+          echo "⚠️  404.html non trovato, creazione manuale..."
+          cp client/public/404.html dist/public/404.html || echo "Errore nel copiare 404.html"
+        fi
+        
+        # Verifica che index.html esista
+        if [ ! -f "dist/public/index.html" ]; then
+          echo "❌ Errore: index.html non esiste dopo il build"
+          exit 1
+        fi
+        
+        echo "✅ File HTML verificati"
+        
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: client-build
+        path: client/dist/
+        retention-days: 7
+        
+    - name: Deploy to GitHub Pages
+      if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+      uses: peaceiris/actions-gh-pages@v3
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        publish_dir: ./dist/public
