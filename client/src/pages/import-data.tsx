@@ -412,21 +412,26 @@ export default function ImportData() {
                 const d24 = rawData.ceDettaglio?.progressivo2024 || {};
                 const kpis = preview.kpis;
 
+                const ricavi25 = parseFloat(manualKpis.ricavi) || kpis.ricavi;
+                const ricavi24 = d24.totaleRicavi || 0;
+                const ebitda25 = parseFloat(manualKpis.ebitda) || kpis.ebitda;
+                const ebitda24 = d24.ebitda || 0;
+
                 const dashboardData = {
                     kpis: {
-                        ricavi2025: parseFloat(manualKpis.ricavi) || kpis.ricavi,
-                        ricavi2024: d24.totaleRicavi || 0,
+                        ricavi2025: ricavi25,
+                        ricavi2024: ricavi24,
                         costi2025: parseFloat(manualKpis.costi) || kpis.costi,
                         costi2024: d24.totaleCostiDirettiIndiretti || 0,
-                        ebitda2025: parseFloat(manualKpis.ebitda) || kpis.ebitda,
-                        ebitda2024: d24.ebitda || 0,
+                        ebitda2025: ebitda25,
+                        ebitda2024: ebitda24,
                         risultato2025: parseFloat(manualKpis.risultato) || kpis.risultato,
-                        risultato2024: d24.risultato || 0,
-                        margineEbitda2025: 0,
-                        margineEbitda2024: 0,
+                        risultato2024: d24.risultatoEsercizio || d24.risultato || 0,
+                        margineEbitda2025: ricavi25 ? (ebitda25 / ricavi25) * 100 : 0,
+                        margineEbitda2024: ricavi24 ? (ebitda24 / ricavi24) * 100 : 0,
                         costLabel: preview.costLabel || "Costi"
                     },
-                    summary: generateSummary(preview.kpis, (rawData.ceDettaglio?.progressivo2025 || {}), d24),
+                    summary: generateSummary({ ...preview.kpis, ricavi2025: ricavi25, ricavi2024: ricavi24 }, (rawData.ceDettaglio?.progressivo2025 || {}), d24),
                     comparison: {},
                     monthlyTrend: populateMonthlyTrend(rawData.ceDettaglioMensile)
                 };
