@@ -171,9 +171,9 @@ export class ExcelParser {
                     if (col2025 === -1) col2025 = idx;
                 }
 
-                // Cerca 2024
+                // Cerca 2024 - ONLY take FIRST occurrence
                 if (s.includes("2024")) {
-                    col2024 = idx;
+                    if (col2024 === -1) col2024 = idx;
                 }
                 if (s.includes("BUDGET") || s.includes("PRECEDENTE")) {
                     if (col2024 === -1) col2024 = idx;
