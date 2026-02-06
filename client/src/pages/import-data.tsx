@@ -42,6 +42,7 @@ interface PreviewData {
     sintetico: { rows: number } | null;
     sinteticoMensile: { rows: number } | null;
     partitari?: { headers: number; data: number } | null;
+    sourceData?: any[] | null;
 }
 
 export default function ImportData() {
@@ -137,9 +138,16 @@ export default function ImportData() {
                 const ceDettaglioMensile = parser.parseCEDettaglioMensile();
                 const ceSintetico = parser.parseCESintetico();
                 const ceSinteticoMensile = parser.parseCESinteticoMensile();
+                const sourceData = parser.parseSource();
 
                 // AUTO-DETECT MONTH
                 const detectedMonth = parser.detectReferenceMonth();
+                // ... (lines 143-255 skipped for brevity of replacement chunk, I will target the block around 140 AND 257 separately if needed, but here I can do it in one if I skip lines properly?)
+                // No, replace_file_content replaces a contiguous block. I cannot skip.
+                // I'll do two edits. One to adds parseSource, one to add to state.
+
+                // Edit 1: Add parseSource
+
                 if (detectedMonth) {
                     setMonth(detectedMonth.toString());
                     toast({
@@ -204,6 +212,23 @@ export default function ImportData() {
                     costDescription = "Costi operativi";
                 }
 
+                // OVERRIDE: Source Summary (User Requested Specific Rows: Costi, Ricavi, Differenza)
+                const sourceSummary = parser.parseSourceSummary(sourceData || []);
+                if (sourceSummary) {
+                    console.log("[Import] Overriding KPIs with Source Summary values:", sourceSummary);
+                    ricavi = sourceSummary.ricavi;
+                    costi = sourceSummary.costi;
+                    risultato = sourceSummary.risultato; // "Differenza" row
+                    // Recalculate EBITDA if needed or keep derived? 
+                    // Usually EBITDA = Ricavi - Costi + Ammortamenti etc.
+                    // If we overwrite Ricavi/Costi/Risultato, we might create inconsistency with EBITDA derived from details.
+                    // But user wants THESE cards to match. 
+                    // Let's trust "Differenza" as Risultato. Use "Ricavi" as Ricavi. "Costi" as Costi.
+
+                    costLabel = "Costi Totali (Source)";
+                    costDescription = "Da Source: 'Costi'";
+                }
+
                 // AI Analysis
                 let analysisResult = {
                     isBalanced: true,
@@ -258,7 +283,8 @@ export default function ImportData() {
                     monthly: ceDettaglioMensile ? { rows: ceDettaglioMensile.progressivo2025?.months?.length || 0, months: ceDettaglioMensile.progressivo2025?.months || [] } : null,
                     sintetico: null,
                     sinteticoMensile: null,
-                    partitari: null
+                    partitari: null,
+                    sourceData
                 });
 
                 setManualKpis({
@@ -394,6 +420,19 @@ export default function ImportData() {
             if (partitariContent) {
                 await saveFinancialData(selectedCompany.id, 'partitari', partitariContent, parseInt(year), parseInt(month));
                 toast({ title: "Partitari Importati", description: `Salvate ${partitariContent.data.length} righe.` });
+            }
+
+            // Save Source Data
+            if (previewData?.sourceData && previewData.sourceData.length > 0) {
+                console.log(`[Import] Saving Source data: ${previewData.sourceData.length} rows...`);
+                try {
+                    await saveFinancialData(selectedCompany.id, 'source', previewData.sourceData, parseInt(year), parseInt(month));
+                    console.log("[Import] Source data saved successfully.");
+                } catch (err) {
+                    console.error("[Import] Error saving Source data:", err);
+                }
+            } else {
+                console.warn("[Import] No Source data to save or empty array.");
             }
 
             // 2. Save Financial Data if present

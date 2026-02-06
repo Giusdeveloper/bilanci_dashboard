@@ -27,6 +27,7 @@ import Partitari from "@/pages/partitari";
 import GitHubSync from "@/pages/github-sync";
 import NotFound from "@/pages/not-found";
 import ImportData from "@/pages/import-data"; // Nuova pagina import
+import SourcePage from "@/pages/source"; // Nuova pagina source
 
 function Router() {
   const { user, loading, isAdmin } = useAuth();
@@ -90,6 +91,7 @@ function Router() {
           <Route path="/ce-sintetico" component={CESintetico} />
           <Route path="/ce-sintetico-mensile" component={CESinteticoMensile} />
           <Route path="/partitari" component={Partitari} />
+          <Route path="/source" component={SourcePage} />
           <Route path="/github" component={GitHubSync} />
           <Route path="/import" component={ImportData} />
           <Route component={NotFound} />

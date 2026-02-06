@@ -24,6 +24,10 @@ const getKey = (label: any): string | null => {
 
     // 2. Fuzzy / Smart match replacements
     const cleanLabel = strLabel.toUpperCase().replace(/\s+/g, ' ');
+
+    // 2b. Check map with uppercase label (handles "Gross Profit" -> "GROSS PROFIT")
+    if (EXCEL_ROW_MAP[cleanLabel]) return EXCEL_ROW_MAP[cleanLabel];
+
     const labelLower = strLabel.toLowerCase().replace(/\s+/g, '');
 
     // Sherpa42 Specific Mappings
@@ -243,19 +247,30 @@ export class ExcelParser {
         return this.parseMonthlyBlocks(sheetName);
     }
 
-    // 3. Parse "3_CE sintetico"
+    // 3. Parse "3_CE sintetico" (handles typo "sintentico")
     parseCESintetico(): any {
-        const sheetName = "3_CE sintetico";
-        return this.workbook.SheetNames.includes(sheetName) ? this.parseSummaryLikeSheet(sheetName) : null;
+        const sheetName = this.workbook.SheetNames.find(s => {
+            const low = s.toLowerCase();
+            // Match "sintetico" or "sintentico" (typo) and EXCLUDE "mensile"
+            return (low.includes("sintetico") || low.includes("sintentico")) && !low.includes("mensile");
+        });
+        return sheetName ? this.parseSummaryLikeSheet(sheetName) : null;
     }
 
     // 4. Parse "4_CE sintetico mensile"
     parseCESinteticoMensile(): any {
-        const sheetName = "CE sintetico mensile";
-        const backupSheetName = "CE dettaglio mensile";
+        // Find the sheet with flexible naming (handles "4_CE sintetico mensile", "CE sintetico mensile", "4.CE sintetico mensile")
+        const sheetName = this.workbook.SheetNames.find(s => {
+            const low = s.toLowerCase().replace(/[_\.]/g, ' ');
+            return low.includes('sintetico') && low.includes('mensile');
+        });
+        const backupSheetName = this.workbook.SheetNames.find(s => {
+            const low = s.toLowerCase().replace(/[_\.]/g, ' ');
+            return low.includes('dettaglio') && low.includes('mensile');
+        }) || "CE dettaglio mensile";
 
         // Primary Parse: CE sintetico mensile
-        let result = this.workbook.SheetNames.includes(sheetName)
+        let result = sheetName
             ? this.parseMonthlyBlocks(sheetName)
             : null;
 
@@ -286,8 +301,8 @@ export class ExcelParser {
         const sheet = this.workbook.Sheets[sheetName];
         const jsonData = XLSX.utils.sheet_to_json(sheet, { header: 1 });
 
-        let col2025 = 2;
-        let col2024 = 5;
+        let col2025 = -1;
+        let col2024 = -1;
 
         // Dynamic cols
         for (let i = 0; i < Math.min(jsonData.length, 20); i++) {
@@ -295,10 +310,15 @@ export class ExcelParser {
             if (!row) continue;
             row.forEach((cell: any, idx: number) => {
                 const s = String(cell);
-                if (s.includes("2025")) col2025 = idx;
-                if (s.includes("2024")) col2024 = idx;
+                // Only take FIRST occurrence
+                if (s.includes("2025") && col2025 === -1) col2025 = idx;
+                if (s.includes("2024") && col2024 === -1) col2024 = idx;
             });
         }
+
+        // Defaults if not found
+        if (col2025 === -1) col2025 = 2;
+        if (col2024 === -1) col2024 = 5;
 
         const result2025: Record<string, number> = {};
         const result2024: Record<string, number> = {};
@@ -619,5 +639,134 @@ export class ExcelParser {
             headers: headers,
             data: parsedData
         };
+    }
+    // 7. Parse "Source" sheet
+    parseSource(): any[] | null {
+        // Robust matching including trimmed spaces
+        const sheetName = this.workbook.SheetNames.find(s => s.trim().toLowerCase() === "source");
+        if (!sheetName) return null;
+
+        const sheet = this.workbook.Sheets[sheetName];
+        // Parse as array of arrays (matrix) to preserve layout (including empty columns)
+        const data = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: "" });
+        console.log(`[ExcelParser] Parsed Source sheet: ${data.length} rows found.`);
+        return data as any[];
+    }
+
+    // 8. Extract specific KPI summary from Source if available (User requested: Ricavi, Costi, Differenza at bottom)
+    parseSourceSummary(sourceData: any[]): { ricavi: number, costi: number, risultato: number } | null {
+        if (!sourceData || sourceData.length < 5) return null;
+
+        // 1. Identify "Year to Date" column
+        let ytdColIndex = -1;
+
+        // Scan top 20 rows for header
+        for (let r = 0; r < Math.min(sourceData.length, 30); r++) {
+            const row = sourceData[r] as any[];
+            if (!row) continue;
+            for (let c = 0; c < row.length; c++) {
+                const cell = String(row[c]).toLowerCase().trim();
+                // Match "Year to Date" or "YTD" or just explicit structure if user confirmed
+                if (cell.includes("year to date") || cell === "ytd") {
+                    ytdColIndex = c;
+                    console.log(`[ExcelParser] Found 'Year to Date' column at index ${c}`);
+                    break;
+                }
+            }
+            if (ytdColIndex !== -1) break;
+        }
+
+        // If not found, try to find where the values are by looking at the "Ricavi" row (if distinct)
+        // scan from bottom up to find the summary block
+        let ricavi = 0;
+        let costi = 0;
+        let risultato = 0;
+        let foundBlock = false;
+
+        const clean = (val: any) => {
+            if (typeof val === 'number') return val;
+            if (!val) return 0;
+            const s = String(val).replace(/\./g, '').replace(',', '.').trim();
+            const n = parseFloat(s);
+            return isNaN(n) ? 0 : n;
+        };
+
+        // Scan from bottom up. looking for the *last* occurrences of these labels.
+        // User said: "Costi, Ricavi, Differenza" are at the bottom.
+
+        for (let i = sourceData.length - 1; i >= 0; i--) {
+            const row = sourceData[i] as any[];
+            if (!row) continue;
+
+            // Start scanning for labels - Scan wider range (0-6) as labels are in Col D (idx 3)
+            const labelStr = row.slice(0, 6).map(c => String(c).toLowerCase().trim()).join(" ");
+
+            // Determine value column: if YTD found use it, else try last column with a number
+            let valIndex = ytdColIndex;
+            if (valIndex === -1) {
+                // Heuristic: Last non-empty column?
+                for (let c = row.length - 1; c >= 0; c--) {
+                    if (row[c] !== "" && row[c] !== null && row[c] !== undefined) {
+                        // Check if it looks like a number
+                        if (!isNaN(clean(row[c])) && clean(row[c]) !== 0) {
+                            valIndex = c;
+                            break;
+                        }
+                    }
+                }
+            }
+
+            if (valIndex === -1) continue;
+
+            const val = clean(row[valIndex]);
+
+            // ANCHOR STRATEGY: User confirmed "COSTI, RICAVI, DIFFERENZA" block at bottom
+            if (labelStr.includes("differenza")) {
+                console.log(`[ExcelParser] Found Anchor 'DIFFERENZA' at row ${i} with val ${val}`);
+                if (risultato === 0) risultato = -val; // Invert sign logic: Source + is bad (Loss), Dashboard - is bad
+
+                // Helper to extract from neighbor
+                const getValFromRow = (rIdx: number) => {
+                    if (rIdx < 0) return 0;
+                    const targetRow = sourceData[rIdx] as any[];
+                    if (!targetRow || targetRow.length <= valIndex) return 0;
+                    return clean(targetRow[valIndex]);
+                };
+
+                // Check i-1 (Ricavi) - usually row above
+                const rowPrev = sourceData[i - 1] as any[];
+                if (rowPrev) {
+                    // Looser deduction: just take the value if it exists, assuming strict block structure
+                    if (ricavi === 0) ricavi = Math.abs(getValFromRow(i - 1));
+                    console.log(`[ExcelParser] Anchor deduced Ricavi at row ${i - 1}: ${ricavi}`);
+                }
+
+                // Check i-2 (Costi) - usually 2 rows above
+                const rowPrev2 = sourceData[i - 2] as any[];
+                if (rowPrev2) {
+                    if (costi === 0) costi = getValFromRow(i - 2);
+                    console.log(`[ExcelParser] Anchor deduced Costi at row ${i - 2}: ${costi}`);
+                }
+
+                foundBlock = true;
+            }
+            // Keep independent checks only if anchor not hit yet (but we assume anchor is best)
+            else if (ricavi === 0 && (labelStr.includes("totale ricavi") || String(row[0] || "").toLowerCase() === "ricavi" || String(row[3] || "").toLowerCase() === "ricavi")) {
+                ricavi = Math.abs(val);
+            }
+            else if (costi === 0 && (labelStr.includes("totale costi") || String(row[0] || "").toLowerCase() === "costi" || String(row[3] || "").toLowerCase() === "costi")) {
+                costi = val;
+            }
+
+            // Stop if we have all 3
+            if (ricavi !== 0 && costi !== 0 && risultato !== 0) break;
+        }
+
+        if (foundBlock) {
+            console.log(`[ExcelParser] Source Summary Extracted -> Ricavi: ${ricavi}, Costi: ${costi}, Risultato: ${risultato}`);
+            return { ricavi, costi, risultato };
+        }
+
+        return null;
     }
 }

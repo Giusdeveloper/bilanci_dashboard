@@ -140,7 +140,7 @@ async function importSherpaDataV3() {
     if (kpis.ricavi2024) kpis.margineEbitda2024 = (kpis.ebitda2024 / kpis.ricavi2024) * 100;
 
     // Monthly Trend (Same as V2)
-    const monthlyTrend = { labels: ['Gen', 'Feb', 'Mar', 'Apr', 'Mag', 'Giu', 'Lug', 'Ago', 'Set', 'Ott', 'Nov', 'Dic'], ricavi: [], ebitda: [] };
+    const monthlyTrend = { labels: ['Gen', 'Feb', 'Mar', 'Apr', 'Mag', 'Giu', 'Lug', 'Ago', 'Set', 'Ott', 'Nov', 'Dic'], ricavi: [] as number[], ebitda: [] as number[] };
     // Reuse logic...
     const ricaviRow = rawData.find(r => String(r[COL_VOICE]).includes('Totale Ricavi') || String(r[COL_VOICE]).includes('RICAVI CARATTERISTICI'));
     const ebitdaRow = rawData.find(r => String(r[COL_VOICE]).toLowerCase().includes('ebitda'));

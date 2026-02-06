@@ -122,6 +122,10 @@ export default function CESintetico() {
 
   const emptyRow = { voce: "", value2025: "", percentage: "", value2024: "", varianceEuro: "", variance: "" };
 
+  // FIX: Use grossProfit if available (Maia uses Gross Profit), otherwise margine (Awentia), otherwise calculate: Ricavi - Costi Diretti
+  const margine2025 = progressivo2025.grossProfit || progressivo2025.margine || (progressivo2025.totaleRicavi - progressivo2025.costiDiretti) || 0;
+  const margine2024 = progressivo2024.grossProfit || progressivo2024.margine || (progressivo2024.totaleRicavi - progressivo2024.costiDiretti) || 0;
+
   const data = [
     createRow("Ricavi caratteristici", progressivo2025.ricaviCaratteristici, progressivo2024.ricaviCaratteristici),
     createRow("Altri ricavi", progressivo2025.altriRicavi, progressivo2024.altriRicavi),
@@ -135,7 +139,7 @@ export default function CESintetico() {
     createRow("Altri servizi e prestazioni", progressivo2025.altriServizi, progressivo2024.altriServizi),
     createRow("COSTI INDIRETTI", progressivo2025.costiIndiretti, progressivo2024.costiIndiretti, true),
     createRow("TOTALE COSTI DIRETTI E INDIRETTI", progressivo2025.totaleCostiDirettiIndiretti, progressivo2024.totaleCostiDirettiIndiretti, true),
-    createRow("MARGINE", progressivo2025.margine, progressivo2024.margine, true),
+    createRow("MARGINE", margine2025, margine2024, true),
     emptyRow,
     createRow("Ricavi non tipici", progressivo2025.ricaviNonTipici, progressivo2024.ricaviNonTipici),
     createRow("Costi commerciali", progressivo2025.costiCommerciali, progressivo2024.costiCommerciali),
@@ -158,11 +162,13 @@ export default function CESintetico() {
     createRow("RISULTATO DELL'ESERCIZIO", progressivo2025.risultatoEsercizio, progressivo2024.risultatoEsercizio, true),
   ];
 
-  const margineVariance = calculateVariance(progressivo2025.margine, progressivo2024.margine);
+
+
+  const margineVariance = calculateVariance(margine2025, margine2024);
   const ebitdaVariance = calculateVariance(progressivo2025.ebitda, progressivo2024.ebitda);
   const risultatoVariance = calculateVariance(progressivo2025.risultatoEsercizio, progressivo2024.risultatoEsercizio);
 
-  const margine2025Perc = (progressivo2025.margine / progressivo2025.totaleRicavi) * 100;
+  const margine2025Perc = (margine2025 / progressivo2025.totaleRicavi) * 100;
   const ebitda2025Perc = (progressivo2025.ebitda / progressivo2025.totaleRicavi) * 100;
   const risultato2025Perc = (progressivo2025.risultatoEsercizio / progressivo2025.totaleRicavi) * 100;
 

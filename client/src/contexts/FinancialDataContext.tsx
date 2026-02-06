@@ -13,10 +13,13 @@ interface FinancialDataContextType {
   saveFinancialData: (companyId: string, dataType: string, data: any, year: number, month?: number) => Promise<any>
   deleteFinancialData: (companyId: string, year: number) => Promise<void>
   getDashboardData: (companyId: string) => Promise<any>
-  getCEDettaglioData: (companyId: string) => Promise<any>
-  getCEDettaglioMensileData: (companyId: string) => Promise<any>
-  getCESinteticoData: (companyId: string) => Promise<any>
-  getCESinteticoMensileData: (companyId: string) => Promise<any>
+  getCEDettaglioData: (companyId: string) => Promise<FinancialData[] | null>
+  getCEDettaglioMensileData: (companyId: string) => Promise<FinancialData[] | null>
+  getCESinteticoData: (companyId: string) => Promise<FinancialData[] | null>
+  getCESinteticoMensileData: (companyId: string) => Promise<FinancialData[] | null>
+  getPartitariData: (companyId: string) => Promise<FinancialData[] | null>
+  getSourceData: (companyId: string) => Promise<FinancialData[] | null>
+  loadCompanies: () => Promise<void>
 }
 
 const FinancialDataContext = createContext<FinancialDataContextType | undefined>(undefined)
@@ -38,56 +41,56 @@ export function FinancialDataProvider({ children }: { children: ReactNode }) {
   }
 
   // Carica le aziende (solo per admin)
-  useEffect(() => {
-    const loadCompanies = async () => {
-      if (!isAdmin) {
-        setLoading(false)
+  const loadCompanies = useCallback(async () => {
+    if (!isAdmin) {
+      setLoading(false)
+      return
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from('companies')
+        .select('*')
+        .order('name')
+
+      if (error) {
+        console.error('Errore nel caricamento aziende:', error)
         return
       }
 
-      try {
-        const { data, error } = await supabase
-          .from('companies')
-          .select('*')
-          .order('name')
+      setCompanies(data || [])
 
-        if (error) {
-          console.error('Errore nel caricamento aziende:', error)
-          return
-        }
-
-        setCompanies(data || [])
-
-        // Carica l'azienda selezionata dal localStorage se esiste
-        if (!hasInitialized.current) {
-          try {
-            const savedCompany = localStorage.getItem('selectedCompany')
-            if (savedCompany) {
-              const company = JSON.parse(savedCompany)
-              // Verifica che l'azienda esista ancora nella lista
-              if (data && data.some(c => c.id === company.id)) {
-                console.log('📋 Azienda selezionata caricata dal localStorage:', company.name)
-                setSelectedCompany(company)
-              } else {
-                console.log('⚠️  Azienda salvata non trovata nella lista, rimuovo dal localStorage')
-                localStorage.removeItem('selectedCompany')
-              }
+      // Carica l'azienda selezionata dal localStorage se esiste
+      if (!hasInitialized.current) {
+        try {
+          const savedCompany = localStorage.getItem('selectedCompany')
+          if (savedCompany) {
+            const company = JSON.parse(savedCompany)
+            // Verifica che l'azienda esista ancora nella lista
+            if (data && data.some(c => c.id === company.id)) {
+              console.log('📋 Azienda selezionata caricata dal localStorage:', company.name)
+              setSelectedCompany(company)
+            } else {
+              console.log('⚠️  Azienda salvata non trovata nella lista, rimuovo dal localStorage')
+              localStorage.removeItem('selectedCompany')
             }
-          } catch (err) {
-            console.error('Errore nel caricamento azienda salvata:', err)
-            localStorage.removeItem('selectedCompany')
           }
-          hasInitialized.current = true
+        } catch (err) {
+          console.error('Errore nel caricamento azienda salvata:', err)
+          localStorage.removeItem('selectedCompany')
         }
-      } catch (err) {
-        console.error('Errore generale:', err)
-      } finally {
-        setLoading(false)
+        hasInitialized.current = true
       }
+    } catch (err) {
+      console.error('Errore generale:', err)
+    } finally {
+      setLoading(false)
     }
-
-    loadCompanies()
   }, [isAdmin])
+
+  useEffect(() => {
+    loadCompanies()
+  }, [loadCompanies])
 
   // Carica i dati finanziari per l'azienda selezionata
   const loadFinancialData = useCallback(async (companyId: string, dataType: string, year?: number, month?: number) => {
@@ -202,6 +205,19 @@ export function FinancialDataProvider({ children }: { children: ReactNode }) {
     return await loadFinancialData(companyId, 'ce-sintetico-mensile', 2025)
   }
 
+  // Ottieni i dati per Partitari
+  const getPartitariData = async (companyId: string) => {
+    return await loadFinancialData(companyId, 'partitari', 2025)
+  }
+
+  // Ottieni i dati per Source
+  const getSourceData = useCallback(async (companyId: string) => {
+    // I dati Source sono salvati con data_type='source'
+    // Recuperiamo l'ultimo disponibile
+    const data = await loadFinancialData(companyId, 'source')
+    return data
+  }, [loadFinancialData])
+
   // Wrapper per setSelectedCompany che salva nel localStorage
   const handleSetSelectedCompany = (company: Company | null) => {
     setSelectedCompany(company)
@@ -228,9 +244,12 @@ export function FinancialDataProvider({ children }: { children: ReactNode }) {
   // Crea una nuova azienda
   const createCompany = async (name: string): Promise<Company | null> => {
     try {
+      // Generate slug from name (lowercase, spaces to hyphens, remove special chars)
+      const slug = name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+
       const { data, error } = await supabase
         .from('companies')
-        .insert([{ name }])
+        .insert([{ name, slug }])
         .select()
         .single()
 
@@ -267,6 +286,9 @@ export function FinancialDataProvider({ children }: { children: ReactNode }) {
         getCEDettaglioMensileData,
         getCESinteticoData,
         getCESinteticoMensileData,
+        getSourceData,
+        getPartitariData,
+        loadCompanies,
       }}
     >
       {children}

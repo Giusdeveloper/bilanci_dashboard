@@ -16,12 +16,13 @@ import immentLogo from "@assets/Imment - logo - web_Orizzontale - colori - chiar
 
 const menuItems = [
   { title: "Dashboard", icon: Home, url: "/" },
-  { title: "Importa Dati", icon: Upload, url: "/import" },
+  { title: "Source", icon: FileText, url: "/source" },
   { title: "CE Dettaglio", icon: FileText, url: "/ce-dettaglio" },
   { title: "CE Dettaglio Mensile", icon: Calendar, url: "/ce-dettaglio-mensile" },
   { title: "CE Sintetico", icon: TrendingUp, url: "/ce-sintetico" },
   { title: "CE Sintetico Mensile", icon: BarChart3, url: "/ce-sintetico-mensile" },
   { title: "Partitari", icon: BookOpen, url: "/partitari" },
+  { title: "Importa Dati", icon: Upload, url: "/import" },
 ];
 
 export default function AppSidebar() {
