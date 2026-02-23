@@ -240,9 +240,17 @@ export default function CEDettaglioMensile() {
                 }
                 const rowClassName = getRowClassName(row.className);
                 const isSpecialRow = row.className !== "";
+                
+                // Ensure sticky column has a solid background to prevent transparency overlap
+                let stickyBg = "bg-card";
+                if (row.className === "result") stickyBg = "bg-[#fefce8] dark:bg-[#1a1600]";
+                else if (row.className === "key-metric") stickyBg = "bg-[#f0f9ff] dark:bg-[#082f49]";
+                else if (row.className === "total-dark") stickyBg = "bg-[#f1f5f9] dark:bg-[#1e293b]";
+                else if (row.className === "highlight") stickyBg = "bg-[#f8fafc] dark:bg-[#0f172a]";
+
                 return (
                   <tr key={idx} className={rowClassName}>
-                    <td className={`px-3 py-3 text-sm border-b border-border ${isSpecialRow ? 'font-semibold' : ''} sticky left-0 z-20 ${rowClassName} shadow-[2px_0_4px_rgba(0,0,0,0.05)]`}>
+                    <td className={`px-3 py-3 text-sm border-b border-border ${isSpecialRow ? 'font-semibold' : ''} sticky left-0 z-20 ${stickyBg} shadow-[2px_0_4px_rgba(0,0,0,0.05)]`}>
                       {row.voce}
                     </td>
                     {row.values.map((value, i) => (

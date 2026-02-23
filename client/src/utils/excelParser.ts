@@ -42,7 +42,6 @@ const getKey = (label: any): string | null => {
     if (cleanLabel.includes("TOTALE RICAVI")) return "totaleRicavi";
     if (cleanLabel.includes("RISULTATO") && cleanLabel.includes("ESERCIZIO")) return "risultatoEsercizio";
     if (cleanLabel.includes("UTILE") && cleanLabel.includes("PERDITA")) return "risultatoEsercizio";
-    if (cleanLabel === "AMMORTAMENTI") return "ammortamenti";
     if (cleanLabel.includes("EBITDA") || cleanLabel.includes("MARGINEMOL")) return "ebitda";
     if (cleanLabel.includes("EBIT") && !cleanLabel.includes("EBITDA")) return "ebit";
 
@@ -51,9 +50,14 @@ const getKey = (label: any): string | null => {
     if (labelLower.includes('ricavilegateadobiettivi') || labelLower.includes('obiettivivariabiali')) return "ricaviCaratteristici";
 
     // Ammortamenti & Gestione Finanziaria
-    if (labelLower.includes('ammortamentiimmateriali')) return "ammortamenti"; // Map to main amortization key or specific if tracking separate
-    if (labelLower.includes('ammortamentimateriali')) return "ammortamenti";
+    if (labelLower.includes('ammortamentiimmateriali')) return "ammortamentiImmateriali";
+    if (labelLower.includes('ammortamentimateriali')) return "ammortamentiMateriali";
     if (labelLower.includes('svalutazionieaccantonamenti')) return "svalutazioni";
+    
+    // Explicitly handle the compound label found in many reports
+    if (cleanLabel.includes("AMMORTAMENTI") && (cleanLabel.includes("ACCANT") || cleanLabel.includes("SVALUT"))) return "totaleAmmortamenti";
+    if (cleanLabel === "AMMORTAMENTI") return "totaleAmmortamenti";
+    if (labelLower.includes("ammortamentiesvalutazioni")) return "totaleAmmortamenti";
 
     // Try simplified key matching for Totals
     if (cleanLabel.includes("TOTALE COSTI FISSI")) return "totaleGestioneStruttura";
@@ -67,11 +71,34 @@ const getKey = (label: any): string | null => {
     return null;
 };
 
+// Helper: Calculate puntual (monthly) values from progressive (cumulative) values
+const calculatePuntualFromProgressive = (data: Record<string, any[]> | null) => {
+    if (!data) return null;
+    const result: Record<string, any[]> = { months: data.months };
+    
+    Object.keys(data).forEach(key => {
+        if (key === 'months') return;
+        const progValues = data[key];
+        const puntualValues = [];
+        
+        for (let i = 0; i < progValues.length; i++) {
+            if (i === 0) {
+                puntualValues.push(progValues[i]);
+            } else {
+                puntualValues.push(Number((progValues[i] - progValues[i-1]).toFixed(2)));
+            }
+        }
+        result[key] = puntualValues;
+    });
+    
+    return result;
+};
+
 export class ExcelParser {
     workbook: XLSX.WorkBook;
 
-    constructor(fileData: ArrayBuffer | string) {
-        this.workbook = XLSX.read(fileData, { type: 'binary' });
+    constructor(fileData: ArrayBuffer | string | Buffer) {
+        this.workbook = XLSX.read(fileData, { type: 'buffer' });
     }
 
     // Detect Company Name from "1_CE dettaglio"
@@ -228,6 +255,15 @@ export class ExcelParser {
             result2024.totaleCostiDirettiIndiretti = result2024.totaleRicavi - result2024.ebitda;
         }
 
+        // CALCULATE TOTAL OPERATING COSTS (Richiesta User: "Totale Costi")
+        // Logic: Totale Ricavi - EBITDA = Totale Costi
+        if (result2025.totaleRicavi !== undefined && result2025.ebitda !== undefined) {
+            result2025.totaleCostiOperativi = result2025.totaleRicavi - result2025.ebitda;
+        }
+        if (result2024.totaleRicavi !== undefined && result2024.ebitda !== undefined) {
+            result2024.totaleCostiOperativi = result2024.totaleRicavi - result2024.ebitda;
+        }
+
         return {
             progressivo2025: result2025,
             progressivo2024: result2024
@@ -274,20 +310,28 @@ export class ExcelParser {
             ? this.parseMonthlyBlocks(sheetName)
             : null;
 
-        // Fallback Logic: If Primary failed OR is missing 2024 data
-        if (!result || !result.progressivo2024 || !result.puntuale2024) {
-            console.log(`[ExcelParser] Primary parse of '${sheetName}' incomplete or missing. Checking '${backupSheetName}'...`);
+        // Fallback Logic: If Primary failed OR is missing 2024 data OR has zeroed Ammortamenti
+        const isZeroed = (data: any) => !data || !data.totaleAmmortamenti || data.totaleAmmortamenti.every((v: number) => v === 0);
+
+        if (!result || !result.progressivo2024 || !result.puntuale2024 || isZeroed(result.progressivo2025)) {
+            console.log(`[ExcelParser] Primary parse of '${sheetName}' incomplete or zeroed. Checking '${backupSheetName}'...`);
 
             if (this.workbook.SheetNames.includes(backupSheetName)) {
-                // ... strict fallback logic ...
                 const backupResult = this.parseMonthlyBlocks(backupSheetName);
                 if (backupResult) {
                     if (!result) result = {};
-                    // Merge missing parts
-                    if (!result.progressivo2025 && backupResult.progressivo2025) result.progressivo2025 = backupResult.progressivo2025;
-                    if (!result.puntuale2025 && backupResult.puntuale2025) result.puntuale2025 = backupResult.puntuale2025;
-                    if (!result.progressivo2024 && backupResult.progressivo2024) result.progressivo2024 = backupResult.progressivo2024;
-                    if (!result.puntuale2024 && backupResult.puntuale2024) result.puntuale2024 = backupResult.puntuale2024;
+                    
+                    // Helper to merge or replace if backup is better
+                    const mergeOrReplace = (key: string) => {
+                        if (!result[key] || isZeroed(result[key])) {
+                            if (backupResult[key]) result[key] = backupResult[key];
+                        }
+                    };
+
+                    mergeOrReplace('progressivo2025');
+                    mergeOrReplace('puntuale2025');
+                    mergeOrReplace('progressivo2024');
+                    mergeOrReplace('puntuale2024');
                 }
             }
         }
@@ -441,6 +485,8 @@ export class ExcelParser {
             if (!block) return null;
             const result: Record<string, any[]> = { months: block.months };
 
+            console.log(`[ExcelParser] Extracting data for block at R${block.startRow}, C${block.startCol}`);
+
             for (let r = block.startRow + 1; r < jsonData.length; r++) {
                 const row: any = jsonData[r];
                 if (!row) continue;
@@ -450,20 +496,24 @@ export class ExcelParser {
 
                 const label = row[0];
                 const key = getKey(label);
+                
                 if (key) {
                     const values = [];
                     for (let k = 0; k < block.months.length; k++) {
-                        values.push(cleanNumber(row[block.startCol + k]));
+                        const rawVal = row[block.startCol + k];
+                        const cleanVal = cleanNumber(rawVal);
+                        values.push(cleanVal);
                     }
                     result[key] = values;
+                    if (key === 'totaleAmmortamenti') {
+                        console.log(`[ExcelParser Debug] Found Ammortamenti at row ${r}:`, values.slice(0, 3), "...");
+                    }
                 }
             }
             return result;
         };
 
-        // Smart Mapping with Positional Fallback
-
-        // 1. Sort blocks by position (top-to-bottom, then left-to-right) to ensure reliable indexing
+        // Smart Mapping with Positional Fallback and Auto-Derivation
         blocks.sort((a, b) => {
             if (Math.abs(a.startRow - b.startRow) > 5) return a.startRow - b.startRow;
             return a.startCol - b.startCol;
@@ -471,52 +521,55 @@ export class ExcelParser {
 
         console.log(`[ExcelParser] Sorted Blocks for Mapping:`, blocks.map(b => `(R${b.startRow},C${b.startCol}) Y:${b.year} T:${b.type}`));
 
-        let p25 = blocks.find(b => b.year === 2025 && (b.type === 'progressivo' || !b.type));
-        // Note: looser check for 'progressivo' above if explicit type missing
+        // 1. Identify what we have
+        let p25_block = blocks.find(b => b.year === 2025 && (b.type === 'progressivo' || !b.type));
+        let m25_block = blocks.find(b => b.year === 2025 && b.type === 'puntuale');
+        let p24_block = blocks.find(b => b.year === 2024 && (b.type === 'progressivo' || !b.type));
+        let m24_block = blocks.find(b => b.year === 2024 && b.type === 'puntuale');
 
-        // Positional Strategy: 
-        // If we strictly detected metadata, use it.
-        // If not (year=0), assume standard report order:
-        // Index 0: Progressivo 2025
-        // Index 1: Puntuale 2025
-        // Index 2: Progressivo 2024
-        // Index 3: Puntuale 2024
-
-        if (blocks.length >= 1 && (!blocks[0].year || blocks[0].year === 2025)) {
-            if (!p25) p25 = blocks[0]; // Default 1st block to Prog 2025
+        // 2. Positional fallbacks for missing year/type info
+        if (!p25_block && blocks.length >= 1 && (!blocks[0].year || blocks[0].year === 2025)) {
+            p25_block = blocks[0];
+        }
+        if (!m25_block && blocks.length >= 2 && (!blocks[1].year || blocks[1].year === 2025) && blocks[1] !== p25_block) {
+            m25_block = blocks[1];
+        }
+        if (!p24_block && blocks.length >= 3 && (!blocks[2].year || blocks[2].year === 2024) && blocks[2] !== p25_block && blocks[2] !== m25_block) {
+            p24_block = blocks[2];
+        }
+        if (!m24_block && blocks.length >= 4 && (!blocks[3].year || blocks[3].year === 2024) && blocks[3] !== p25_block && blocks[3] !== m25_block && blocks[3] !== p24_block) {
+            m24_block = blocks[3];
         }
 
-        let m25 = blocks.find(b => b.year === 2025 && b.type === 'puntuale');
-        if (!m25 && blocks.length >= 2) {
-            // If block 1 is not already p25 (e.g. distinct from block 0)
-            if (blocks[1] !== p25) m25 = blocks[1];
-        }
+        // 3. Extract raw data
+        const p25_raw = extractData(p25_block);
+        let m25_raw = extractData(m25_block);
+        const p24_raw = extractData(p24_block);
+        let m24_raw = extractData(m24_block);
 
-        let p24 = blocks.find(b => b.year === 2024 && (b.type === 'progressivo' || !b.type));
-        if (!p24 && blocks.length >= 3) {
-            if (blocks[2] !== p25 && blocks[2] !== m25) p24 = blocks[2];
+        // 4. AUTO-DERIVE missing modes
+        // If we have Progressivo but not Puntuale (common in cumulative reports)
+        if (p25_raw && !m25_raw) {
+            console.log("[ExcelParser] Auto-deriving Puntuale 2025 from Progressivo");
+            m25_raw = calculatePuntualFromProgressive(p25_raw);
         }
-
-        let m24 = blocks.find(b => b.year === 2024 && b.type === 'puntuale');
-        if (!m24 && blocks.length >= 4) {
-            if (blocks[3] !== p25 && blocks[3] !== m25 && blocks[3] !== p24) m24 = blocks[3];
+        if (p24_raw && !m24_raw) {
+            console.log("[ExcelParser] Auto-deriving Puntuale 2024 from Progressivo");
+            m24_raw = calculatePuntualFromProgressive(p24_raw);
         }
-
-        // Final verification/Fix for overlapping assignments? 
-        // The above sequential assignment with checks should prevent overlap.
 
         console.log(`[ExcelParser] Final Mapping Result:`, {
-            p25: p25 ? `Found (R${p25.startRow})` : 'Missing',
-            m25: m25 ? `Found (R${m25.startRow})` : 'Missing',
-            p24: p24 ? `Found (R${p24.startRow})` : 'Missing',
-            m24: m24 ? `Found (R${m24.startRow})` : 'Missing'
+            p25: p25_raw ? 'Found' : 'Missing',
+            m25: m25_raw ? 'Found' : 'Missing',
+            p24: p24_raw ? 'Found' : 'Missing',
+            m24: m24_raw ? 'Found' : 'Missing'
         });
 
         return {
-            progressivo2025: extractData(p25),
-            puntuale2025: extractData(m25),
-            progressivo2024: extractData(p24),
-            puntuale2024: extractData(m24)
+            progressivo2025: p25_raw,
+            puntuale2025: m25_raw,
+            progressivo2024: p24_raw,
+            puntuale2024: m24_raw
         };
     }
 
@@ -617,26 +670,42 @@ export class ExcelParser {
 
         if (!jsonData || jsonData.length === 0) return null;
 
-        const headers = (jsonData[0] as any[]).map(h => String(h).trim());
+        const allHeaders = (jsonData[0] as any[]).map(h => String(h).trim());
         const dataRows = jsonData.slice(1);
+
+        const EXCLUDED_COLUMNS = [
+            "Ditta", "DataStoDit", "DataStoAna", "CodAnacf", "Num_riga", 
+            "Cod_causale", "Attivita_ETS", "Codice_UnProd", "Descr_UnProD", 
+            "CodAnacfControp", "DescrAgg3"
+        ];
+
+        // Filter headers
+        const visibleHeaders = allHeaders.filter(h => !EXCLUDED_COLUMNS.includes(h));
+        const visibleIndices = allHeaders.map((h, i) => EXCLUDED_COLUMNS.includes(h) ? -1 : i).filter(idx => idx !== -1);
 
         const parsedData = dataRows.map((row: any) => {
             const entry: Record<string, any> = {};
-            headers.forEach((header, index) => {
-                let value = row[index];
-                // Clean numbers if needed? 
-                // For Partitari, we might want to keep strings for layout or clean specific fields.
-                // "Importo_dare", "Importo_avere" are strictly numbers.
+            visibleHeaders.forEach((header, index) => {
+                const originalIndex = visibleIndices[index];
+                let value = row[originalIndex];
                 if (header.includes("Importo") || header.includes("Saldo") || header.includes("Progr")) {
                     value = cleanNumber(value);
                 }
                 entry[header] = value;
             });
             return entry;
+        }).filter(entry => {
+            const code = String(entry["CodiceConto"] || "");
+            if (!code.includes("/")) return false;
+            
+            const prefix = code.split("/")[0];
+            const prefixNum = parseInt(prefix);
+            
+            return !isNaN(prefixNum) && prefixNum >= 58 && prefixNum <= 88;
         });
 
         return {
-            headers: headers,
+            headers: visibleHeaders,
             data: parsedData
         };
     }

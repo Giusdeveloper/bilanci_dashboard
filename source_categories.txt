@@ -1,0 +1,160 @@
+Reading file: c:\Users\b_epp\OneDrive\Desktop\Lavoro\Development\bilanci_dashboard\import_data\[2025] Analisi Bilanci al 31 dicembre Awentia.xlsx
+--- Source Row Labels (1035 rows) ---
+
+--- CATEGORY LEVEL 1 (Col 2) ---
+- Ammortamenti, Accant.Svalutazioni
+- Anno
+- Commerciali
+- Diretti
+- Famiglia
+- Finanziari
+- Indiretti
+- Ricavi non caratteristici
+- Struttura
+- Valore della produzione
+
+--- CATEGORY LEVEL 2 (Col 3) ---
+- Abbuoni e arrotondamenti
+- Altri interessi
+- Altri oneri
+- Altri ricavi
+- Altri servizi e prestazioni
+- Ammortamenti immateriali
+- Ammortamenti materiali
+- Analitica
+- Assicurazioni
+- Beni indeducibili
+- COSTI
+- Carburante
+- Compensi amministratore
+- Consulenze legali
+- Consulenze tecniche
+- DIFFERENZA
+- Interessi passivi su mutui
+- Licenze d'uso
+- Locazioni e noleggi
+- Mostre e fiere
+- Pedaggi autostradali
+- Personale
+- Pubblicit├á
+- RICAVI
+- Ricavi caratteristici
+- Rimborsi amministratore
+- Sanzioni e multe
+- Servizi amministrativi contabilit├á
+- Servizi commerciali
+- Servizi diretti
+- Servizi indeducibili
+- Servizi informatici web
+- Spese di rappresentanza
+- Spese e commissioni bancarie
+- Spese generali
+- Spese viaggio
+- Tasse e valori bollati
+- Utenze
+- Utenze telefoniche e cellulari
+- Utili e perdite su cambi
+Only listing rows with text in the first few columns...
+- 58/05/502
+- 58/10/502
+- 58/10/703
+- 64/05/100
+- 64/05/115
+- 64/05/170
+- 64/05/501
+- 64/10/501
+- 66/20/005
+- 66/25/005
+- 66/25/006
+- 66/30/035
+- 66/30/037
+- 66/30/042
+- 66/30/045
+- 66/30/055
+- 66/30/060
+- 66/30/491
+- 66/30/510
+- 68/05/005
+- 68/05/015
+- 68/05/020
+- 68/05/025
+- 68/05/050
+- 68/05/090
+- 68/05/125
+- 68/05/150
+- 68/05/184
+- 68/05/198
+- 68/05/199
+- 68/05/200
+- 68/05/290
+- 68/05/300
+- 68/05/310
+- 68/05/320
+- 68/05/325
+- 68/05/330
+- 68/05/341
+- 68/05/345
+- 68/05/346
+- 68/05/375
+- 68/05/385
+- 68/05/400
+- 68/05/405
+- 68/05/430
+- 68/05/490
+- 68/05/491
+- 68/05/507
+- 68/05/511
+- 68/05/765
+- 68/05/768
+- 70/05/010
+- 70/05/101
+- 70/05/103
+- 70/05/503
+- 70/25/010
+- 72/05/010
+- 72/05/015
+- 72/05/080
+- 72/05/086
+- 72/05/090
+- 72/05/091
+- 72/05/501
+- 72/05/702
+- 72/15/005
+- 72/15/007
+- 72/15/025
+- 72/15/090
+- 72/15/091
+- 72/20/005
+- 72/20/501
+- 74/05/010
+- 74/05/501
+- 74/10/501
+- 74/15/005
+- 74/20/005
+- 74/20/010
+- 75/15/005
+- 75/20/010
+- 75/20/011
+- 84/05/005
+- 84/05/020
+- 84/05/035
+- 84/05/502
+- 84/10/035
+- 84/10/090
+- 84/10/190
+- 84/10/191
+- 84/10/501
+- 84/10/720
+- 84/10/721
+- 87/20/060
+- 88/20/015
+- 88/20/046
+- 88/20/095
+- 88/20/190
+- 88/20/501
+- 88/20/551
+- 88/20/552
+- COSTI
+- Conto Co.Ge.
+- DIFFERENZA
+- Mese

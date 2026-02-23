@@ -28,7 +28,7 @@ const getRowClassName = (className: string) => {
     case "highlight":
       return "font-semibold";
     default:
-      return "hover:bg-muted/50";
+      return className || "hover:bg-muted/50";
   }
 };
 
@@ -68,16 +68,20 @@ export default function DataTable({ title, columns, data, highlightRows = [], to
               if (row.className) {
                 // Se la riga ha una className custom, usa getRowClassName
                 rowClassName = getRowClassName(row.className);
+                // Assicurati che l'hover sia sempre presente
+                if (!rowClassName.includes("hover:bg-muted/50")) {
+                  rowClassName += " hover:bg-muted/50";
+                }
               } else {
                 // Altrimenti usa la logica basata sulle props
                 rowClassName = isResult
-                  ? "bg-yellow-100 dark:bg-yellow-900/40 font-bold" 
+                  ? "bg-yellow-100 dark:bg-yellow-900/40 font-bold hover:bg-muted/50" 
                   : isKeyMetric
-                  ? "bg-blue-50 dark:bg-blue-950/20 font-bold" 
+                  ? "bg-blue-50 dark:bg-blue-950/20 font-bold hover:bg-muted/50" 
                   : isTotal 
-                  ? "bg-blue-900/10 dark:bg-blue-900/30 font-bold" 
+                  ? "bg-blue-900/10 dark:bg-blue-900/30 font-bold hover:bg-muted/50" 
                   : isHighlight 
-                  ? "font-semibold" 
+                  ? "font-semibold hover:bg-muted/50" 
                   : hasBold
                   ? "font-bold hover:bg-muted/50"
                   : "hover:bg-muted/50";

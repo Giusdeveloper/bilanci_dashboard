@@ -4,9 +4,11 @@ import PageHeader from '../components/PageHeader';
 import { Card } from "@/components/ui/card";
 import { Loader2 } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
+import { Search } from "lucide-react";
 
 // View State Type
-type ViewMode = 'current' | 'previous' | 'all';
+type ViewMode = 'current' | 'previous';
 
 const SourcePage = () => {
     const { selectedCompany, getSourceData } = useFinancialData();
@@ -15,6 +17,7 @@ const SourcePage = () => {
 
     // View State
     const [viewMode, setViewMode] = useState<ViewMode>("current");
+    const [searchQuery, setSearchQuery] = useState("");
 
     const [currentYearData, setCurrentYearData] = useState<any[]>([]);
     const [previousYearData, setPreviousYearData] = useState<any[]>([]);
@@ -94,12 +97,14 @@ const SourcePage = () => {
             if (splitIndex !== -1) break;
         }
 
-        // 3. Identify Data Start Column (First month column, usually contains "Gen" or "1")
+        // 3. Identify Data Start Column (First month column)
         let dataStartIndex = 0;
+        const monthNames = ["gen", "feb", "mar", "apr", "mag", "giu", "lug", "ago", "set", "ott", "nov", "dic"];
+        
         for (let c = 0; c < headerRow.length; c++) {
-            const cell = String(headerRow[c]).toLowerCase();
-            // Check for numeric month or month name
-            if (cell === "1" || cell.includes("gen")) {
+            const cell = String(headerRow[c]).toLowerCase().trim();
+            // Match month name or "1" (but only if it's the first numeric column after some text)
+            if (monthNames.includes(cell.substring(0, 3)) || cell === "1") {
                 dataStartIndex = c;
                 break;
             }
@@ -158,8 +163,10 @@ const SourcePage = () => {
             setHasSplit(true);
             setViewMode('current');
         } else {
+            // Fallback: If no split, treat the whole thing as current
+            setCurrentYearData({ headers: headerRow, rows: rows.slice(headerRowIndex + 1) } as any);
             setHasSplit(false);
-            setViewMode('all');
+            setViewMode('current');
         }
     };
 
@@ -182,9 +189,9 @@ const SourcePage = () => {
     };
 
     const getActiveDataSet = () => {
-        if (viewMode === 'current' && hasSplit) return currentYearData as any;
+        if (viewMode === 'current') return currentYearData as any;
         if (viewMode === 'previous' && hasSplit) return previousYearData as any;
-        return { headers: rawHeaders, rows: rawData };
+        return currentYearData as any;
     };
 
     const activeSet = getActiveDataSet();
@@ -223,7 +230,18 @@ const SourcePage = () => {
 
     // Apply Filters
     const bodyRows = useMemo(() => {
-        return allBodyRows.filter((row: any[]) => {
+        let filtered = allBodyRows;
+
+        // Apply global search
+        if (searchQuery) {
+            const q = searchQuery.toLowerCase();
+            filtered = filtered.filter(row => 
+                row.some(cell => String(cell || "").toLowerCase().includes(q))
+            );
+        }
+
+        // Apply dropdown filters
+        return filtered.filter((row: any[]) => {
             return filterableColumns.every(col => {
                 const filterValue = filters[col.name];
                 if (!filterValue || filterValue === "all") return true;
@@ -233,7 +251,7 @@ const SourcePage = () => {
                 return cellValue === filterValue;
             });
         });
-    }, [allBodyRows, filters, filterableColumns]);
+    }, [allBodyRows, filters, filterableColumns, searchQuery]);
 
     const handleFilterChange = (colName: string, value: string) => {
         setFilters(prev => ({
@@ -263,36 +281,46 @@ const SourcePage = () => {
     );
 
     return (
-        <div data-testid="page-source" className="h-[calc(100vh-4rem)] flex flex-col p-6 animate-in fade-in duration-500 box-border">
-            <div className="flex-none mb-4 space-y-4">
+        <div data-testid="page-source" className="h-[calc(100vh-2rem)] flex flex-col p-4 animate-in fade-in duration-500 box-border">
+            <div className="flex-none mb-4 space-y-3">
                 <div className="flex justify-between items-start">
-                    <div className="bg-primary rounded-lg p-6 text-primary-foreground shadow-lg flex-1 mr-4">
-                        <h1 className="text-2xl font-bold mb-2">Source Data</h1>
-                        <p className="opacity-90">Dati originali importati - {selectedCompany.name}</p>
+                    <div className="bg-primary rounded-lg p-4 text-primary-foreground shadow-lg flex-1">
+                        <h1 className="text-xl font-bold mb-1">Source Data</h1>
+                        <p className="text-sm opacity-90">Dati originali importati - {selectedCompany.name}</p>
                     </div>
                 </div>
 
-                <div className="flex flex-col gap-4">
-                    {hasSplit && (
-                        <div className="flex flex-wrap gap-2">
-                            <button onClick={() => setViewMode('current')} className={getTabClass('current')}>Anno Corrente</button>
-                            <button onClick={() => setViewMode('previous')} className={getTabClass('previous')}>Anno Precedente</button>
-                            <button onClick={() => setViewMode('all')} className={getTabClass('all')}>Vista Completa (Raw)</button>
+                <div className="flex flex-col gap-3">
+                    <div className="flex items-center gap-4">
+                        <div className="relative flex-1 max-w-md">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                            <Input 
+                                placeholder="Cerca in tutte le colonne..." 
+                                className="pl-10 h-9"
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                            />
                         </div>
-                    )}
+                        {hasSplit && (
+                            <div className="flex gap-2">
+                                <button onClick={() => setViewMode('current')} className={getTabClass('current')}>Anno Corrente</button>
+                                <button onClick={() => setViewMode('previous')} className={getTabClass('previous')}>Anno Precedente</button>
+                            </div>
+                        )}
+                    </div>
 
                     {/* Filter Bar */}
                     {filterableColumns.length > 0 && (
-                        <Card className="p-4 flex flex-wrap gap-4 items-center bg-card border shadow-sm">
-                            <span className="text-sm font-semibold text-muted-foreground mr-2">Filtra per:</span>
+                        <Card className="p-3 flex flex-wrap gap-3 items-center bg-card border shadow-sm">
+                            <span className="text-xs font-semibold text-muted-foreground mr-1">Filtra per:</span>
                             {filterableColumns.map(col => (
-                                <div key={col.index} className="flex flex-col gap-1 min-w-[200px]">
-                                    <label className="text-xs font-medium text-muted-foreground ml-1">{col.name}</label>
+                                <div key={col.index} className="flex flex-col gap-1 min-w-[180px]">
+                                    <label className="text-[10px] font-medium text-muted-foreground ml-1">{col.name}</label>
                                     <Select
                                         value={filters[col.name] || "all"}
                                         onValueChange={(val) => handleFilterChange(col.name, val)}
                                     >
-                                        <SelectTrigger className="h-9 w-full">
+                                        <SelectTrigger className="h-8 w-full text-xs">
                                             <SelectValue placeholder="Tutti" />
                                         </SelectTrigger>
                                         <SelectContent>
@@ -309,9 +337,9 @@ const SourcePage = () => {
                             {(Object.keys(filters).some(k => filters[k] && filters[k] !== "all")) && (
                                 <button
                                     onClick={() => setFilters({})}
-                                    className="h-9 px-4 py-2 mt-auto text-sm font-medium text-destructive hover:bg-destructive/10 rounded-md transition-colors"
+                                    className="h-8 px-3 text-xs font-medium text-destructive hover:bg-destructive/10 rounded-md transition-colors"
                                 >
-                                    Reset Filtri
+                                    Reset
                                 </button>
                             )}
                         </Card>
@@ -320,34 +348,49 @@ const SourcePage = () => {
             </div>
 
             <Card className="flex-1 min-h-0 flex flex-col overflow-hidden shadow-sm border bg-card">
-                <div className="flex-none p-4 border-b bg-muted/20 flex items-center justify-between">
-                    <h3 className="text-lg font-bold">
-                        {viewMode === 'current' ? 'Dati Esercizio Corrente' :
-                            viewMode === 'previous' ? 'Dati Esercizio Precedente' : 'Foglio Completo'}
+                <div className="flex-none p-3 border-b bg-muted/20 flex items-center justify-between">
+                    <h3 className="text-md font-bold">
+                        {viewMode === 'current' ? 'Dati Esercizio Corrente' : 'Dati Esercizio Precedente'}
                     </h3>
                     <div className="flex items-center gap-2">
                         {allBodyRows.length !== bodyRows.length && (
-                            <span className="text-xs font-medium text-muted-foreground">
+                            <span className="text-[10px] font-medium text-muted-foreground">
                                 Filtrati: {bodyRows.length} su {allBodyRows.length}
                             </span>
                         )}
-                        <span className="text-sm font-medium text-muted-foreground bg-background px-2 py-1 rounded border shadow-sm">{bodyRows.length} righe</span>
+                        <span className="text-xs font-medium text-muted-foreground bg-background px-2 py-0.5 rounded border shadow-sm">{bodyRows.length} righe</span>
                     </div>
                 </div>
 
                 <div className="flex-1 overflow-auto relative w-full">
-                    <table className="w-full border-collapse min-w-max">
-                        <thead className="sticky top-0 z-30">
+                    <table className="w-full border-collapse min-w-max table-fixed">
+                        <thead className="sticky top-0 z-50">
                             <tr>
                                 {headers.map((h: any, i: number) => {
                                     const headerName = String(h || "").toUpperCase();
                                     const isTextCol = headerName.includes("CONTO") || headerName.includes("DESCRIZIONE") || headerName.includes("FAMIGLIA") || headerName.includes("ANALITICA") || headerName.includes("NOTE");
-                                    const isSticky = i === 0;
-                                    const align = (isSticky || isTextCol) ? "text-left" : "text-right";
-                                    const stickyStyle = isSticky ? 'sticky left-0 z-40 shadow-[2px_0_4px_rgba(0,0,0,0.05)]' : '';
+                                    
+                                    // Sticky logic
+                                    const isSticky1 = i === 0;
+                                    const isSticky2 = i === 1;
+                                    
+                                    let stickyStyle = '';
+                                    let width = 'w-[100px]';
+                                    
+                                    if (isSticky1) {
+                                        stickyStyle = 'sticky left-0 z-[60] shadow-[2px_0_4px_rgba(0,0,0,0.05)]';
+                                        width = 'w-[120px]';
+                                    } else if (isSticky2) {
+                                        stickyStyle = 'sticky left-[120px] z-[60] shadow-[2px_0_4px_rgba(0,0,0,0.05)]';
+                                        width = 'w-[250px]';
+                                    } else if (isTextCol) {
+                                        width = 'w-[200px]';
+                                    }
+
+                                    const align = (isSticky1 || isSticky2 || isTextCol) ? "text-left" : "text-right";
 
                                     return (
-                                        <th key={i} className={`bg-muted px-3 py-3 text-sm font-semibold text-muted-foreground border-b-2 border-border whitespace-nowrap ${align} ${stickyStyle}`}>
+                                        <th key={i} className={`bg-muted px-3 py-2 text-xs font-semibold text-muted-foreground border-b-2 border-border whitespace-nowrap ${align} ${stickyStyle} ${width}`}>
                                             {String(h || "")}
                                         </th>
                                     );
@@ -366,22 +409,32 @@ const SourcePage = () => {
                                 return (
                                     <tr key={idx} className={`${rowBg} transition-colors border-b border-border last:border-0`}>
                                         {row.map((cell: any, colIdx: number) => {
-                                            // Handle Sticky Column
-                                            const isSticky = colIdx === 0;
+                                            // Handle Sticky Columns
+                                            const isSticky1 = colIdx === 0;
+                                            const isSticky2 = colIdx === 1;
+                                            
                                             // Determine alignment
                                             const headerName = String(headers[colIdx] || "").toUpperCase();
                                             const isTextCol = headerName.includes("CONTO") || headerName.includes("DESCRIZIONE") || headerName.includes("FAMIGLIA") || headerName.includes("ANALITICA") || headerName.includes("NOTE");
-                                            const align = (isSticky || isTextCol) ? "text-left" : "text-right";
+                                            const align = (isSticky1 || isSticky2 || isTextCol) ? "text-left" : "text-right";
 
                                             // Sticky styling
-                                            // Ensure background is solid for sticky column
                                             const cellBg = rowBg === "hover:bg-muted/50" ? "bg-card" : rowBg;
-                                            const stickyStyle = isSticky ?
-                                                `sticky left-0 z-20 shadow-[2px_0_4px_rgba(0,0,0,0.05)] ${cellBg}`
-                                                : "";
+                                            let stickyStyle = "";
+                                            let width = "w-[100px]";
+
+                                            if (isSticky1) {
+                                                stickyStyle = `sticky left-0 z-20 shadow-[2px_0_4px_rgba(0,0,0,0.05)] ${cellBg}`;
+                                                width = "w-[120px]";
+                                            } else if (isSticky2) {
+                                                stickyStyle = `sticky left-[120px] z-20 shadow-[2px_0_4px_rgba(0,0,0,0.05)] ${cellBg}`;
+                                                width = "w-[250px]";
+                                            } else if (isTextCol) {
+                                                width = "w-[200px]";
+                                            }
 
                                             return (
-                                                <td key={colIdx} className={`px-3 py-3 text-sm whitespace-nowrap text-muted-foreground/90 ${align} ${fontClass} ${stickyStyle}`}>
+                                                <td key={colIdx} className={`px-3 py-2 text-xs whitespace-nowrap text-muted-foreground/90 ${align} ${fontClass} ${stickyStyle} ${width}`}>
                                                     {formatValue(cell)}
                                                 </td>
                                             );

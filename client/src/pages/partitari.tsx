@@ -12,7 +12,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import PageHeader from "@/components/PageHeader";
-import { ChevronDown, X } from "lucide-react";
+import { ChevronDown, X, Search } from "lucide-react";
 import { useFinancialData } from "@/contexts/FinancialDataContext";
 
 interface PartitariData {
@@ -42,10 +42,11 @@ export default function Partitari() {
   const [loading, setLoading] = useState(false);
   const [filters, setFilters] = useState<Record<string, Set<string>>>({});
   const [searchTerms, setSearchTerms] = useState<Record<string, string>>({});
+  const [globalSearch, setGlobalSearch] = useState("");
 
-  // Default to October 2025 as per user context
+  // Default to December 2025 as per latest data
   const [selectedYear, setSelectedYear] = useState<string>("2025");
-  const [selectedMonth, setSelectedMonth] = useState<string>("10");
+  const [selectedMonth, setSelectedMonth] = useState<string>("12");
 
   useEffect(() => {
     const loadData = async () => {
@@ -98,14 +99,25 @@ export default function Partitari() {
   }, [partitariHeaders, partitariData]);
 
   const filteredData = useMemo(() => {
-    return partitariData.filter((row: any) => {
+    let result = partitariData;
+
+    // Apply Global Search
+    if (globalSearch) {
+      const q = globalSearch.toLowerCase();
+      result = result.filter(row => 
+        Object.values(row).some(val => String(val || "").toLowerCase().includes(q))
+      );
+    }
+
+    // Apply Column Filters
+    return result.filter((row: any) => {
       return Object.keys(filters).every((key) => {
         if (!filters[key] || filters[key].size === 0) return true;
         const value = row[key]?.toString() || '';
         return filters[key].has(value);
       });
     });
-  }, [filters, partitariData]);
+  }, [filters, partitariData, globalSearch]);
 
   const toggleFilterValue = (column: string, value: string) => {
     setFilters(prev => {
@@ -161,6 +173,25 @@ export default function Partitari() {
       : values;
   };
 
+  const formatValue = (value: any, header: string) => {
+    if (value === null || value === undefined || value === "") return "";
+    
+    // Handle Dates (Excel serial numbers)
+    if (header.toLowerCase().includes("data") && typeof value === 'number' && value > 40000 && value < 60000) {
+      const date = new Date((value - 25569) * 86400 * 1000);
+      return date.toLocaleDateString('it-IT');
+    }
+
+    // Handle Currency/Amounts
+    if (header.toLowerCase().includes("importo") || header.toLowerCase().includes("saldo") || header.toLowerCase().includes("progr")) {
+      if (typeof value === 'number') {
+        return new Intl.NumberFormat('it-IT', { style: 'currency', currency: 'EUR' }).format(value);
+      }
+    }
+
+    return value.toString();
+  };
+
   // Se nessuna azienda è selezionata, mostra un messaggio
   if (!selectedCompany) {
     return (
@@ -187,9 +218,9 @@ export default function Partitari() {
 
       <div className="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
         {/* Filters Section */}
-        <div className="flex flex-wrap items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3 flex-1">
           <Select value={selectedYear} onValueChange={setSelectedYear}>
-            <SelectTrigger className="w-[120px]">
+            <SelectTrigger className="w-[100px] h-9">
               <SelectValue placeholder="Anno" />
             </SelectTrigger>
             <SelectContent>
@@ -200,7 +231,7 @@ export default function Partitari() {
           </Select>
 
           <Select value={selectedMonth} onValueChange={setSelectedMonth}>
-            <SelectTrigger className="w-[140px]">
+            <SelectTrigger className="w-[130px] h-9">
               <SelectValue placeholder="Mese" />
             </SelectTrigger>
             <SelectContent>
@@ -211,15 +242,26 @@ export default function Partitari() {
             </SelectContent>
           </Select>
 
+          <div className="relative flex-1 max-w-sm">
+            <Input
+              placeholder="Cerca in tutte le colonne..."
+              value={globalSearch}
+              onChange={(e) => setGlobalSearch(e.target.value)}
+              className="pl-9 h-9"
+            />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          </div>
+
           {hasActiveFilters && (
             <Button
               variant="outline"
               size="sm"
               onClick={clearAllFilters}
+              className="h-9"
               data-testid="button-clear-filters"
             >
               <X className="w-4 h-4 mr-2" />
-              Cancella Filtri
+              Reset
             </Button>
           )}
         </div>
@@ -241,34 +283,50 @@ export default function Partitari() {
             Dati non disponibili per il periodo selezionato ({selectedMonth === 'all' ? 'Tutto l\'anno' : MONTHS.find(m => m.value === selectedMonth)?.label} {selectedYear})
           </div>
         ) : (
-          <div className="overflow-x-auto overflow-y-auto max-h-[calc(100vh-300px)] table-scroll-container">
+          <div className="overflow-x-auto overflow-y-auto max-h-[calc(100vh-300px)] table-scroll-container border rounded-md">
             <table className="w-full border-collapse min-w-max" data-testid="table-partitari">
-              <thead className="sticky top-0 z-20">
+              <thead>
                 <tr>
                   {partitariHeaders.map((header) => {
                     const columnFilter = filters[header];
                     const hasFilter = columnFilter && columnFilter.size > 0;
                     const filteredValues = getFilteredValuesForColumn(header);
 
+                    const isAmount = header.toLowerCase().includes("importo") || header.toLowerCase().includes("saldo") || header.toLowerCase().includes("progr");
+                    const isDate = header.toLowerCase().includes("data");
+
+                    // Sticky logic for identifying key columns
+                    let stickyStyle = 'sticky top-0 z-30 bg-slate-100 dark:bg-slate-900';
+                    let width = ''; 
+                    let align = isAmount ? "text-right" : isDate ? "text-center" : "text-left";
+                    
+                    if (header === 'CodiceConto') {
+                        stickyStyle = 'sticky left-0 top-0 z-50 bg-slate-100 dark:bg-slate-900';
+                        width = 'w-[120px]';
+                    } else if (header === 'Descr_conto') {
+                        stickyStyle = 'sticky left-[120px] top-0 z-50 bg-slate-100 dark:bg-slate-900';
+                        width = 'w-[300px]';
+                    }
+
                     return (
                       <th
                         key={header}
-                        className="bg-muted px-3 py-3 text-sm font-semibold text-muted-foreground border-b-2 border-border text-left whitespace-nowrap"
+                        className={`px-3 py-3 text-xs font-bold text-muted-foreground border-b-2 border-border whitespace-nowrap ${stickyStyle} ${width} ${align}`}
                       >
-                        <div className="flex items-center gap-2">
+                        <div className={`flex items-center gap-2 ${align === "text-right" ? "justify-end" : align === "text-center" ? "justify-center" : ""}`}>
                           <span>{header}</span>
                           <Popover>
                             <PopoverTrigger asChild>
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                className={`h-6 w-6 p-0 ${hasFilter ? 'text-primary' : ''}`}
+                                className={`h-6 w-6 p-0 hover:bg-slate-200 dark:hover:bg-slate-800 ${hasFilter ? 'text-primary' : ''}`}
                                 data-testid={`filter-button-${header}`}
                               >
                                 <ChevronDown className="w-4 h-4" />
                               </Button>
                             </PopoverTrigger>
-                            <PopoverContent className="w-72 p-0" align="start">
+                            <PopoverContent className="w-72 p-0 z-[100]" align="start">
                               <div className="p-3 border-b">
                                 <Input
                                   placeholder="Cerca..."
@@ -340,18 +398,35 @@ export default function Partitari() {
                   filteredData.map((row: any, idx: number) => (
                     <tr
                       key={idx}
-                      className="hover:bg-muted/50"
+                      className="hover:bg-muted/50 group"
                       data-testid={`row-${idx}`}
                     >
-                      {partitariHeaders.map((header) => (
-                        <td
-                          key={header}
-                          className="px-3 py-2 text-sm border-b border-border whitespace-nowrap"
-                          data-testid={`cell-${idx}-${header}`}
-                        >
-                          {row[header] || ''}
-                        </td>
-                      ))}
+                      {partitariHeaders.map((header) => {
+                        const isAmount = header.toLowerCase().includes("importo") || header.toLowerCase().includes("saldo") || header.toLowerCase().includes("progr");
+                        const isDate = header.toLowerCase().includes("data");
+                        
+                        let stickyStyle = '';
+                        let width = '';
+                        let align = isAmount ? "text-right" : isDate ? "text-center" : "text-left";
+                        
+                        if (header === 'CodiceConto') {
+                            stickyStyle = 'sticky left-0 z-20 bg-white dark:bg-[#020617] group-hover:bg-slate-50 dark:group-hover:bg-slate-900 transition-colors';
+                            width = 'w-[120px]';
+                        } else if (header === 'Descr_conto') {
+                            stickyStyle = 'sticky left-[120px] z-20 bg-white dark:bg-[#020617] group-hover:bg-slate-50 dark:group-hover:bg-slate-900 transition-colors';
+                            width = 'w-[300px]';
+                        }
+
+                        return (
+                          <td
+                            key={header}
+                            className={`px-3 py-2 text-xs border-b border-border whitespace-nowrap ${stickyStyle} ${width} ${align}`}
+                            data-testid={`cell-${idx}-${header}`}
+                          >
+                            {formatValue(row[header], header)}
+                          </td>
+                        );
+                      })}
                     </tr>
                   ))
                 )}

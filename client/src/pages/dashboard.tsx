@@ -49,21 +49,19 @@ interface DashboardData {
     ricavi: number[];
     ebitda: number[];
   };
-  monthReference?: number; // Added to carry the month info
-  summary: Array<{
-    voce: string;
-    value2025: number;
-    percentage: number;
-    value2024: number;
-  }>;
+  monthReference?: number;
+  summary?: any[];
+  ceDettaglio?: { // New property to hold detailed data
+    progressivo2025: any;
+    progressivo2024: any;
+  }
 }
 
 export default function Dashboard() {
-  const { selectedCompany, getDashboardData } = useFinancialData();
+  const { selectedCompany, getDashboardData, getCEDettaglioData } = useFinancialData(); // Need getCEDettaglioData
   const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(false);
 
-  // Reset dashboardData quando selectedCompany cambia
   useEffect(() => {
     if (selectedCompany) {
       setDashboardData(null);
@@ -79,58 +77,33 @@ export default function Dashboard() {
 
       setLoading(true);
       try {
-        const data = await getDashboardData(selectedCompany.id);
+        // Fetch Standard Dashboard Data
+        const dashDataRaw = await getDashboardData(selectedCompany.id);
 
-        if (!data || data.length === 0 || !data[0] || !data[0].data) {
-          console.warn("Nessun dato dashboard trovato nel DB o struttura vuota.");
+        // Fetch CE Dettaglio Data specifically for the table view
+        const ceDataRaw = await getCEDettaglioData(selectedCompany.id);
+
+
+        if (!dashDataRaw || dashDataRaw.length === 0 || !dashDataRaw[0] || !dashDataRaw[0].data) {
+          console.warn("Nessun dato dashboard trovato nel DB.");
           setDashboardData(null);
           return;
         }
 
-        const dbData = data[0].data as any;
-        console.log("Dati grezzi ricevuti dal DB (record data):", dbData);
+        const dbData = dashDataRaw[0].data as any;
+        
+        let validKpis = dbData.kpis || {};
+        let validMonthlyTrend = dbData.monthlyTrend || { labels: [], ricavi: [], ebitda: [] };
+        let validSummary = dbData.summary || [];
 
-        // Verifica e adatta la struttura dei dati
-        // Struttura standard: kpis, monthlyTrend, summary
-        if (dbData.kpis) {
-          console.log("Trovata proprietà 'kpis'. Validazione...");
-
-          // Accettiamo i dati anche se mancano monthlyTrend o summary, fornendo default
-          const validKpis = dbData.kpis;
-          const validMonthlyTrend = dbData.monthlyTrend || { labels: [], ricavi: [], ebitda: [] };
-          const validSummary = dbData.summary || [];
-          console.log("Dati Summary (Standard) estratti:", validSummary);
-
-          // Costruiamo forzatamente l'oggetto corretto
-          const finalData: DashboardData = {
-            kpis: validKpis,
-            monthlyTrend: validMonthlyTrend,
-            summary: validSummary,
-            monthReference: dbData.month // Extract month from the nested data object if stored there, OR
-          };
-
-          // Se il mese non è dentro "data", lo prendiamo dal record principale (data[0].month)
-          // Nota: getDashboardData restituisce un array di record. dbData è data[0].data. 
-          // Il mese è in data[0].month.
-          const recordMonth = data[0].month;
-          if (recordMonth) {
-            finalData.monthReference = recordMonth;
-          }
-
-          console.log("Imposto dashboard data:", finalData);
-          setDashboardData(finalData);
-        } else if (dbData.trends || dbData.table) {
+        // Supporto per struttura alternativa (Sherpa42 vecchia)
+        if (!dbData.kpis && (dbData.trends || dbData.table)) {
           console.log("Rilevata struttura alternativa (vecchio formato/Sherpa). Tento conversione...");
-
-          // Conversione Trends -> MonthlyTrend
-          let validMonthlyTrend = { labels: [], ricavi: [], ebitda: [] };
+          
           if (dbData.trends) {
-            // Caso 1: trends ha monthlyTrend annidato
             if (dbData.trends.monthlyTrend) {
               validMonthlyTrend = dbData.trends.monthlyTrend;
-            }
-            // Caso 2: trends ha direttamente le array
-            else if (dbData.trends.labels) {
+            } else if (dbData.trends.labels) {
               validMonthlyTrend = {
                 labels: dbData.trends.labels,
                 ricavi: dbData.trends.ricavi || [],
@@ -139,69 +112,61 @@ export default function Dashboard() {
             }
           }
 
-          // Conversione Table -> Summary
-          let validSummary = dbData.table || [];
+          if (dbData.table) {
+            validSummary = dbData.table;
+          }
 
-          // KPIs
-          const validKpis = dbData.kpis || {
+          validKpis = dbData.kpis || {
             ricavi2025: 0, ricavi2024: 0,
             costi2025: 0, costi2024: 0,
             ebitda2025: 0, ebitda2024: 0,
             risultato2025: 0, risultato2024: 0,
             margineEbitda2025: 0, margineEbitda2024: 0
           };
-
-          const finalData: DashboardData = {
-            kpis: validKpis,
-            monthlyTrend: validMonthlyTrend as any,
-            summary: validSummary,
-            monthReference: dbData.month
-          };
-
-          const recordMonth = data[0].month;
-          if (recordMonth) {
-            finalData.monthReference = recordMonth;
-          }
-
-          console.log("Dati Sherpa42 convertiti:", finalData);
-          setDashboardData(finalData);
-        } else {
-          console.warn("Formato dati sconosciuto:", dbData);
-          setDashboardData(null);
         }
+
+        // Extract CE Dettaglio
+        let validCEDettaglio = null;
+        if (ceDataRaw && ceDataRaw.length > 0 && ceDataRaw[0].data) {
+          validCEDettaglio = ceDataRaw[0].data;
+        }
+
+        const finalData: DashboardData = {
+          kpis: validKpis,
+          monthlyTrend: validMonthlyTrend,
+          summary: validSummary,
+          monthReference: dashDataRaw[0].month,
+          ceDettaglio: validCEDettaglio as any
+        };
+
+        setDashboardData(finalData);
+
+      } catch (err) {
+        console.error("Error loading dashboard data", err);
+        setDashboardData(null);
       } finally {
         setLoading(false);
       }
     };
 
     loadData();
-  }, [selectedCompany, getDashboardData]);
+  }, [selectedCompany, getDashboardData, getCEDettaglioData]);
 
-  // Se nessuna azienda è selezionata, mostra un messaggio
   if (!selectedCompany) {
     return (
       <div data-testid="page-dashboard">
-        <PageHeader
-          title="Dashboard Generale"
-          subtitle="Analisi Bilanci al 31 Agosto 2025"
-        />
+        <PageHeader title="Dashboard Generale" subtitle="Analisi Bilanci" />
         <div className="p-8 bg-muted rounded-lg text-center">
-          <p className="text-lg text-muted-foreground">
-            Seleziona un'azienda per visualizzare i dati della dashboard
-          </p>
+          <p className="text-lg text-muted-foreground">Seleziona un'azienda per visualizzare i dati della dashboard</p>
         </div>
       </div>
     );
   }
 
-  // Se sta caricando, mostra loading
   if (loading) {
     return (
       <div data-testid="page-dashboard">
-        <PageHeader
-          title="Dashboard Generale"
-          subtitle="Analisi Bilanci al 31 Agosto 2025"
-        />
+        <PageHeader title="Dashboard Generale" subtitle="Analisi Bilanci" />
         <div className="p-8 bg-muted rounded-lg text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
           <p className="text-lg text-muted-foreground">Caricamento dati...</p>
@@ -210,85 +175,64 @@ export default function Dashboard() {
     );
   }
 
-  // Se non ci sono dati, mostra messaggio
   if (!dashboardData) {
     return (
       <div data-testid="page-dashboard">
-        <PageHeader
-          title="Dashboard Generale"
-          subtitle="Analisi Bilanci al 31 Agosto 2025"
-        />
-        <div className="p-8 bg-muted rounded-lg text-center">
-          <p className="text-lg text-muted-foreground">Dati non disponibili</p>
-          <p className="text-sm text-muted-foreground mt-2">
-            {selectedCompany ? `Azienda selezionata: ${selectedCompany.name}` : 'Nessuna azienda selezionata'}
-          </p>
-        </div>
+        <PageHeader title="Dashboard Generale" subtitle="Analisi Bilanci" />
+        <div className="p-8 bg-muted rounded-lg text-center"><p className="text-lg text-muted-foreground">Dati non disponibili</p></div>
       </div>
     );
   }
 
-  // Determine current month from stored reference or fallback to trend
-  const monthRef = dashboardData?.monthReference;
-  const monthName = monthRef ? new Date(0, monthRef - 1).toLocaleString('it-IT', { month: 'short' }) : "";
+  const { kpis, monthlyTrend, ceDettaglio, monthReference } = dashboardData;
+  const monthName = monthReference ? new Date(0, monthReference - 1).toLocaleString('it-IT', { month: 'short' }) : "";
+  const periodLabel = monthReference ? `(Gen-${monthName.charAt(0).toUpperCase() + monthName.slice(1)})` : "";
 
-  // Helper variables for fallback
-  const labels = dashboardData?.monthlyTrend?.labels || [];
-  const lastMonthLabel = labels.length > 0 ? labels[labels.length - 1] : "Mese Corrente";
+  // KPIs Logic - Derived Totals from CE Dettaglio (if available) for maximum accuracy
+  const p25_raw = ceDettaglio?.progressivo2025;
+  const p24_raw = ceDettaglio?.progressivo2024;
+  
+  // Total Expenses = Operating Costs + Ammortamenti + Financials + Taxes
+  const derivedTotalCosts2025 = p25_raw ? (p25_raw.totaleCostiOperativi + (p25_raw.totaleAmmortamenti || 0) + (p25_raw.gestioneFinanziaria || 0) + (p25_raw.imposteDirette || 0)) : null;
+  const derivedTotalCosts2024 = p24_raw ? (p24_raw.totaleCostiOperativi + (p24_raw.totaleAmmortamenti || 0) + (p24_raw.gestioneFinanziaria || 0) + (p24_raw.imposteDirette || 0)) : null;
 
-  // Se abbiamo un mese di riferimento esplicito (dal DB), usiamo quello.
-  // Altrimenti fallback sulla logica delle label, ma con cautela.
-  const periodLabel = monthRef
-    ? `(Gen-${monthName.charAt(0).toUpperCase() + monthName.slice(1)})`
-    : (labels.length > 0 ? `(Gen-${lastMonthLabel})` : "");
-
-  const { kpis, monthlyTrend, summary } = dashboardData;
-
-  // Override Costi if available in summary for specific request
-  const costsRow = summary?.find(s => s.voce === "Totale Costi Diretti e Indiretti");
-
-  // Assicurati che kpis esista e abbia le proprietà necessarie
   const safeKpis = {
     ricavi2025: kpis?.ricavi2025 ?? 0,
-    ricavi2024: kpis?.ricavi2024 ?? 0,
-    costi2025: costsRow ? costsRow.value2025 : (kpis?.costi2025 ?? 0),
-    costi2024: costsRow ? costsRow.value2024 : (kpis?.costi2024 ?? 0),
+    costi2025: derivedTotalCosts2025 ?? (kpis?.costi2025 ?? 0),
     ebitda2025: kpis?.ebitda2025 ?? 0,
-    ebitda2024: kpis?.ebitda2024 ?? 0,
     risultato2025: kpis?.risultato2025 ?? 0,
-    risultato2024: kpis?.risultato2024 ?? 0,
     margineEbitda2025: kpis?.margineEbitda2025 ?? 0,
+    // Add 2024 if needed for variances
+    ricavi2024: kpis?.ricavi2024 ?? 0,
+    costi2024: derivedTotalCosts2024 ?? (kpis?.costi2024 ?? 0),
+    ebitda2024: kpis?.ebitda2024 ?? 0,
+    risultato2024: kpis?.risultato2024 ?? 0,
     margineEbitda2024: kpis?.margineEbitda2024 ?? 0,
   };
 
   const ricaviVariance = calculateVariance(safeKpis.ricavi2025, safeKpis.ricavi2024);
-  const costiVariance = calculateVariance(safeKpis.costi2025, safeKpis.costi2024);
+  const costsVariance = calculateVariance(safeKpis.costi2025, safeKpis.costi2024);
   const ebitdaVariance = calculateVariance(safeKpis.ebitda2025, safeKpis.ebitda2024);
-  const risultatoVariance = calculateVariance(safeKpis.risultato2025, safeKpis.risultato2024);
-  const margineVariance = safeKpis.margineEbitda2025 - safeKpis.margineEbitda2024;
+  const resultVariance = calculateVariance(safeKpis.risultato2025, safeKpis.risultato2024);
+  const marginVariance = safeKpis.margineEbitda2025 - safeKpis.margineEbitda2024;
 
-  // Assicurati che monthlyTrend esista e abbia le proprietà necessarie
-  const safeMonthlyTrend = monthlyTrend || {
-    labels: [],
-    ricavi: [],
-    ebitda: []
-  };
 
+  // CHART DATA
   const trendData = {
-    labels: safeMonthlyTrend.labels || [],
+    labels: monthlyTrend?.labels || [],
     datasets: [
       {
         label: "Ricavi",
-        data: safeMonthlyTrend.ricavi || [],
-        borderColor: "#335C96", // Imment Blu medio vibrante
-        backgroundColor: "rgba(51, 92, 150, 0.1)", // Versione trasparente
+        data: monthlyTrend?.ricavi || [],
+        borderColor: "#335C96",
+        backgroundColor: "rgba(51, 92, 150, 0.1)",
         tension: 0.4,
       },
       {
         label: "EBITDA",
-        data: safeMonthlyTrend.ebitda || [],
-        borderColor: (safeMonthlyTrend.ebitda || []).some(v => v < 0) ? "#9e005c" : "#4A82BF", // Magenta se negativo, blu chiaro se positivo
-        backgroundColor: (safeMonthlyTrend.ebitda || []).some(v => v < 0) ? "rgba(158, 0, 92, 0.1)" : "rgba(74, 130, 191, 0.1)",
+        data: monthlyTrend?.ebitda || [],
+        borderColor: (monthlyTrend?.ebitda || []).some(v => v < 0) ? "#9e005c" : "#4A82BF",
+        backgroundColor: (monthlyTrend?.ebitda || []).some(v => v < 0) ? "rgba(158, 0, 92, 0.1)" : "rgba(74, 130, 191, 0.1)",
         tension: 0.4,
       },
     ],
@@ -300,32 +244,20 @@ export default function Dashboard() {
       {
         label: `2024 ${periodLabel}`,
         data: [safeKpis.ricavi2024, safeKpis.ebitda2024, safeKpis.risultato2024],
-        backgroundColor: "#9cbfe0", // Imment Blu pastello per dati storici
+        backgroundColor: "#9cbfe0",
       },
       {
         label: `2025 ${periodLabel}`,
         data: [safeKpis.ricavi2025, safeKpis.ebitda2025, safeKpis.risultato2025],
-        backgroundColor: "#335C96", // Imment Blu medio vibrante per dati attuali
+        backgroundColor: "#335C96",
       },
     ],
   };
 
-  const chartOptions = {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-      legend: {
-        position: "top" as const,
-      },
-    },
-    scales: {
-      y: {
-        beginAtZero: false,
-      },
-    },
-  };
+  const chartOptions = { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: "top" as const } } };
 
-  const tableColumns = [
+  // TABLE DATA Construction (Based on CE Dettaglio structure + TOTALE COSTI)
+  const columns = [
     { key: "voce", label: "Voce", align: "left" as const, className: "font-bold" },
     { key: "value2025", label: `2025 ${periodLabel}`, align: "right" as const },
     { key: "percentage", label: "% sui Ricavi", align: "right" as const },
@@ -333,111 +265,95 @@ export default function Dashboard() {
     { key: "variance", label: "Var %", align: "right" as const },
   ];
 
-  const safeSummary = summary || [];
-  const tableData = safeSummary.map((row) => {
-    const variance = calculateVariance(row.value2025, row.value2024);
-    return {
-      voce: row.voce,
-      value2025: formatCurrency(row.value2025),
-      percentage: formatPercentage(row.percentage),
-      value2024: formatCurrency(row.value2024),
-      variance: `${variance >= 0 ? '+' : ''}${formatPercentage(variance, 1)}`,
-    };
-  });
+  let tableData: any[] = [];
+  if (ceDettaglio && ceDettaglio.progressivo2025) {
+    const p25 = ceDettaglio.progressivo2025;
+    const p24 = ceDettaglio.progressivo2024;
 
-  // Se nessuna azienda è selezionata, mostra un messaggio
-  if (!selectedCompany) {
-    return (
-      <div data-testid="page-dashboard">
-        <PageHeader
-          title="Dashboard Generale"
-          subtitle={`Analisi Bilanci ${periodLabel}`}
-        />
-        <div className="p-8 bg-muted rounded-lg text-center">
-          <p className="text-lg text-muted-foreground">
-            Seleziona un'azienda per visualizzare i dati della dashboard
-          </p>
-        </div>
-      </div>
-    );
+    const createRow = (label: string, val25: number, val24: number, isBold = false, className = "") => {
+      const perc = (val25 / p25.totaleRicavi) * 100;
+      const variance = calculateVariance(val25, val24);
+      return {
+        voce: label,
+        value2025: formatCurrency(val25),
+        percentage: formatPercentage(perc, 1),
+        value2024: formatCurrency(val24),
+        variance: `${variance >= 0 ? '+' : ''}${formatPercentage(variance, 1)}`,
+        className: className || (isBold ? "font-bold" : "")
+      };
+    };
+
+    const emptyRow = { voce: "", value2025: "", percentage: "", value2024: "", variance: "" };
+
+    tableData = [
+      createRow("TOTALE RICAVI", p25.totaleRicavi, p24.totaleRicavi, true, "total-dark"),
+      emptyRow,
+      createRow("Costi Diretti", p25.costiDiretti, p24.costiDiretti),
+      createRow("Costi Indiretti", p25.costiIndiretti, p24.costiIndiretti),
+      createRow("TOTALE COSTI DIRETTI E INDIRETTI", p25.totaleCostiDirettiIndiretti, p24.totaleCostiDirettiIndiretti, true, "total-dark"),
+      createRow("GROSS PROFIT", p25.grossProfit, p24.grossProfit, true, "key-metric"),
+      emptyRow,
+      createRow("Altri Ricavi non Tipici", p25.ricaviNonTipici, p24.ricaviNonTipici),
+      createRow("Spese Commerciali", p25.speseCommerciali, p24.speseCommerciali),
+      createRow("Spese di Struttura", p25.speseStruttura, p24.speseStruttura),
+      createRow("TOTALE GESTIONE STRUTTURA E NON TIPICA", p25.totaleGestioneStruttura, p24.totaleGestioneStruttura, true, "total-dark"),
+      createRow("EBITDA", p25.ebitda, p24.ebitda, true, "key-metric"),
+      emptyRow,
+      createRow("Ammortamenti, Accantonamenti e Svalutazioni", p25.totaleAmmortamenti, p24.totaleAmmortamenti),
+      createRow("Gestione Straordinaria", p25.gestioneStraordinaria, p24.gestioneStraordinaria),
+      createRow("EBIT", p25.ebit, p24.ebit, true, "key-metric"),
+      emptyRow,
+      createRow("Gestione Finanziaria", p25.gestioneFinanziaria, p24.gestioneFinanziaria),
+      createRow("EBT", p25.ebt, p24.ebt, true, "key-metric"),
+      createRow("TOTALE COSTI", derivedTotalCosts2025 || 0, derivedTotalCosts2024 || 0, true, "total-dark"),
+      createRow("RISULTATO DI ESERCIZIO", p25.risultatoEsercizio, p24.risultatoEsercizio, true, "result"),
+    ];
+  } else if (dashboardData.summary && dashboardData.summary.length > 0) {
+    // Fallback alla tabella sintetica (per Sherpa42 o dati meno dettagliati)
+    tableData = dashboardData.summary.map((row) => {
+      const variance = calculateVariance(row.value2025, row.value2024);
+      const isTotal = row.voce.toLowerCase().includes('totale');
+      const isKeyMetric = ['ebitda', 'ebit', 'gross profit'].some(k => row.voce.toLowerCase().includes(k));
+      const isResult = row.voce.toLowerCase().includes('risultato');
+
+      let className = "";
+      if (isResult) className = "result";
+      else if (isKeyMetric) className = "key-metric";
+      else if (isTotal) className = "total-dark";
+
+      return {
+        voce: row.voce,
+        value2025: formatCurrency(row.value2025),
+        percentage: formatPercentage(row.percentage),
+        value2024: formatCurrency(row.value2024),
+        variance: `${variance >= 0 ? '+' : ''}${formatPercentage(variance, 1)}`,
+        className
+      };
+    });
   }
 
-  console.log("Dati finali tabella (TableData):", tableData);
 
   return (
     <div data-testid="page-dashboard">
-      <PageHeader
-        title="Dashboard Generale"
-        subtitle={`Analisi Bilanci ${periodLabel}`}
-      />
+      <PageHeader title="Dashboard Generale" subtitle={`Analisi Bilanci ${periodLabel}`} />
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-        <KPICard
-          label="Ricavi 2025"
-          description="Fatturato complessivo cumulato"
-          value={formatCurrency(safeKpis.ricavi2025)}
-          change={`${ricaviVariance >= 0 ? '+' : ''}${formatPercentage(ricaviVariance, 0)} vs 2024`}
-          changeType={ricaviVariance >= 0 ? "positive" : "negative"}
-        />
-        <KPICard
-          label="Costi 2025"
-          value={formatCurrency(safeKpis.costi2025)}
-          change={`${costiVariance >= 0 ? '+' : ''}${formatPercentage(costiVariance, 0)} vs 2024`}
-          changeType={costiVariance >= 0 ? "negative" : "positive"}
-          description="Totale Costi 2025"
-        />
+        <KPICard label="Ricavi 2025" description="Fatturato" value={formatCurrency(safeKpis.ricavi2025)} change={`${ricaviVariance >= 0 ? '+' : ''}${formatPercentage(ricaviVariance, 0)} vs 2024`} changeType={ricaviVariance >= 0 ? "positive" : "negative"} />
+        <KPICard label="Costi 2025" description="Totale Costi" value={formatCurrency(safeKpis.costi2025)} change={`${costsVariance >= 0 ? '+' : ''}${formatPercentage(costsVariance, 0)} vs 2024`} changeType={costsVariance >= 0 ? "negative" : "positive"} />
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-        <KPICard
-          label="EBITDA 2025"
-          description="Margine operativo lordo"
-          value={formatCurrency(safeKpis.ebitda2025)}
-          change={`${ebitdaVariance >= 0 ? '+' : ''}${formatPercentage(ebitdaVariance, 0)} vs 2024`}
-          changeType={ebitdaVariance >= 0 ? "positive" : "negative"}
-        />
-        <KPICard
-          label="Risultato esercizio 2025"
-          description="Utile o Perdita netta"
-          value={formatCurrency(safeKpis.risultato2025)}
-          change={`${risultatoVariance >= 0 ? '+' : ''}${formatPercentage(risultatoVariance, 0)} vs 2024`}
-          changeType={risultatoVariance >= 0 ? "positive" : "negative"}
-        />
-        <KPICard
-          label="Margine EBITDA"
-          description="EBITDA in % sui Ricavi"
-          value={formatPercentage(safeKpis.margineEbitda2025)}
-          change={`${margineVariance >= 0 ? '+' : ''}${formatPercentage(margineVariance, 1)} punti`}
-          changeType={margineVariance >= 0 ? "positive" : "negative"}
-        />
+        <KPICard label="EBITDA 2025" description="MOL" value={formatCurrency(safeKpis.ebitda2025)} change={`${ebitdaVariance >= 0 ? '+' : ''}${formatPercentage(ebitdaVariance, 0)} vs 2024`} changeType={ebitdaVariance >= 0 ? "positive" : "negative"} />
+        <KPICard label="Risultato 2025" description="Utile/Perdita" value={formatCurrency(safeKpis.risultato2025)} change={`${resultVariance >= 0 ? '+' : ''}${formatPercentage(resultVariance, 0)} vs 2024`} changeType={resultVariance >= 0 ? "positive" : "negative"} />
+        <KPICard label="Margine EBITDA" description="% sui Ricavi" value={formatPercentage(safeKpis.margineEbitda2025)} change={`${marginVariance >= 0 ? '+' : ''}${formatPercentage(marginVariance, 1)} punti`} changeType={marginVariance >= 0 ? "positive" : "negative"} />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-        <ChartCard title="Trend Ricavi vs EBITDA">
-          <Line data={trendData} options={chartOptions} />
-        </ChartCard>
-        <ChartCard title="Confronto 2024 vs 2025">
-          <Bar data={comparisonData} options={chartOptions} />
-        </ChartCard>
+        <ChartCard title="Trend Ricavi vs EBITDA"><Line data={trendData} options={chartOptions} /></ChartCard>
+        <ChartCard title="Confronto 2024 vs 2025"><Bar data={comparisonData} options={chartOptions} /></ChartCard>
       </div>
 
-      <DataTable
-        title="Riepilogo Economico"
-        columns={tableColumns}
-        data={tableData.map(row => {
-          // Dynamic styling based on content
-          const isTotal = row.voce.toLowerCase().includes('totale') || row.voce.includes('COSTI');
-          const isKeyMetric = ['EBITDA', 'EBIT', 'Gross Profit'].some(k => row.voce.includes(k));
-          const isResult = row.voce.toLowerCase().includes('risultato') || row.voce.toLowerCase().includes('utile');
-
-          let className = "";
-          if (isResult) className = "result";
-          else if (isKeyMetric) className = "key-metric";
-          else if (isTotal) className = "total-dark";
-
-          return { ...row, className };
-        })}
-      />
+      <DataTable title="Dettaglio Economico" columns={columns} data={tableData} />
     </div>
   );
 }
