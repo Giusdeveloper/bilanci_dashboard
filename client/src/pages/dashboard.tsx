@@ -197,17 +197,16 @@ export default function Dashboard() {
   const derivedTotalCosts2024 = p24_raw ? (p24_raw.totaleCostiOperativi + (p24_raw.totaleAmmortamenti || 0) + (p24_raw.gestioneFinanziaria || 0) + (p24_raw.imposteDirette || 0)) : null;
 
   const safeKpis = {
-    ricavi2025: kpis?.ricavi2025 ?? 0,
-    costi2025: derivedTotalCosts2025 ?? (kpis?.costi2025 ?? 0),
-    ebitda2025: kpis?.ebitda2025 ?? 0,
-    risultato2025: kpis?.risultato2025 ?? 0,
-    margineEbitda2025: kpis?.margineEbitda2025 ?? 0,
-    // Add 2024 if needed for variances
-    ricavi2024: kpis?.ricavi2024 ?? 0,
-    costi2024: derivedTotalCosts2024 ?? (kpis?.costi2024 ?? 0),
-    ebitda2024: kpis?.ebitda2024 ?? 0,
-    risultato2024: kpis?.risultato2024 ?? 0,
-    margineEbitda2024: kpis?.margineEbitda2024 ?? 0,
+    ricavi2025: kpis?.ricavi2025 || 0,
+    costi2025: kpis?.costi2025 || (derivedTotalCosts2025 || 0),
+    ebitda2025: kpis?.ebitda2025 || 0,
+    risultato2025: kpis?.risultato2025 || 0,
+    margineEbitda2025: kpis?.margineEbitda2025 || 0,
+    ricavi2024: kpis?.ricavi2024 || 0,
+    costi2024: kpis?.costi2024 || (derivedTotalCosts2024 || 0),
+    ebitda2024: kpis?.ebitda2024 || 0,
+    risultato2024: kpis?.risultato2024 || 0,
+    margineEbitda2024: kpis?.margineEbitda2024 || 0,
   };
 
   const ricaviVariance = calculateVariance(safeKpis.ricavi2025, safeKpis.ricavi2024);
@@ -266,7 +265,39 @@ export default function Dashboard() {
   ];
 
   let tableData: any[] = [];
-  if (ceDettaglio && ceDettaglio.progressivo2025) {
+  
+  if (dashboardData.summary && dashboardData.summary.length > 0) {
+    // PRIORITÀ 1: RENDERING DINAMICO (Macro-aggregati concordati)
+    const dynamicRows: any[] = [];
+    const emptyRow = { voce: "", value2025: "", percentage: "", value2024: "", variance: "" };
+
+    dashboardData.summary.forEach((row, idx) => {
+        const variance = calculateVariance(row.value2025, row.value2024);
+        const labelUpper = row.voce.toUpperCase();
+        
+        // Aggiungiamo spazio prima di EBITDA, EBIT e TOTALE COSTI
+        if (labelUpper === 'EBITDA' || labelUpper === 'EBIT' || labelUpper.includes('TOTALE COSTI') || labelUpper.includes('RISULTATO')) {
+          dynamicRows.push(emptyRow);
+        }
+
+        let className = "";
+        if (row.type === 'result') className = "result";
+        else if (row.type === 'key-metric') className = "key-metric";
+        else if (row.type === 'total') className = "total-dark";
+        else if (row.type === 'subtotal') className = "highlight";
+
+        dynamicRows.push({
+          voce: row.voce,
+          value2025: formatCurrency(row.value2025),
+          percentage: formatPercentage(row.percentage, 1),
+          value2024: formatCurrency(row.value2024),
+          variance: `${variance >= 0 ? '+' : ''}${formatPercentage(variance, 1)}`,
+          className
+        });
+      });
+    tableData = dynamicRows;
+  } else if (ceDettaglio && ceDettaglio.progressivo2025) {
+    // PRIORITÀ 2: STRUTTURA HARDCODED (Modello Awentia)
     const p25 = ceDettaglio.progressivo2025;
     const p24 = ceDettaglio.progressivo2024;
 
@@ -308,28 +339,6 @@ export default function Dashboard() {
       createRow("TOTALE COSTI", derivedTotalCosts2025 || 0, derivedTotalCosts2024 || 0, true, "total-dark"),
       createRow("RISULTATO DI ESERCIZIO", p25.risultatoEsercizio, p24.risultatoEsercizio, true, "result"),
     ];
-  } else if (dashboardData.summary && dashboardData.summary.length > 0) {
-    // Fallback alla tabella sintetica (per Sherpa42 o dati meno dettagliati)
-    tableData = dashboardData.summary.map((row) => {
-      const variance = calculateVariance(row.value2025, row.value2024);
-      const isTotal = row.voce.toLowerCase().includes('totale');
-      const isKeyMetric = ['ebitda', 'ebit', 'gross profit'].some(k => row.voce.toLowerCase().includes(k));
-      const isResult = row.voce.toLowerCase().includes('risultato');
-
-      let className = "";
-      if (isResult) className = "result";
-      else if (isKeyMetric) className = "key-metric";
-      else if (isTotal) className = "total-dark";
-
-      return {
-        voce: row.voce,
-        value2025: formatCurrency(row.value2025),
-        percentage: formatPercentage(row.percentage),
-        value2024: formatCurrency(row.value2024),
-        variance: `${variance >= 0 ? '+' : ''}${formatPercentage(variance, 1)}`,
-        className
-      };
-    });
   }
 
 

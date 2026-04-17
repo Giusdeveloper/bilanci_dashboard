@@ -7,6 +7,8 @@ import { useEffect, useState } from "react";
 
 interface MonthlyData {
   months: string[];
+  isDynamic?: boolean;
+  rows?: any[];
   [key: string]: any;
 }
 
@@ -57,7 +59,6 @@ export default function CEDettaglioMensile() {
 
   const currentData = ceData ? ceData[viewMode] : null;
 
-  // Se nessuna azienda è selezionata
   if (!selectedCompany) {
     return (
       <div className="p-8">
@@ -69,131 +70,135 @@ export default function CEDettaglioMensile() {
     );
   }
 
-  if (loading) {
-    return <div className="p-8 text-center">Caricamento...</div>;
-  }
+  if (loading) return <div className="p-8 text-center">Caricamento...</div>;
 
   if (!ceData || !currentData) {
     return (
       <div className="p-8">
         <PageHeader title="CE Dettaglio Mensile" subtitle="Dati non disponibili" />
-        <div className="mt-8 text-center text-muted-foreground">
-          Nessun dato disponibile per questa vista ({viewMode}).
-          <br />Prova a importare nuovamente il file Excel aggiornato.
-        </div>
+        <div className="mt-8 text-center text-muted-foreground">Nessun dato disponibile per questa vista ({viewMode}).</div>
       </div>
     );
   }
 
   const { months } = currentData;
-
-  // URL Mapping (solo per 2025 progressivo ha senso l'URL specifico se vogliamo, o lo teniamo generico)
-  // Per ora manteniamo il link solo se siamo nel 2025, o lo mettiamo sempre adattandolo?
-  // Nei screenshot non vedo link evidente sui mesi puntuali, ma manteniamo la UX.
   const monthUrlMap: { [key: string]: string } = {
     "Gen": "gennaio", "Feb": "febbraio", "Mar": "marzo", "Apr": "aprile",
     "Mag": "maggio", "Giu": "giugno", "Lug": "luglio", "Ago": "agosto",
     "Set": "settembre", "Ott": "ottobre", "Nov": "novembre", "Dic": "dicembre"
   };
 
-  const createRowData = (label: string, values: number[] | undefined, className: string = "") => {
-    const safeValues = values || new Array(months?.length || 0).fill(0);
-    return {
-      voce: label,
-      values: safeValues.map((v) => formatCurrency(v).replace("€", "").trim()),
-      className,
-    };
-  };
-
-  const emptyRow = { voce: "", values: [], className: "" };
-
-  const tableRows = [
-    createRowData("Ricavi caratteristici", currentData.ricaviCaratteristici),
-    createRowData("Altri ricavi", currentData.altriRicavi),
-    createRowData("TOTALE RICAVI", currentData.totaleRicavi, "total-dark"),
-    emptyRow,
-    createRowData("Servizi diretti", currentData.serviziDiretti),
-    createRowData("Consulenze dirette", currentData.consulenzeDirette),
-    createRowData("Servizi informatici web", currentData.serviziInformatici),
-    createRowData("Servizi cloud", currentData.serviziCloud),
-    createRowData("COSTI DIRETTI", currentData.costiDiretti, "highlight"),
-    createRowData("Altri servizi e prestazioni", currentData.altriServizi),
-    createRowData("COSTI INDIRETTI", currentData.costiIndiretti, "highlight"),
-    createRowData("TOTALE COSTI DIRETTI E INDIRETTI", currentData.totaleCostiDirettiIndiretti, "total-dark"),
-    createRowData("GROSS PROFIT", currentData.grossProfit, "key-metric"),
-    emptyRow,
-    createRowData("Autofatture", currentData.autofatture),
-    createRowData("Rimborsi spese", currentData.rimborsiSpese),
-    createRowData("Altri proventi", currentData.altriProventi),
-    createRowData("ALTRI RICAVI NON TIPICI", currentData.ricaviNonTipici, "highlight"),
-    emptyRow,
-    createRowData("Spese viaggio", currentData.speseViaggio),
-    createRowData("Pedaggi autostradali", currentData.pedaggi),
-    createRowData("Pubblicità", currentData.pubblicita),
-    createRowData("Materiale pubblicitario", currentData.materialePubblicitario),
-    createRowData("Omaggi", currentData.omaggi),
-    createRowData("Spese di rappresentanza", currentData.speseRappresentanza),
-    createRowData("Mostre e fiere", currentData.mostreFiere),
-    createRowData("Servizi commerciali", currentData.serviziCommerciali),
-    createRowData("Carburante", currentData.carburante),
-    createRowData("SPESE COMMERCIALI", currentData.speseCommerciali, "total-dark"),
-    emptyRow,
-    createRowData("Beni indeducibili", currentData.beniIndeducibili),
-    createRowData("Spese generali", currentData.speseGenerali),
-    createRowData("Materiale vario e di consumo", currentData.materialeConsumo),
-    createRowData("Spese di pulizia", currentData.spesePulizia),
-    createRowData("Utenze", currentData.utenze),
-    createRowData("Assicurazioni", currentData.assicurazioni),
-    createRowData("Rimanenze", currentData.rimanenze),
-    createRowData("Tasse e valori bollati", currentData.tasseValori),
-    createRowData("Sanzioni e multe", currentData.sanzioniMulte),
-    createRowData("Compensi amministratore", currentData.compensiAmministratore),
-    createRowData("Rimborsi amministratore", currentData.rimborsiAmministratore),
-    createRowData("Personale", currentData.personale),
-    createRowData("Servizi amministrativi contabilità", currentData.serviziAmministrativi),
-    createRowData("Servizi amministrativi paghe", currentData.serviziAmministrativiPaghe),
-    createRowData("Consulenze tecniche", currentData.consulenzeTecniche),
-    createRowData("Consulenze legali", currentData.consulenzeLegali),
-    createRowData("Locazioni e noleggi", currentData.locazioniNoleggi),
-    createRowData("Servizi indeducibili", currentData.serviziIndeducibili),
-    createRowData("Utili e perdite su cambi", currentData.utiliPerditeCambi),
-    createRowData("Perdite su crediti", currentData.perditeSuCrediti),
-    createRowData("Licenze d'uso", currentData.licenzeUso),
-    createRowData("Utenze telefoniche e cellulari", currentData.utenzeTelefoniche),
-    createRowData("Altri oneri", currentData.altriOneri),
-    createRowData("Abbuoni e arrotondamenti", currentData.abbuoniArrotondamenti),
-    createRowData("SPESE DI STRUTTURA", currentData.speseStruttura, "total-dark"),
-    emptyRow,
-    createRowData("TOTALE GESTIONE STRUTTURA", currentData.totaleStruttura, "total-dark"),
-    createRowData("EBITDA", currentData.ebitda, "key-metric"),
-    emptyRow,
-    createRowData("Ammortamenti immateriali", currentData.ammortamentiImmateriali),
-    createRowData("Ammortamenti materiali", currentData.ammortamentiMateriali),
-    createRowData("Svalutazioni e accantonamenti", currentData.svalutazioni),
-    createRowData("AMMORTAMENTI, ACCANT. SVALUTAZIONI", currentData.totaleAmmortamenti || currentData.ammortamenti, "total-dark"),
-    emptyRow,
-    createRowData("Gestione straordinaria", currentData.gestioneStraordinaria),
-    createRowData("EBIT", currentData.ebit, "key-metric"),
-    emptyRow,
-    createRowData("Spese e commissioni bancarie", currentData.speseCommissioniBancarie),
-    createRowData("Interessi passivi su mutui", currentData.interessiPassiviMutui),
-    createRowData("Altri interessi", currentData.altriInteressi),
-    createRowData("GESTIONE FINANZIARIA", currentData.gestioneFinanziaria, "total-dark"),
-    emptyRow,
-    createRowData("EBT (Risultato ante imposte)", currentData.ebt, "key-metric"),
-    createRowData("Imposte dirette", currentData.imposteDirette),
-    createRowData("RISULTATO DI ESERCIZIO (UTILE / PERDITA)", currentData.risultato, "result"),
-  ];
-
-  const getRowClassName = (className: string) => {
+  const getRowStyle = (className: string) => {
     switch (className) {
-      case "result": return "bg-yellow-100 dark:bg-yellow-900/40 font-bold";
-      case "key-metric": return "bg-blue-50 dark:bg-blue-950/20 font-bold";
-      case "total-dark": return "bg-blue-900/10 dark:bg-blue-900/30 font-bold";
-      case "highlight": return "font-semibold";
-      default: return "hover:bg-muted/50";
+      case "result": return { row: "bg-yellow-100 dark:bg-yellow-900/40 font-bold", sticky: "bg-[#fefce8] dark:bg-[#1a1600]" };
+      case "key-metric": return { row: "bg-blue-50 dark:bg-blue-950/20 font-bold", sticky: "bg-[#f0f9ff] dark:bg-[#082f49]" };
+      case "total-dark": return { row: "bg-blue-900/10 dark:bg-blue-900/30 font-bold", sticky: "bg-[#f1f5f9] dark:bg-[#1e293b]" };
+      case "highlight": return { row: "font-semibold", sticky: "bg-[#f8fafc] dark:bg-[#0f172a]" };
+      default: return { row: "hover:bg-muted/50", sticky: "bg-card" };
     }
   };
+
+  let displayRows: any[] = [];
+
+  if (currentData.isDynamic && currentData.rows) {
+    displayRows = currentData.rows.map((row: any) => ({
+      voce: row.voce,
+      values: (row.valori || new Array(months.length).fill(0)).map((v: number) => 
+        formatCurrency(v || 0).replace("€", "").trim()
+      ),
+      className: row.type === 'result' ? 'result' : 
+                 row.type === 'key-metric' ? 'key-metric' : 
+                 row.type === 'total' ? 'total-dark' : 
+                 row.type === 'subtotal' ? 'highlight' : ''
+    }));
+  } else {
+    const createRowData = (label: string, values: number[] | undefined, className: string = "") => {
+      const safeValues = values || new Array(months?.length || 0).fill(0);
+      return {
+        voce: label,
+        values: safeValues.map((v) => formatCurrency(v).replace("€", "").trim()),
+        className,
+      };
+    };
+    const emptyRow = { voce: "", values: [], className: "" };
+    displayRows = [
+      createRowData("Ricavi caratteristici", currentData.ricaviCaratteristici),
+      createRowData("Altri ricavi", currentData.altriRicavi),
+      createRowData("TOTALE RICAVI", currentData.totaleRicavi, "total-dark"),
+      emptyRow,
+      createRowData("Servizi diretti", currentData.serviziDiretti),
+      createRowData("Consulenze dirette", currentData.consulenzeDirette),
+      createRowData("Servizi informatici web", currentData.serviziInformatici),
+      createRowData("Servizi cloud", currentData.serviziCloud),
+      createRowData("COSTI DIRETTI", currentData.costiDiretti, "highlight"),
+      createRowData("Altri servizi e prestazioni", currentData.altriServizi),
+      createRowData("COSTI INDIRETTI", currentData.costiIndiretti, "highlight"),
+      createRowData("TOTALE COSTI DIRETTI E INDIRETTI", currentData.totaleCostiDirettiIndiretti, "total-dark"),
+      createRowData("GROSS PROFIT", currentData.grossProfit, "key-metric"),
+      emptyRow,
+      createRowData("Autofatture", currentData.autofatture),
+      createRowData("Rimborsi spese", currentData.rimborsiSpese),
+      createRowData("Altri proventi", currentData.altriProventi),
+      createRowData("ALTRI RICAVI NON TIPICI", currentData.ricaviNonTipici, "highlight"),
+      emptyRow,
+      createRowData("Spese viaggio", currentData.speseViaggio),
+      createRowData("Pedaggi autostradali", currentData.pedaggi),
+      createRowData("Pubblicità", currentData.pubblicita),
+      createRowData("Materiale pubblicitario", currentData.materialePubblicitario),
+      createRowData("Omaggi", currentData.omaggi),
+      createRowData("Spese di rappresentanza", currentData.speseRappresentanza),
+      createRowData("Mostre e fiere", currentData.mostreFiere),
+      createRowData("Servizi commerciali", currentData.serviziCommerciali),
+      createRowData("Carburante", currentData.carburante),
+      createRowData("SPESE COMMERCIALI", currentData.speseCommerciali, "total-dark"),
+      emptyRow,
+      createRowData("Beni indeducibili", currentData.beniIndeducibili),
+      createRowData("Spese generali", currentData.speseGenerali),
+      createRowData("Materiale vario e di consumo", currentData.materialeConsumo),
+      createRowData("Spese di pulizia", currentData.spesePulizia),
+      createRowData("Utenze", currentData.utenze),
+      createRowData("Assicurazioni", currentData.assicurazioni),
+      createRowData("Rimanenze", currentData.rimanenze),
+      createRowData("Tasse e valori bollati", currentData.tasseValori),
+      createRowData("Sanzioni e multe", currentData.sanzioniMulte),
+      createRowData("Compensi amministratore", currentData.compensiAmministratore),
+      createRowData("Rimborsi amministratore", currentData.rimborsiAmministratore),
+      createRowData("Personale", currentData.personale),
+      createRowData("Servizi amministrativi contabilità", currentData.serviziAmministrativi),
+      createRowData("Servizi amministrativi paghe", currentData.serviziAmministrativiPaghe),
+      createRowData("Consulenze tecniche", currentData.consulenzeTecniche),
+      createRowData("Consulenze legali", currentData.consulenzeLegali),
+      createRowData("Locazioni e noleggi", currentData.locazioniNoleggi),
+      createRowData("Servizi indeducibili", currentData.serviziIndeducibili),
+      createRowData("Utili e perdite su cambi", currentData.utiliPerditeCambi),
+      createRowData("Perdite su crediti", currentData.perditeSuCrediti),
+      createRowData("Licenze d'uso", currentData.licenzeUso),
+      createRowData("Utenze telefoniche e cellulari", currentData.utenzeTelefoniche),
+      createRowData("Altri oneri", currentData.altriOneri),
+      createRowData("Abbuoni e arrotondamenti", currentData.abbuoniArrotondamenti),
+      createRowData("SPESE DI STRUTTURA", currentData.speseStruttura, "total-dark"),
+      emptyRow,
+      createRowData("TOTALE GESTIONE STRUTTURA", currentData.totaleStruttura, "total-dark"),
+      createRowData("EBITDA", currentData.ebitda, "key-metric"),
+      emptyRow,
+      createRowData("Ammortamenti immateriali", currentData.ammortamentiImmateriali),
+      createRowData("Ammortamenti materiali", currentData.ammortamentiMateriali),
+      createRowData("Svalutazioni e accantonamenti", currentData.svalutazioni),
+      createRowData("AMMORTAMENTI, ACCANT. SVALUTAZIONI", currentData.totaleAmmortamenti || currentData.ammortamenti, "total-dark"),
+      emptyRow,
+      createRowData("Gestione straordinaria", currentData.gestioneStraordinaria),
+      createRowData("EBIT", currentData.ebit, "key-metric"),
+      emptyRow,
+      createRowData("Spese e commissioni bancarie", currentData.speseCommissioniBancarie),
+      createRowData("Interessi passivi su mutui", currentData.interessiPassiviMutui),
+      createRowData("Altri interessi", currentData.altriInteressi),
+      createRowData("GESTIONE FINANZIARIA", currentData.gestioneFinanziaria, "total-dark"),
+      emptyRow,
+      createRowData("EBT (Risultato ante imposte)", currentData.ebt, "key-metric"),
+      createRowData("Imposte dirette", currentData.imposteDirette),
+      createRowData("RISULTATO DI ESERCIZIO (UTILE / PERDITA)", currentData.risultato, "result"),
+    ];
+  }
 
   const getTabClass = (mode: ViewMode) => {
     const base = "px-4 py-2 text-sm font-medium rounded-md transition-colors";
@@ -206,58 +211,38 @@ export default function CEDettaglioMensile() {
     <div data-testid="page-ce-dettaglio-mensile" className="space-y-6">
       <div className="bg-primary rounded-lg p-6 text-primary-foreground shadow-lg">
         <h1 className="text-2xl font-bold mb-2">CE Dettaglio Mensile</h1>
-        <p className="opacity-90">Conto Economico Dettagliato - Analisi mensile {viewMode.replace('progressivo', 'Progressivo ').replace('puntuale', 'Puntuale ')}. Clicca su un mese per vedere il dettaglio.</p>
+        <p className="opacity-90">Conto Economico Dettagliato - Analisi mensile {viewMode.replace('progressivo', 'Progressivo ').replace('puntuale', 'Puntuale ')}.</p>
       </div>
 
       <div className="flex flex-wrap gap-2">
-        <button onClick={() => handleTabChange('progressivo2025')} className={getTabClass('progressivo2025')}>Progressivo 2025</button>
-        <button onClick={() => handleTabChange('puntuale2025')} className={getTabClass('puntuale2025')}>Puntuale 2025</button>
-        <button onClick={() => handleTabChange('progressivo2024')} className={getTabClass('progressivo2024')}>Progressivo 2024</button>
-        <button onClick={() => handleTabChange('puntuale2024')} className={getTabClass('puntuale2024')}>Puntuale 2024</button>
+        {['progressivo2025', 'puntuale2025', 'progressivo2024', 'puntuale2024'].map((m) => (
+          <button key={m} onClick={() => handleTabChange(m as ViewMode)} className={getTabClass(m as ViewMode)}>
+            {m.replace('progressivo', 'Progressivo ').replace('puntuale', 'Puntuale ')}
+          </button>
+        ))}
       </div>
 
       <Card className="p-6 overflow-x-auto">
         <div className="overflow-x-auto">
-          <table className="w-full border-collapse min-w-max" data-testid="table-mensile">
+          <table className="w-full border-collapse min-w-max">
             <thead>
               <tr>
-                <th className="bg-muted px-3 py-3 text-sm font-semibold text-muted-foreground border-b-2 border-border text-left sticky left-0 bg-muted z-20 shadow-[2px_0_4px_rgba(0,0,0,0.05)]">
-                  Voce
-                </th>
-                {months.map((month: string) => (
-                  <th key={month} className="bg-muted px-3 py-3 text-sm font-semibold border-b-2 border-border text-right whitespace-nowrap">
-                    <Link href={`/ce-dettaglio-mensile/${monthUrlMap[month]}`} className="text-primary hover:underline cursor-pointer">
-                      {month}
-                    </Link>
+                <th className="bg-muted px-3 py-3 text-sm font-semibold text-muted-foreground border-b-2 border-border text-left sticky left-0 z-20 shadow-[2px_0_4px_rgba(0,0,0,0.05)]">Voce</th>
+                {months.map((m) => (
+                  <th key={m} className="bg-muted px-3 py-3 text-sm font-semibold border-b-2 border-border text-right whitespace-nowrap">
+                    <Link href={`/ce-dettaglio-mensile/${monthUrlMap[m] || 'gennaio'}`} className="text-primary hover:underline">{m}</Link>
                   </th>
                 ))}
               </tr>
             </thead>
             <tbody>
-              {tableRows.map((row, idx) => {
-                if (row.voce === "") {
-                  return <tr key={idx}><td colSpan={months.length + 1} className="py-1"></td></tr>;
-                }
-                const rowClassName = getRowClassName(row.className);
-                const isSpecialRow = row.className !== "";
-                
-                // Ensure sticky column has a solid background to prevent transparency overlap
-                let stickyBg = "bg-card";
-                if (row.className === "result") stickyBg = "bg-[#fefce8] dark:bg-[#1a1600]";
-                else if (row.className === "key-metric") stickyBg = "bg-[#f0f9ff] dark:bg-[#082f49]";
-                else if (row.className === "total-dark") stickyBg = "bg-[#f1f5f9] dark:bg-[#1e293b]";
-                else if (row.className === "highlight") stickyBg = "bg-[#f8fafc] dark:bg-[#0f172a]";
-
+              {displayRows.map((row, idx) => {
+                if (row.voce === "") return <tr key={idx}><td colSpan={months.length + 1} className="py-1"></td></tr>;
+                const styles = getRowStyle(row.className);
                 return (
-                  <tr key={idx} className={rowClassName}>
-                    <td className={`px-3 py-3 text-sm border-b border-border ${isSpecialRow ? 'font-semibold' : ''} sticky left-0 z-20 ${stickyBg} shadow-[2px_0_4px_rgba(0,0,0,0.05)]`}>
-                      {row.voce}
-                    </td>
-                    {row.values.map((value, i) => (
-                      <td key={i} className="px-3 py-3 text-sm border-b border-border text-right whitespace-nowrap">
-                        € {value}
-                      </td>
-                    ))}
+                  <tr key={idx} className={styles.row}>
+                    <td className={`px-3 py-3 text-sm border-b border-border sticky left-0 z-20 ${styles.sticky} shadow-[2px_0_4px_rgba(0,0,0,0.05)]`}>{row.voce}</td>
+                    {row.values.map((v: string, i: number) => <td key={i} className="px-3 py-3 text-sm border-b border-border text-right whitespace-nowrap">€ {v}</td>)}
                   </tr>
                 );
               })}

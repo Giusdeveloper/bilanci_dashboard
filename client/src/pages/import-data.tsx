@@ -62,11 +62,15 @@ export default function ImportData() {
     const [previewData, setPreviewData] = useState<PreviewData | null>(null);
     const [partitariContent, setPartitariContent] = useState<any | null>(null);
 
-    // Stato per la registrazione nuova azienda
+    // Stati per la registrazione nuova azienda
     const [showRegistrationDialog, setShowRegistrationDialog] = useState(false);
     const [detectedName, setDetectedName] = useState("");
     const [newCompanyName, setNewCompanyName] = useState("");
     const [pendingFile, setPendingFile] = useState<File | null>(null);
+
+    // Stati per la gestione della sovrascrizione
+    const [manageBilancio, setManageBilancio] = useState(true);
+    const [managePartitari, setManagePartitari] = useState(true);
 
     // Editor manuale
     const [manualKpis, setManualKpis] = useState({
@@ -307,7 +311,7 @@ export default function ImportData() {
                 setLoading(false);
             }
         };
-        reader.readAsBinaryString(file);
+        reader.readAsArrayBuffer(file);
     };
 
     // --- OTHER HELPERS ---
@@ -342,7 +346,7 @@ export default function ImportData() {
                 toast({ title: "Attenzione", description: "Nome azienda non rilevato.", variant: "destructive" });
             }
         };
-        reader.readAsBinaryString(file);
+        reader.readAsArrayBuffer(file);
     };
 
     const handleRegisterCompany = async () => {
@@ -388,25 +392,86 @@ export default function ImportData() {
     };
 
     const generateSummary = (kpis: any, d25: any, d24: any) => {
-        const createRow = (label: string, val25: number, val24: number) => ({
+        const createRow = (label: string, val25: number, val24: number, type: string = 'normal') => ({
             voce: label,
             value2025: val25,
             percentage: kpis.ricavi2025 ? (val25 / kpis.ricavi2025) * 100 : 0,
-            value2024: val24
+            value2024: val24,
+            type: type
         });
 
-        // Use precise values from Detail if available, otherwise Fallback to KPIs or 0
-        const ricavi25 = d25.totaleRicavi || d25.ricaviCaratteristici || kpis.ricavi2025;
-        const ricavi24 = d24.totaleRicavi || d24.ricaviCaratteristici || kpis.ricavi2024;
+        // Data extraction
+        const ricavi25 = d25.totaleRicavi || d25.ricaviCaratteristici || kpis.ricavi2025 || 0;
+        const ricavi24 = d24.totaleRicavi || d24.ricaviCaratteristici || kpis.ricavi2024 || 0;
+
+        const cDiretti25 = d25.costiDiretti || d25.serviziDiretti || 0;
+        const cDiretti24 = d24.costiDiretti || d24.serviziDiretti || 0;
+
+        const cIndiretti25 = d25.costiIndiretti || 0;
+        const cIndiretti24 = d24.costiIndiretti || 0;
+
+        const totDirInd25 = d25.totaleCostiDirettiIndiretti || (cDiretti25 + cIndiretti25);
+        const totDirInd24 = d24.totaleCostiDirettiIndiretti || (cDiretti24 + cIndiretti24);
+
+        const grossProfit25 = d25.grossProfit || (ricavi25 - totDirInd25);
+        const grossProfit24 = d24.grossProfit || (ricavi24 - totDirInd24);
+
+        const ricaviNonTipici25 = d25.ricaviNonTipici || 0;
+        const ricaviNonTipici24 = d24.ricaviNonTipici || 0;
+
+        const spCommerciali25 = d25.speseCommerciali || 0;
+        const spCommerciali24 = d24.speseCommerciali || 0;
+
+        const spStruttura25 = d25.speseStruttura || 0;
+        const spStruttura24 = d24.speseStruttura || 0;
+
+        const totStruttura25 = d25.totaleGestioneStruttura || (ricaviNonTipici25 + spCommerciali25 + spStruttura25);
+        const totStruttura24 = d24.totaleGestioneStruttura || (ricaviNonTipici24 + spCommerciali24 + spStruttura24);
+
+        const ebitda25 = d25.ebitda || (grossProfit25 - totStruttura25);
+        const ebitda24 = d24.ebitda || (grossProfit24 - totStruttura24);
+
+        const amm25 = d25.totaleAmmortamenti || d25.ammortamenti || 0;
+        const amm24 = d24.totaleAmmortamenti || d24.ammortamenti || 0;
+
+        const gStraordinaria25 = d25.gestioneStraordinaria || 0;
+        const gStraordinaria24 = d24.gestioneStraordinaria || 0;
+
+        const ebit25 = d25.ebit || (ebitda25 - amm25 - gStraordinaria25);
+        const ebit24 = d24.ebit || (ebitda24 - amm24 - gStraordinaria24);
+
+        const gFinanziaria25 = d25.gestioneFinanziaria || 0;
+        const gFinanziaria24 = d24.gestioneFinanziaria || 0;
+
+        const ebt25 = d25.ebt || (ebit25 - gFinanziaria25);
+        const ebt24 = d24.ebt || (ebit24 - gFinanziaria24);
+
+        // RULE: TOTALE COSTI must match Source KPI (kpis.costi)
+        const totCosti25 = kpis.ricavi2025 !== undefined ? (parseFloat(manualKpis.costi) || kpis.costi) : (totDirInd25 + totStruttura25);
+        const totCosti24 = d24.totaleCosti || (totDirInd24 + totStruttura24);
+
+        // RULE: Use file's direct result if available, otherwise derive from EBT
+        const utile25 = d25.risultatoEsercizio !== undefined ? d25.risultatoEsercizio : (d25.risultato || ebt25);
+        const utile24 = d24.risultatoEsercizio !== undefined ? d24.risultatoEsercizio : (d24.risultato || ebt24);
 
         return [
-            createRow("Ricavi", ricavi25, ricavi24),
-            createRow("Costi Operativi", (d25.totaleCostiDirettiIndiretti || kpis.costi2025), (d24.totaleCostiDirettiIndiretti || kpis.costi2024)),
-            createRow("EBITDA", (d25.ebitda || kpis.ebitda2025), (d24.ebitda || kpis.ebitda2024)),
-            createRow("Ammortamenti", (d25.ammortamenti || d25.totaleAmmortamenti || 0), (d24.ammortamenti || d24.totaleAmmortamenti || 0)),
-            createRow("EBIT", (d25.ebit || kpis.ebitda2025 - (d25.ammortamenti || 0)), (d24.ebit || kpis.ebitda2024 - (d24.ammortamenti || 0))),
-            createRow("Gestione Finanziaria", (d25.gestioneFinanziaria || 0), (d24.gestioneFinanziaria || 0)),
-            createRow("Risultato Esercizio", (d25.risultato || d25.risultatoEsercizio || kpis.risultato2025), (d24.risultato || d24.risultatoEsercizio || kpis.risultato2024))
+            createRow("TOTALE RICAVI", ricavi25, ricavi24, 'total'),
+            createRow("Costi Diretti", cDiretti25, cDiretti24),
+            createRow("Costi Indiretti", cIndiretti25, cIndiretti24),
+            createRow("TOTALE COSTI DIRETTI E INDIRETTI", totDirInd25, totDirInd24, 'total'),
+            createRow("GROSS PROFIT", grossProfit25, grossProfit24, 'key-metric'),
+            createRow("Altri Ricavi non Tipici", ricaviNonTipici25, ricaviNonTipici24),
+            createRow("Spese Commerciali", spCommerciali25, spCommerciali24),
+            createRow("Spese di Struttura", spStruttura25, spStruttura24),
+            createRow("TOTALE GESTIONE STRUTTURA E NON TIPICA", totStruttura25, totStruttura24, 'total'),
+            createRow("EBITDA", ebitda25, ebitda24, 'key-metric'),
+            createRow("Ammortamenti, Accantonamenti e Svalutazioni", amm25, amm24),
+            createRow("Gestione Straordinaria", gStraordinaria25, gStraordinaria24),
+            createRow("EBIT", ebit25, ebit24, 'key-metric'),
+            createRow("Gestione Finanziaria", gFinanziaria25, gFinanziaria24),
+            createRow("EBT", ebt25, ebt24, 'key-metric'),
+            createRow("TOTALE COSTI", totCosti25, totCosti24, 'total'),
+            createRow("RISULTATO DI ESERCIZIO", utile25, utile24, 'result')
         ];
     };
 
@@ -544,7 +609,52 @@ export default function ImportData() {
                             </Select>
                         </div>
 
+                        <div className="space-y-4 pt-2 border-t">
+                            <Label className="text-xs uppercase text-muted-foreground font-bold">Opzioni Sovrascrizione</Label>
+                            <div className="flex flex-col gap-3">
+                                <div className="flex items-center space-x-2">
+                                    <input 
+                                        type="checkbox" 
+                                        id="manageBilancio" 
+                                        checked={manageBilancio} 
+                                        onChange={(e) => setManageBilancio(e.target.checked)}
+                                        className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                                    />
+                                    <Label htmlFor="manageBilancio" className="text-sm font-medium leading-none cursor-pointer">
+                                        Aggiorna/Sovrascrivi Bilancio
+                                    </Label>
+                                </div>
+                                <div className="flex items-center space-x-2">
+                                    <input 
+                                        type="checkbox" 
+                                        id="managePartitari" 
+                                        checked={managePartitari} 
+                                        onChange={(e) => setManagePartitari(e.target.checked)}
+                                        className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                                    />
+                                    <Label htmlFor="managePartitari" className="text-sm font-medium leading-none cursor-pointer">
+                                        Aggiorna/Sovrascrivi Partitari
+                                    </Label>
+                                </div>
+                            </div>
+                        </div>
+
                         <Separator />
+
+                        {!selectedCompany && (
+                            <Button 
+                                variant="outline" 
+                                className="w-full border-dashed" 
+                                onClick={() => {
+                                    setNewCompanyName("");
+                                    setDetectedName("Inserimento Manuale");
+                                    setShowRegistrationDialog(true);
+                                }}
+                            >
+                                <Building className="mr-2 h-4 w-4" />
+                                Inserimento Manuale Azienda
+                            </Button>
+                        )}
 
                         <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-2">
@@ -574,7 +684,6 @@ export default function ImportData() {
                                 </Select>
                             </div>
                         </div>
-
                         <div className="pt-4">
                             <Label className="block mb-2">File Excel (Bilancio) o CSV (Partitari)</Label>
                             {/* Partitari Preview */}

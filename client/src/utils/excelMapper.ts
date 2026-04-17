@@ -19,12 +19,14 @@ export const EXCEL_ROW_MAP: Record<string, string> = {
     "COSTI INDIRETTI": "costiIndiretti",
     "TOTALE COSTI DIRETTI E INDIRETTI": "totaleCostiDirettiIndiretti",
     "GROSS PROFIT": "grossProfit",
+    "MARGINE": "grossProfit",
 
     // Altri Ricavi Non Tipici
     "Autofatture": "autofatture",
     "Rimborsi spese": "rimborsiSpese",
     "Altri proventi": "altriProventi",
     "ALTRI RICAVI NON TIPICI": "ricaviNonTipici",
+    "Ricavi non tipici": "ricaviNonTipici",
 
     // Spese Commerciali
     "Spese viaggio": "speseViaggio",
@@ -35,6 +37,7 @@ export const EXCEL_ROW_MAP: Record<string, string> = {
     "Spese di rappresentanza": "speseRappresentanza",
     "Mostre e fiere": "mostreFiere",
     "Servizi commerciali": "serviziCommerciali",
+    "Costi commerciali": "speseCommerciali",
     "Carburante": "carburante",
     "SPESE COMMERCIALI": "speseCommerciali",
 

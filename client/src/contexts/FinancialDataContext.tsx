@@ -40,18 +40,26 @@ export function FinancialDataProvider({ children }: { children: ReactNode }) {
     }
   }
 
-  // Carica le aziende (solo per admin)
+  // Carica le aziende (solo per admin o limitato per client)
   const loadCompanies = useCallback(async () => {
-    if (!isAdmin) {
+    // Se non c'è un utente, non caricare nulla
+    if (!user) {
       setLoading(false)
       return
     }
 
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from('companies')
         .select('*')
         .order('name')
+
+      // Se l'utente è un client, può vedere solo la sua azienda
+      if (!isAdmin && user.company_id) {
+        query = query.eq('id', user.company_id)
+      }
+
+      const { data, error } = await query
 
       if (error) {
         console.error('Errore nel caricamento aziende:', error)
@@ -60,33 +68,35 @@ export function FinancialDataProvider({ children }: { children: ReactNode }) {
 
       setCompanies(data || [])
 
-      // Carica l'azienda selezionata dal localStorage se esiste
-      if (!hasInitialized.current) {
-        try {
-          const savedCompany = localStorage.getItem('selectedCompany')
-          if (savedCompany) {
-            const company = JSON.parse(savedCompany)
-            // Verifica che l'azienda esista ancora nella lista
-            if (data && data.some(c => c.id === company.id)) {
-              console.log('📋 Azienda selezionata caricata dal localStorage:', company.name)
-              setSelectedCompany(company)
-            } else {
-              console.log('⚠️  Azienda salvata non trovata nella lista, rimuovo dal localStorage')
-              localStorage.removeItem('selectedCompany')
+      // Logica di selezione automatica
+      if (data && data.length > 0) {
+        if (!isAdmin) {
+          // Per i client, seleziona sempre l'unica azienda disponibile
+          console.log('🏢 Selezione automatica azienda per client:', data[0].name)
+          setSelectedCompany(data[0])
+        } else if (!hasInitialized.current) {
+          // Per gli admin, prova a caricare dal localStorage
+          try {
+            const savedCompany = localStorage.getItem('selectedCompany')
+            if (savedCompany) {
+              const company = JSON.parse(savedCompany)
+              if (data.some(c => c.id === company.id)) {
+                setSelectedCompany(company)
+              }
             }
+          } catch (err) {
+            console.error('Errore nel caricamento azienda salvata:', err)
           }
-        } catch (err) {
-          console.error('Errore nel caricamento azienda salvata:', err)
-          localStorage.removeItem('selectedCompany')
         }
-        hasInitialized.current = true
       }
+      
+      hasInitialized.current = true
     } catch (err) {
       console.error('Errore generale:', err)
     } finally {
       setLoading(false)
     }
-  }, [isAdmin])
+  }, [user, isAdmin])
 
   useEffect(() => {
     loadCompanies()
@@ -191,9 +201,23 @@ export function FinancialDataProvider({ children }: { children: ReactNode }) {
   }
 
   // Ottieni i dati per CE Dettaglio Mensile
-  const getCEDettaglioMensileData = async (companyId: string) => {
-    return await loadFinancialData(companyId, 'ce-dettaglio-mensile', 2025)
-  }
+  const getCEDettaglioMensileData = useCallback(async (companyId: string) => {
+    // Recupera l'ultimo dato disponibile per questa vista
+    const { data, error } = await supabase
+      .from('financial_data')
+      .select('*')
+      .eq('company_id', companyId)
+      .eq('data_type', 'ce-dettaglio-mensile')
+      .order('year', { ascending: false })
+      .order('month', { ascending: false, nullsFirst: false })
+      .limit(1)
+
+    if (error) {
+      console.error('Errore getCEDettaglioMensileData:', error)
+      return null
+    }
+    return data
+  }, [])
 
   // Ottieni i dati per CE Sintetico
   const getCESinteticoData = async (companyId: string) => {

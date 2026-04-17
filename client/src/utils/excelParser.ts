@@ -5,9 +5,15 @@ import { EXCEL_ROW_MAP } from './excelMapper';
 // Helper: Clean number string to float
 const cleanNumber = (val: any): number => {
     if (val === undefined || val === null) return 0;
-    if (typeof val === 'number') return val;
+    if (typeof val === 'number') return isNaN(val) ? 0 : val;
+    
     if (typeof val === 'string') {
-        const clean = val.replace(/\./g, '').replace(',', '.').trim();
+        const s = val.trim().toUpperCase();
+        if (s === '' || s === '-' || s === 'N/A' || s.includes('#REF') || s.includes('#VALUE') || s.includes('#ERROR') || s.includes('#DIV/0')) return 0;
+        
+        const clean = s.replace(/[^0-9,.-]/g, '')
+                      .replace(/\./g, '')
+                      .replace(',', '.');
         const num = parseFloat(clean);
         return isNaN(num) ? 0 : num;
     }
@@ -98,7 +104,24 @@ export class ExcelParser {
     workbook: XLSX.WorkBook;
 
     constructor(fileData: ArrayBuffer | string | Buffer) {
-        this.workbook = XLSX.read(fileData, { type: 'buffer' });
+        if (typeof fileData === 'string') {
+            this.workbook = XLSX.read(fileData, { type: 'binary' });
+        } else if (fileData instanceof ArrayBuffer) {
+            this.workbook = XLSX.read(new Uint8Array(fileData), { type: 'array' });
+        } else {
+            this.workbook = XLSX.read(fileData, { type: 'buffer' });
+        }
+    }
+
+    isSherpaStyle(): boolean {
+        // Stricter check: Look for "SHERPA" in sheet names or company name
+        const hasSherpaSheets = this.workbook.SheetNames.some(s => s.toUpperCase().includes("SHERPA"));
+        if (hasSherpaSheets) return true;
+
+        // Fallback: Check first sheet for Sherpa specific labels
+        const firstSheet = this.workbook.Sheets[this.workbook.SheetNames[0]];
+        const csvContent = XLSX.utils.sheet_to_txt(firstSheet);
+        return csvContent.toUpperCase().includes("SHERPA") || csvContent.toUpperCase().includes("PRIMO MARGINE");
     }
 
     // Detect Company Name from "1_CE dettaglio"
@@ -145,6 +168,7 @@ export class ExcelParser {
     // 1. Parse "1_CE dettaglio" (Yearly Comparison)
     parseCEDettaglio(): any {
         console.log("[ExcelParser] Existing sheets:", this.workbook.SheetNames);
+        const isSherpa = this.isSherpaStyle();
 
         // Flexible sheet finding
         let sheetName = this.workbook.SheetNames.find(s => {
@@ -164,16 +188,11 @@ export class ExcelParser {
         const sheet = this.workbook.Sheets[sheetName];
         const jsonData = XLSX.utils.sheet_to_json(sheet, { header: 1 });
 
-        // Logic found: 2025 in Col 2 (C), 2024 in Col 5 (F)
-        // Dynamic search for columns - PRIORITIZE "Consuntivo" or "Actual" or "Progressivo"
         let col2025 = -1;
         let col2024 = -1;
 
-        // Try to find columns dynamically with specificity
-        const debugRowLogs: string[] = [];
         console.log(`[ExcelParser] Scanning ${sheetName} for headers...`);
 
-        // Increased scan depth for Sherpa42 files which have top metadata
         for (let i = 0; i < Math.min(jsonData.length, 40); i++) {
             const row: any = jsonData[i];
             if (!row) continue;
@@ -181,29 +200,13 @@ export class ExcelParser {
             row.forEach((cell: any, idx: number) => {
                 const s = String(cell).toUpperCase();
 
-                // Cerca 2025
                 if (s.includes("2025")) {
-                    // Se non abbiamo ancora trovato nulla, prendilo come candidato
                     if (col2025 === -1) col2025 = idx;
-
-                    // Se troviamo parole chiave forti, sovrascrivi (perché è sicuramente quello giusto)
-                    if (s.includes("CONSUNTIVO") || s.includes("PROGRESSIVO") || s.includes("ACTUAL")) {
-                        col2025 = idx;
-                    }
-                    // Attenzione: evitare "BUDGET" o "SC" (Scostamento) se possibile, ma per ora ci fidiamo del Consuntivo
-                    if (s.includes("BUDGET")) {
-                        // Se avevamo selezionato questa colonna solo perché aveva "2025", annulliamo se è budget
-                        if (col2025 === idx) col2025 = -1;
-                    }
+                    if (s.includes("CONSUNTIVO") || s.includes("PROGRESSIVO") || s.includes("ACTUAL")) col2025 = idx;
+                    if (s.includes("BUDGET") && col2025 === idx) col2025 = -1;
                 }
 
-                // Cerca 2024
-                if (s.includes("CONSUNTIVO") || s.includes("ACTUAL") || s.includes("12")) {
-                    if (col2025 === -1) col2025 = idx;
-                }
-
-                // Cerca 2024 - ONLY take FIRST occurrence
-                if (s.includes("2024")) {
+                if (s.includes("2024") || s.includes("2023")) {
                     if (col2024 === -1) col2024 = idx;
                 }
                 if (s.includes("BUDGET") || s.includes("PRECEDENTE")) {
@@ -212,71 +215,80 @@ export class ExcelParser {
             });
         }
 
-        // Context Update: If columns not found, try heuristics based on observed "Dicembre" columns
-        if (col2025 === -1) {
-            // Fallback: usually column C (index 2) or similar
-            console.warn("[ExcelParser] Columns for 2025 not found explicitly. Using default index 2 (C).");
-            col2025 = 2;
-        }
-        if (col2024 === -1) {
-            console.warn("[ExcelParser] Columns for 2024 not found explicitly. Using default index 5 (F).");
-            col2024 = 5;
-        }
+        if (col2025 === -1) col2025 = 2;
+        if (col2024 === -1) col2024 = 5;
 
-        console.log(`[ExcelParser] Columns Identified -> 2025: ${col2025}, 2024: ${col2024}`);
+        console.log(`[ExcelParser] Columns Identified -> 2025: ${col2025}, PREV: ${col2024}`);
+        const dynamicRows: any[] = [];
+        const result2025: Record<string, any> = { isDynamic: true, rows: dynamicRows };
+        const result2024: Record<string, any> = {};
 
-        const result2025: Record<string, number> = {};
-        const result2024: Record<string, number> = {};
-
-        jsonData.forEach((row: any) => {
-            if (!row || row.length === 0) return;
+        for (let i = 0; i < jsonData.length; i++) {
+            const row = jsonData[i];
+            if (!row || row.length === 0) continue;
             const label = row[0];
-            const key = getKey(label);
+            if (!label || typeof label !== 'string' || label.trim() === '' || label.length < 2) continue;
+            
+            const cleanLabel = label.trim();
+            const upperLabel = cleanLabel.toUpperCase().replace(/\s+/g, '');
+            
+            // FILTER: Skip headers and noise rows (strictly)
+            const noise = ["CONTOECONOMICO", "DICEMBRE", "GENNAIO", "FEBBRAIO", "MARZO", "APRILE", "MAGGIO", "GIUGNO", "LUGLIO", "AGOSTO", "SETTEMBRE", "OTTOBRE", "NOVEMBRE"];
+            const isYear = /^\d{2,4}$/.test(upperLabel);
+            const isHeader = upperLabel.includes("CONTOECONOMICO") || noise.includes(upperLabel) || isYear;
+            
+            if (isHeader) continue;
 
-            if (label && typeof label === 'string' && label.length > 5) { // Only log meaningful labels
-                console.log(`[ExcelParser Debug] Label: "${label.substring(0, 30)}..." -> Key: ${key}`);
+            const key = getKey(cleanLabel);
+            const v25 = cleanNumber(row[col2025]);
+            const v24 = cleanNumber(row[col2024]);
+
+            // STOP RULE: Stop parsing if we hit Result row
+            const isResultRow = upperLabel.includes("RISULTATO") && (upperLabel.includes("ESERCIZIO") || upperLabel.includes("PERDITA") || upperLabel.includes("UTILE"));
+
+            let type: 'normal' | 'total' | 'subtotal' | 'result' | 'key-metric' = 'normal';
+            // BOLD RULE: Stampatello (all upper) = total
+            const isStampatello = cleanLabel === cleanLabel.toUpperCase() && cleanLabel.length > 3 && !/[a-z]/.test(cleanLabel);
+
+            if (upperLabel.includes("TOTALE") || upperLabel.includes("TOTAL") || upperLabel.includes("MARGINE") || isStampatello) type = 'total';
+            if (key === 'ebitda' || key === 'ebit' || key === 'grossProfit') type = 'key-metric';
+            
+            if (isResultRow) {
+                type = 'result';
+                result2025.risultatoEsercizio = v25;
+                result2024.risultatoEsercizio = v24;
             }
 
-            if (key) {
-                result2025[key] = (result2025[key] || 0) + cleanNumber(row[col2025]);
-                result2024[key] = (result2024[key] || 0) + cleanNumber(row[col2024]);
-            }
-        });
+            dynamicRows.push({
+                voce: cleanLabel,
+                value2025: v25,
+                value2024: v24,
+                key: key,
+                type: type
+            });
 
-        // Add special "totaleRicavi" if missing (sum of parts) or map from specific keys
+            if (key && !isResultRow) {
+                result2025[key] = (result2025[key] || 0) + v25;
+                result2024[key] = (result2024[key] || 0) + v24;
+            }
+
+            if (isResultRow) break;
+        }
+
+        // Add totals logic (same as before)
         if (!result2025.totaleRicavi && result2025.ricaviCaratteristici) {
-            result2025.totaleRicavi = result2025.ricaviCaratteristici + (result2025.altriRicavi || 0);
-            result2024.totaleRicavi = result2024.ricaviCaratteristici + (result2024.altriRicavi || 0);
+            result2025.totaleRicavi = (result2025.ricaviCaratteristici || 0) + (result2025.altriRicavi || 0);
+            result2024.totaleRicavi = (result2024.ricaviCaratteristici || 0) + (result2024.altriRicavi || 0);
         }
 
-        // Infer Costi if missing (Ricavi - EBITDA)
-        if (!result2025.totaleCostiDirettiIndiretti && result2025.totaleRicavi && result2025.ebitda !== undefined) {
-            result2025.totaleCostiDirettiIndiretti = result2025.totaleRicavi - result2025.ebitda;
-            result2024.totaleCostiDirettiIndiretti = result2024.totaleRicavi - result2024.ebitda;
-        }
-
-        // CALCULATE TOTAL OPERATING COSTS (Richiesta User: "Totale Costi")
-        // Logic: Totale Ricavi - EBITDA = Totale Costi
-        if (result2025.totaleRicavi !== undefined && result2025.ebitda !== undefined) {
-            result2025.totaleCostiOperativi = result2025.totaleRicavi - result2025.ebitda;
-        }
-        if (result2024.totaleRicavi !== undefined && result2024.ebitda !== undefined) {
-            result2024.totaleCostiOperativi = result2024.totaleRicavi - result2024.ebitda;
-        }
-
-        return {
-            progressivo2025: result2025,
-            progressivo2024: result2024
-        };
+        return { progressivo2025: result2025, progressivo2024: result2024 };
     }
 
     // 2. Parse "CE dettaglio mensile" (Matrix)
     parseCEDettaglioMensile(): any {
         let sheetName = this.workbook.SheetNames.find(s => {
             const low = s.toLowerCase();
-            return low === "ce dettaglio mensile" ||
-                low === "eco_dettaglio_mensile" ||
-                (low.includes("dettaglio") && low.includes("mensile"));
+            return low.includes("dettaglio") && (low.includes("mensile") || low.includes("mese")) && (low.includes("ce") || low.includes("eco"));
         });
 
         if (!sheetName) return null;
@@ -287,56 +299,50 @@ export class ExcelParser {
     parseCESintetico(): any {
         const sheetName = this.workbook.SheetNames.find(s => {
             const low = s.toLowerCase();
-            // Match "sintetico" or "sintentico" (typo) and EXCLUDE "mensile"
-            return (low.includes("sintetico") || low.includes("sintentico")) && !low.includes("mensile");
+            // Match "sintetico" and EXCLUDE "mensile"
+            return ((low.includes("ce") && low.includes("sintetico")) || 
+                   (low.includes("ce") && low.includes("sintentico")) ||
+                   (low.includes("economico") && low.includes("sintetico")) ||
+                   (low.includes("sintetico") && !low.includes("mensile"))) && !low.includes("mensile");
         });
-        return sheetName ? this.parseSummaryLikeSheet(sheetName) : null;
+        
+        if (sheetName) return this.parseSummaryLikeSheet(sheetName);
+
+        // Fallback: If no yearly synthetic, derive from monthly synthetic (last col of progressivo)
+        const monthlyData = this.parseCESinteticoMensile();
+        if (monthlyData && monthlyData.progressivo2025 && monthlyData.progressivo2025.isDynamic) {
+            const rows = monthlyData.progressivo2025.rows.map((row: any) => ({
+                voce: row.voce,
+                value2025: row.valori[row.valori.length - 1],
+                value2024: 0, // Fallback as we don't have historical matrix usually
+                key: row.key,
+                type: row.type
+            }));
+            return {
+                progressivo2025: { isDynamic: true, rows },
+                progressivo2024: {}
+            };
+        }
+        return null;
     }
 
     // 4. Parse "4_CE sintetico mensile"
     parseCESinteticoMensile(): any {
-        // Find the sheet with flexible naming (handles "4_CE sintetico mensile", "CE sintetico mensile", "4.CE sintetico mensile")
         const sheetName = this.workbook.SheetNames.find(s => {
             const low = s.toLowerCase().replace(/[_\.]/g, ' ');
             return low.includes('sintetico') && low.includes('mensile');
         });
-        const backupSheetName = this.workbook.SheetNames.find(s => {
-            const low = s.toLowerCase().replace(/[_\.]/g, ' ');
-            return low.includes('dettaglio') && low.includes('mensile');
-        }) || "CE dettaglio mensile";
 
-        // Primary Parse: CE sintetico mensile
-        let result = sheetName
-            ? this.parseMonthlyBlocks(sheetName)
-            : null;
-
-        // Fallback Logic: If Primary failed OR is missing 2024 data OR has zeroed Ammortamenti
-        const isZeroed = (data: any) => !data || !data.totaleAmmortamenti || data.totaleAmmortamenti.every((v: number) => v === 0);
-
-        if (!result || !result.progressivo2024 || !result.puntuale2024 || isZeroed(result.progressivo2025)) {
-            console.log(`[ExcelParser] Primary parse of '${sheetName}' incomplete or zeroed. Checking '${backupSheetName}'...`);
-
-            if (this.workbook.SheetNames.includes(backupSheetName)) {
-                const backupResult = this.parseMonthlyBlocks(backupSheetName);
-                if (backupResult) {
-                    if (!result) result = {};
-                    
-                    // Helper to merge or replace if backup is better
-                    const mergeOrReplace = (key: string) => {
-                        if (!result[key] || isZeroed(result[key])) {
-                            if (backupResult[key]) result[key] = backupResult[key];
-                        }
-                    };
-
-                    mergeOrReplace('progressivo2025');
-                    mergeOrReplace('puntuale2025');
-                    mergeOrReplace('progressivo2024');
-                    mergeOrReplace('puntuale2024');
-                }
-            }
+        if (!sheetName) {
+            console.log("[ExcelParser] No Sintetico Mensile sheet found. Checking fallback...");
+            const backupSheetName = this.workbook.SheetNames.find(s => {
+                const low = s.toLowerCase().replace(/[_\.]/g, ' ');
+                return low.includes('dettaglio') && low.includes('mensile');
+            }) || "CE dettaglio mensile";
+            return this.parseMonthlyBlocks(backupSheetName);
         }
 
-        return result;
+        return this.parseMonthlyBlocks(sheetName);
     }
 
     // --- GENERIC PARSERS ---
@@ -354,26 +360,47 @@ export class ExcelParser {
             if (!row) continue;
             row.forEach((cell: any, idx: number) => {
                 const s = String(cell);
-                // Only take FIRST occurrence
                 if (s.includes("2025") && col2025 === -1) col2025 = idx;
                 if (s.includes("2024") && col2024 === -1) col2024 = idx;
             });
         }
 
-        // Defaults if not found
         if (col2025 === -1) col2025 = 2;
         if (col2024 === -1) col2024 = 5;
 
-        const result2025: Record<string, number> = {};
-        const result2024: Record<string, number> = {};
+        const dynamicRows: any[] = [];
+        const result2025: Record<string, any> = { isDynamic: true, rows: dynamicRows };
+        const result2024: Record<string, any> = {};
 
-        jsonData.forEach((row: any) => {
+        jsonData.forEach((row: any, index: number) => {
             if (!row || row.length === 0) return;
             const label = row[0];
-            const key = getKey(label);
+            if (!label || typeof label !== 'string' || label.trim() === '' || label.length < 2) return;
+            if (index < 3 && label.toUpperCase().includes("DICEMBRE")) return;
+
+            const cleanLabel = label.trim();
+            const key = getKey(cleanLabel);
+            const v25 = cleanNumber(row[col2025]);
+            const v24 = cleanNumber(row[col2024]);
+
+            let type: 'normal' | 'total' | 'subtotal' | 'result' | 'key-metric' = 'normal';
+            const upperLabel = cleanLabel.toUpperCase();
+            if (upperLabel.includes("TOTALE") || upperLabel.includes("TOTAL") || upperLabel.includes("COSTI") || upperLabel.includes("SPESE")) type = 'total';
+            if (key === 'ebitda' || key === 'ebit' || key === 'grossProfit') type = 'key-metric';
+            if (key === 'risultatoEsercizio' || upperLabel.includes("UTILE") || upperLabel.includes("PERDITA")) type = 'result';
+
+            dynamicRows.push({
+                voce: cleanLabel,
+                value2025: v25,
+                value2024: v24,
+                key: key,
+                type: type,
+                isBold: cleanLabel === cleanLabel.toUpperCase()
+            });
+
             if (key) {
-                result2025[key] = (result2025[key] || 0) + cleanNumber(row[col2025]);
-                result2024[key] = (result2024[key] || 0) + cleanNumber(row[col2024]);
+                result2025[key] = (result2025[key] || 0) + v25;
+                result2024[key] = (result2024[key] || 0) + v24;
             }
         });
 
@@ -428,28 +455,42 @@ export class ExcelParser {
                         let detectedYear = 0;
                         let detectedType = "";
 
-                        // Scan UP to 20 rows above for context
+                        // Scan UP for context
                         for (let up = 1; up <= 20; up++) {
                             if (i - up < 0) break;
                             const headerRow = jsonData[i - up] as any[];
                             if (!headerRow) continue;
 
-                            const rowText = headerRow.join(" ").toUpperCase();
-                            // LOG THE HEADER TEXT TO SEE WHAT WE ARE MISSING
-                            if (rowText.trim().length > 0) {
-                                console.log(`[ExcelParser] Scanning Header Row -${up}: "${rowText}"`);
+                            // Check cells near the start column of the block (j)
+                            for (let c = Math.max(0, j - 10); c < Math.min(headerRow.length, j + 20); c++) {
+                                const rawVal = headerRow[c];
+                                const cellVal = String(rawVal || "").trim();
+                                if (cellVal === "2025" || cellVal === "25") { 
+                                    detectedYear = 2025; break; 
+                                }
+                                if (cellVal === "2024" || cellVal === "24") { 
+                                    detectedYear = 2024; break; 
+                                }
+                                if (cellVal === "2023" || cellVal === "23") { 
+                                    detectedYear = 2023; break; 
+                                }
                             }
-
-                            // Year Detection - stricter but includes short 2-digit years if bounded
-                            if (rowText.includes("2025") || rowText.includes(" 25 ")) detectedYear = 2025;
-                            else if (rowText.includes("2024") || rowText.includes(" 24 ")) detectedYear = 2024;
-                            else if (rowText.includes("2023")) detectedYear = 2023;
-
-                            // Type Detection
+                            
+                            const rowText = headerRow.map(c => String(c || "")).join(" ").toUpperCase();
                             if (rowText.includes("PROGRESSIVO") || rowText.includes("CUMULATO") || rowText.includes("CONSUNTIVO")) detectedType = "progressivo";
                             else if (rowText.includes("PUNTUALE") || rowText.includes("MENSILE") || rowText.includes("MESE")) detectedType = "puntuale";
 
                             if (detectedYear && detectedType) break;
+                        }
+
+                        // 2F2T SPECIFIC: If still no year, check R1 cells C2, C5 etc.
+                        if (!detectedYear && jsonData[1]) {
+                            const r1 = jsonData[1] as any[];
+                            if (j === 1 || j === 2) { // First blocks
+                                if (String(r1[2]).includes("2025")) detectedYear = 2025;
+                            } else if (j > 15) { // Later blocks
+                                if (String(r1[12]).includes("2025")) detectedYear = 2025;
+                            }
                         }
 
                         // Also check the CURRENT row for metadata (sometimes year is on the same line as Gennaio)
@@ -483,7 +524,12 @@ export class ExcelParser {
 
         const extractData = (block: any) => {
             if (!block) return null;
-            const result: Record<string, any[]> = { months: block.months };
+            const rows: any[] = [];
+            const result: Record<string, any> = { 
+                months: block.months,
+                isDynamic: true,
+                rows: rows
+            };
 
             console.log(`[ExcelParser] Extracting data for block at R${block.startRow}, C${block.startCol}`);
 
@@ -495,20 +541,44 @@ export class ExcelParser {
                 if (nextBlockBelow && r >= nextBlockBelow.startRow) break;
 
                 const label = row[0];
-                const key = getKey(label);
+                if (!label || typeof label !== 'string' || label.trim() === '' || label.length < 2) continue;
                 
-                if (key) {
-                    const values = [];
-                    for (let k = 0; k < block.months.length; k++) {
-                        const rawVal = row[block.startCol + k];
-                        const cleanVal = cleanNumber(rawVal);
-                        values.push(cleanVal);
-                    }
-                    result[key] = values;
-                    if (key === 'totaleAmmortamenti') {
-                        console.log(`[ExcelParser Debug] Found Ammortamenti at row ${r}:`, values.slice(0, 3), "...");
-                    }
+                const cleanLabel = label.trim();
+                const upperLabel = cleanLabel.toUpperCase();
+                const key = getKey(cleanLabel);
+
+                // STOP RULE: Stop parsing if we hit Result row
+                const isResultRow = upperLabel.includes("RISULTATO") && (upperLabel.includes("ESERCIZIO") || upperLabel.includes("PERDITA") || upperLabel.includes("UTILE"));
+                
+                const values = [];
+                for (let k = 0; k < block.months.length; k++) {
+                    const rawVal = row[block.startCol + k];
+                    const cleanVal = cleanNumber(rawVal);
+                    values.push(cleanVal);
                 }
+
+                let type: 'normal' | 'total' | 'subtotal' | 'result' | 'key-metric' = 'normal';
+                if (upperLabel.includes("TOTALE") || upperLabel.includes("TOTAL") || upperLabel.includes("COSTI") || upperLabel.includes("SPESE")) type = 'total';
+                if (key === 'ebitda' || key === 'ebit' || key === 'grossProfit') type = 'key-metric';
+                if (isResultRow) {
+                    type = 'result';
+                    // Force map results if not caught by key
+                    if (!result.risultatoEsercizio) result.risultatoEsercizio = values;
+                }
+
+                rows.push({
+                    voce: cleanLabel,
+                    valori: values,
+                    key: key,
+                    type: type,
+                    isBold: cleanLabel === cleanLabel.toUpperCase()
+                });
+
+                if (key) {
+                    result[key] = values;
+                }
+
+                if (isResultRow) break;
             }
             return result;
         };

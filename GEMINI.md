@@ -1,38 +1,89 @@
-# Gemini Dashboard Project - Engineering Guidelines
+# Gemini Dashboard Project - Engineering Guidelines (Master)
 
 ## Project Overview
-This project is a financial dashboard for analyzing company balances (Awentia, Sherpa42). It uses a React frontend (Vite, TypeScript, Tailwind, shadcn/ui) and a Supabase backend.
+This project is a financial dashboard for analyzing company balances (Awentia, Sherpa42, Maia Management, 2F2T). It uses a React frontend (Vite, TypeScript, Tailwind, shadcn/ui) and a Supabase backend.
 
 ## Tech Stack
 - **Frontend**: React, TypeScript, Vite, Wouter (routing), Chart.js, TailwindCSS.
 - **Backend**: Supabase (PostgreSQL, RLS).
-- **Data Import**: Custom `ExcelParser` logic for cumulative and monthly financial reports.
+- **Data Import**: Custom `ExcelParser` logic for cumulative, monthly, and source financial reports.
 
-## Core Mandates & Standards
+---
 
-### 1. Financial Data Integrity
-- **KPI Consistency**: Total Costs in the dashboard must represent the full expense sum (Operating Costs + Ammortamenti + Gestione Finanziaria + Imposte).
-- **Operating vs Total**: Always distinguish between "Totale Costi Operativi" (pre-EBITDA) and "Totale Costi" (final expenses).
-- **Data Formatting**: Use `it-IT` locale for currency and dates. Numeric columns in tables must be right-aligned.
+## 1. Universal Data Integrity & Import (ExcelParser)
 
-### 2. Table Engineering (Sticky/Frozen Columns)
-- **Opaque Backgrounds**: All sticky cells (`sticky left-0`, `sticky top-0`) MUST have a solid background color (e.g., `bg-white`, `bg-slate-100`) to prevent content overlap during scroll. Never use semi-transparent backgrounds for sticky elements.
+### Dynamic Mapping & Preservation
+- **Preservation**: Always preserve original cost/revenue labels from Excel files. Use `isDynamic: true` and the `rows` array to store `{ voce, valori, key, type }`.
+- **Mapping**: Assign standard tags (e.g., `OP_COSTS`, `ricaviCaratteristici`) for dashboard KPI calculation while keeping the original label for UI display.
+- **Bold Rule**: Any label in **ALL CAPS** (STAMPATELLO) must be rendered in **Bold** (assign `type: 'total'`).
+- **Stop Rule**: Iteration must stop as soon as the row "RISULTATO DI ESERCIZIO" (or variations like "Risultato dell'esercizio") is encountered. Ignore everything below.
+
+### Discovery & Robustness
+- **Fuzzy Sheet Matching**: Detect main sheets using keywords (`economico`, `dettaglio`, `ce`, `sintetico`, `mensile`, `source`) with `includes` matching to handle flexible nomenclature (e.g., "1_ECONOMICO DETTAGLIO").
+- **Year Detection**: Scan up to 20 rows above "Gennaio" for year markers (2025, 2024, 2023). Support positional mapping if years are missing.
+- **Clean Number**: Normalize all inputs. Convert Excel errors (`#REF!`, `#VALUE!`, `#ERROR!`, `#DIV/0!`), empty cells, and dashes to `0`. Handle Italian currency format (dot for thousands, comma for decimals).
+- **Data Input**: Always use `readAsArrayBuffer` (frontend) and `Uint8Array` (parser) for file reading to ensure browser compatibility.
+
+### Selective Overwrite
+- **Targeted Delete**: Before importing, delete only the record types being uploaded (e.g., if importing Partitari, do NOT touch Bilancio records).
+- **Period Mapping**: Ensure records are unique by `(company_id, year, month, data_type)`.
+
+---
+
+## 2. Dashboard & KPI Standards
+
+### KPI Consistency
+- **Totale Costi**: The dashboard "Costi" card and the "TOTALE COSTI" row in the table MUST match the exact value found in the `SOURCE` sheet (Anchor: "COSTI" or "DIFFERENZA").
+- **Full Expense Sum**: For P&L integrity, `Total Costs = Operating Costs + Ammortamenti + Gestione Finanziaria + Imposte`.
+- **Result Row**: Use the "RISULTATO DI ESERCIZIO" value directly from the file. Do NOT recalculate or subtract taxes twice.
+
+### Table Structure (Screenshot-Sync)
+Follow the standard Awentia/Screenshot sequence:
+1. TOTALE RICAVI
+2. Costi Diretti
+3. Costi Indiretti
+4. TOTALE COSTI DIRETTI E INDIRETTI (Total)
+5. GROSS PROFIT (Key Metric)
+6. Altri Ricavi non Tipici
+7. Spese Commerciali
+8. Spese di Struttura
+9. TOTALE GESTIONE STRUTTURA E NON TIPICA (Total)
+10. EBITDA (Key Metric)
+11. Ammortamenti, Accantonamenti e Svalutazioni
+12. Gestione Straordinaria
+13. EBIT (Key Metric)
+14. Gestione Finanziaria
+15. EBT (Key Metric)
+16. TOTALE COSTI (Total - from Source)
+17. RISULTATO DI ESERCIZIO (Result)
+
+- **Spacing**: Add a blank "respiro" row before major sections (EBITDA, EBIT, TOTALE COSTI, RISULTATO).
+
+---
+
+## 3. UI Engineering (Frontend)
+
+### Table Presentation
+- **Opaque Backgrounds**: All sticky cells (`sticky left-0`, `sticky top-0`) MUST have a solid background color (e.g., `bg-white`, `bg-slate-100`) to prevent content overlap during scroll.
 - **Z-Index Layering**: 
-  - Sticky Headers: `z-30`
-  - Sticky Columns (body): `z-20`
-  - Intersection (Sticky Header + Sticky Column): `z-50` or higher.
-- **Automatic Sizing**: Use `w-full` and `min-w-max` with `whitespace-nowrap` for automatic column resizing based on content, except for frozen columns which require fixed widths (e.g., `w-[120px]`) to maintain sticky offsets.
+  - `z-50`: Frozen column + Sticky header intersection.
+  - `z-30`: Sticky Headers.
+  - `z-20`: Frozen columns.
+- **Noise Filter (UI)**: Hide "CONTO ECONOMICO", "DICEMBRE" (as header), and isolated years (2025, 2024) from row lists to keep tables clean.
+- **Dynamic Headers**: Use "Anno Prec." instead of "2024" if comparing with 2023 or other historical periods.
+- **Navigation**: Month names in matrices (Gen, Feb, etc.) must be clickable `Link` components pointing to `/ce-dettaglio-mensile/:month`.
 
-### 3. Data Import Workflow
-- **ExcelParser**: The parser handles both cumulative (Progressivo) and monthly (Puntuale) views. If a punctual block is missing, it should be derived from the cumulative data.
-- **Record Cleanup**: Since the `financial_data` unique constraint might be missing or inconsistent, always perform a manual `delete` of existing records for the same company/year/month/type before inserting new ones.
-- **RLS Bypass**: Use the `exec_sql` RPC or a Service Role key when running import scripts to bypass Row Level Security constraints.
+### Branding
+- **Dynamic Logos**: `PageHeader` must map the selected company name/slug to its logo (Maia, Awentia, Sherpa). Use a neutral fallback (no logo) if the brand is unknown.
 
-### 4. Codebase Conventions
-- **Component Pattern**: Follow the existing pattern of using `PageHeader`, `KPICard`, and `DataTable` for consistency.
-- **Test Scripts**: All new import or logic fixes should have a corresponding debug/test script in the `scripts/` directory.
+---
 
-## Current Status (Feb 2026)
-- Dashboard table redesigned to focus on macro-aggregates.
-- Partitari (Ledger) import filtered to economic accounts (58/ to 88/) and cleaned of redundant columns.
-- Horizontal scrolling fixed across all monthly and raw data views.
+## 4. Ledger (Partitari) Management
+- **Economic Filter**: Include ONLY accounts where `CodiceConto` starts with a prefix between `58/` and `88/`.
+- **Column Exclusion**: Delete redundant columns during import (*Ditta, DataStoDit, DataStoAna, CodAnacf, Num_riga, Cod_causale, Attivita_ETS, Codice_UnProd, Descr_UnProD, CodAnacfControp, DescrAgg3*).
+
+---
+
+## Reference Information
+- **Locale**: `it-IT` for currency and dates.
+- **Numeric Alignment**: All numbers must be right-aligned in tables.

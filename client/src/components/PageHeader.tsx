@@ -1,6 +1,7 @@
 import { useFinancialData } from "@/contexts/FinancialDataContext";
 import awentiaLogo from "@assets/awentia-logo-standard_1760537986689.png";
 import sherpa42Logo from "@assets/logo_sherpa42.png";
+import maiaLogo from "../../../attached_assets/logo_maia.png";
 
 interface PageHeaderProps {
   title: string;
@@ -9,13 +10,8 @@ interface PageHeaderProps {
 
 // Mapping tra nome/slug azienda e logo
 const getCompanyLogo = (companyName?: string | null, companySlug?: string | null) => {
-  if (!companyName && !companySlug) {
-    return awentiaLogo; // Logo di default
-  }
-
   const name = (companyName || companySlug || "").toLowerCase();
   
-  // Mapping basato sul nome o slug dell'azienda
   if (name.includes("awentia")) {
     return awentiaLogo;
   }
@@ -23,15 +19,19 @@ const getCompanyLogo = (companyName?: string | null, companySlug?: string | null
   if (name.includes("sherpa42") || name.includes("sherpa")) {
     return sherpa42Logo;
   }
+
+  if (name.includes("maia")) {
+    return maiaLogo;
+  }
   
-  // Se non c'è match, usa il logo di default (Awentia)
-  return awentiaLogo;
+  // Se non c'è match, restituisci null per non mostrare loghi errati
+  return null;
 };
 
 export default function PageHeader({ title, subtitle }: PageHeaderProps) {
   const { selectedCompany } = useFinancialData();
   const companyLogo = getCompanyLogo(selectedCompany?.name, selectedCompany?.slug);
-  const companyName = selectedCompany?.name || "Awentia";
+  const companyName = selectedCompany?.name || "Dashboard";
 
   return (
     <div 
@@ -49,14 +49,16 @@ export default function PageHeader({ title, subtitle }: PageHeaderProps) {
             </p>
           )}
         </div>
-        <div className="flex-shrink-0">
-          <img 
-            src={companyLogo} 
-            alt={`${companyName} Logo`}
-            className="h-16 w-auto brightness-0 invert"
-            data-testid="img-page-header-logo"
-          />
-        </div>
+        {companyLogo && (
+          <div className="flex-shrink-0">
+            <img 
+              src={companyLogo} 
+              alt={`${companyName} Logo`}
+              className="h-16 w-auto brightness-0 invert"
+              data-testid="img-page-header-logo"
+            />
+          </div>
+        )}
       </div>
     </div>
   );

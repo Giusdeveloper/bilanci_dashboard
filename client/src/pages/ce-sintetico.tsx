@@ -1,6 +1,5 @@
 import PageHeader from "@/components/PageHeader";
 import DataTable from "@/components/DataTable";
-import KPICard from "@/components/KPICard";
 import { formatCurrency, formatPercentage, calculateVariance } from "@/data/financialData";
 import { useFinancialData } from "@/contexts/FinancialDataContext";
 import { useEffect, useState } from "react";
@@ -14,7 +13,7 @@ export default function CESintetico() {
   const { selectedCompany, getCESinteticoData } = useFinancialData();
   const [ceData, setCeData] = useState<CESinteticoData | null>(null);
   const [loading, setLoading] = useState(false);
-  const [periodLabel, setPeriodLabel] = useState("Dic"); // Default a Dicembre se non specificato
+  const [periodLabel, setPeriodLabel] = useState("Dic");
 
   useEffect(() => {
     const loadData = async () => {
@@ -46,56 +45,26 @@ export default function CESintetico() {
     loadData();
   }, [selectedCompany, getCESinteticoData]);
 
-  // Se nessuna azienda è selezionata, mostra un messaggio
   if (!selectedCompany) {
     return (
       <div data-testid="page-ce-sintetico">
-        <PageHeader
-          title="CE Sintetico"
-          subtitle="Conto Economico Sintetico - Principali aggregati economici"
-        />
-        <div className="p-8 bg-muted rounded-lg text-center">
-          <p className="text-lg text-muted-foreground">
-            Seleziona un'azienda per visualizzare i dati del conto economico sintetico
-          </p>
+        <PageHeader title="CE Sintetico" subtitle="Conto Economico Sintetico" />
+        <div className="p-8 bg-muted rounded-lg text-center mt-6">
+          <p className="text-lg text-muted-foreground">Seleziona un'azienda per visualizzare i dati.</p>
         </div>
       </div>
     );
   }
 
-  // Se sta caricando, mostra loading
-  if (loading) {
-    return (
-      <div data-testid="page-ce-sintetico">
-        <PageHeader
-          title="CE Sintetico"
-          subtitle="Conto Economico Sintetico - Principali aggregati economici"
-        />
-        <div className="p-8 bg-muted rounded-lg text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-lg text-muted-foreground">Caricamento dati...</p>
-        </div>
-      </div>
-    );
-  }
+  if (loading) return <div className="p-8 text-center">Caricamento...</div>;
 
-  // Se non ci sono dati, mostra messaggio
   if (!ceData || !ceData.progressivo2025) {
     return (
-      <div data-testid="page-ce-sintetico">
-        <PageHeader
-          title="CE Sintetico"
-          subtitle="Conto Economico Sintetico - Principali aggregati economici"
-        />
-        <div className="p-8 bg-muted rounded-lg text-center">
-          <p className="text-lg text-muted-foreground">Dati non disponibili</p>
-        </div>
-      </div>
+      <div className="p-8 text-center text-muted-foreground">Dati non disponibili per CE Sintetico.</div>
     );
   }
 
   const { progressivo2025, progressivo2024 } = ceData;
-
   const columns = [
     { key: "voce", label: "Voce", align: "left" as const },
     { key: "value2025", label: `2025 (Gen-${periodLabel})`, align: "right" as const },
@@ -105,108 +74,87 @@ export default function CESintetico() {
     { key: "variance", label: "Var %", align: "right" as const },
   ];
 
-  const createRow = (label: string, value2025: number, value2024: number, isBold = false) => {
-    const percentage = (value2025 / progressivo2025.totaleRicavi) * 100;
-    const variance = calculateVariance(value2025, value2024);
-    const varianceEuroValue = value2025 - value2024;
-    return {
-      voce: label,
-      value2025: formatCurrency(value2025),
-      percentage: formatPercentage(percentage, 1),
-      value2024: formatCurrency(value2024),
-      varianceEuro: value2024 === 0 && value2025 === 0 ? "n/a" : formatCurrency(varianceEuroValue),
-      variance: value2024 === 0 && value2025 === 0 ? "n/a" : `${variance >= 0 ? '+' : ''}${formatPercentage(variance, 1)}`,
-      // Removed manual className to allow DataTable to handle styling via row indices
-    };
-  };
-
+  let tableData: any[] = [];
   const emptyRow = { voce: "", value2025: "", percentage: "", value2024: "", varianceEuro: "", variance: "" };
 
-  // FIX: Use grossProfit if available (Maia uses Gross Profit), otherwise margine (Awentia), otherwise calculate: Ricavi - Costi Diretti
-  const margine2025 = progressivo2025.grossProfit || progressivo2025.margine || (progressivo2025.totaleRicavi - progressivo2025.costiDiretti) || 0;
-  const margine2024 = progressivo2024.grossProfit || progressivo2024.margine || (progressivo2024.totaleRicavi - progressivo2024.costiDiretti) || 0;
+  if (progressivo2025.isDynamic && progressivo2025.rows) {
+    // RENDERING DINAMICO UNIVERSALE (Awentia, Sherpa42, Maia)
+    const totalRicavi = progressivo2025.totaleRicavi || 1;
+    const dynamicRows: any[] = [];
+    const emptyRow = { voce: "", value2025: "", percentage: "", value2024: "", varianceEuro: "", variance: "", className: "" };
 
-  const data = [
-    createRow("Ricavi caratteristici", progressivo2025.ricaviCaratteristici, progressivo2024.ricaviCaratteristici),
-    createRow("Altri ricavi", progressivo2025.altriRicavi, progressivo2024.altriRicavi),
-    createRow("TOTALE RICAVI", progressivo2025.totaleRicavi, progressivo2024.totaleRicavi, true),
-    emptyRow,
-    createRow("Servizi diretti", progressivo2025.serviziDiretti, progressivo2024.serviziDiretti),
-    createRow("Consulenze dirette", progressivo2025.consulenzeDirette, progressivo2024.consulenzeDirette),
-    createRow("Servizi informatici web", progressivo2025.serviziInformatici, progressivo2024.serviziInformatici),
-    createRow("Servizi cloud", progressivo2025.serviziCloud, progressivo2024.serviziCloud),
-    createRow("COSTI DIRETTI", progressivo2025.costiDiretti, progressivo2024.costiDiretti, true),
-    createRow("Altri servizi e prestazioni", progressivo2025.altriServizi, progressivo2024.altriServizi),
-    createRow("COSTI INDIRETTI", progressivo2025.costiIndiretti, progressivo2024.costiIndiretti, true),
-    createRow("TOTALE COSTI DIRETTI E INDIRETTI", progressivo2025.totaleCostiDirettiIndiretti, progressivo2024.totaleCostiDirettiIndiretti, true),
-    createRow("MARGINE", margine2025, margine2024, true),
-    emptyRow,
-    createRow("Ricavi non tipici", progressivo2025.ricaviNonTipici, progressivo2024.ricaviNonTipici),
-    createRow("Costi commerciali", progressivo2025.costiCommerciali, progressivo2024.costiCommerciali),
-    createRow("Personale", progressivo2025.personale, progressivo2024.personale),
-    createRow("Compensi amministratore", progressivo2025.compensiAmministratore, progressivo2024.compensiAmministratore),
-    createRow("Rimborsi amministratore", progressivo2025.rimborsiAmministratore, progressivo2024.rimborsiAmministratore),
-    createRow("Servizi contabili e paghe", progressivo2025.serviziContabiliPaghe, progressivo2024.serviziContabiliPaghe),
-    createRow("Consulenze legali", progressivo2025.consulenzeLegali, progressivo2024.consulenzeLegali),
-    createRow("Consulenze tecniche", progressivo2025.consulenzeTecniche, progressivo2024.consulenzeTecniche),
-    createRow("Altre spese di funzionamento", progressivo2025.altreSpeseFunzionamento, progressivo2024.altreSpeseFunzionamento),
-    createRow("TOTALE GESTIONE STRUTTURA", progressivo2025.totaleStrutturaAltreVociNonTipiche || progressivo2025.totaleGestioneStruttura, progressivo2024.totaleStrutturaAltreVociNonTipiche || progressivo2024.totaleGestioneStruttura, true),
-    createRow("EBITDA", progressivo2025.ebitda, progressivo2024.ebitda, true),
-    emptyRow,
-    createRow("Ammortamenti e svalutazioni", progressivo2025.ammortamentiSvalutazioni, progressivo2024.ammortamentiSvalutazioni),
-    createRow("Gestione straordinaria", progressivo2025.gestioneStraordinaria, progressivo2024.gestioneStraordinaria),
-    createRow("Gestione finanziaria", progressivo2025.gestioneFinanziaria, progressivo2024.gestioneFinanziaria),
-    createRow("TOTALE ALTRE VOCI NON TIPICHE", progressivo2025.totaleAltreVociNonTipiche, progressivo2024.totaleAltreVociNonTipiche, true),
-    createRow("RISULTATO ANTE IMPOSTE", progressivo2025.risultatoAnteImposte, progressivo2024.risultatoAnteImposte, true),
-    createRow("Imposte", progressivo2025.imposte, progressivo2024.imposte),
-    createRow("RISULTATO DELL'ESERCIZIO", progressivo2025.risultatoEsercizio, progressivo2024.risultatoEsercizio, true),
-  ];
+    progressivo2025.rows.forEach((row: any) => {
+      const cleanLabel = row.voce.trim();
+      const upperLabel = cleanLabel.toUpperCase().replace(/\s+/g, '');
+      const noise = ["CONTOECONOMICO", "DICEMBRE", "GENNAIO", "FEBBRAIO", "MARZO", "APRILE", "MAGGIO", "GIUGNO", "LUGLIO", "AGOSTO", "SETTEMBRE", "OTTOBRE", "NOVEMBRE"];
+      if (upperLabel.includes("CONTOECONOMICO") || noise.includes(upperLabel) || /^\d{2,4}$/.test(upperLabel)) return;
 
+      const v25 = typeof row.value2025 === 'number' ? row.value2025 : 0;
+      const v24 = typeof row.value2024 === 'number' ? row.value2024 : 0;
+      const percentage = (v25 / totalRicavi) * 100;
+      const variance = calculateVariance(v25, v24);
+      
+      const labelUpper = row.voce.toUpperCase();
+      
+      // Add spacer before key sections
+      if (labelUpper.includes("EBITDA") || labelUpper.includes("EBIT") || labelUpper.includes("RISULTATO")) {
+        dynamicRows.push(emptyRow);
+      }
 
+      let className = row.type || "";
+      if (className === "total") className = "total-dark";
+      if (className === "result" || labelUpper.includes("RISULTATO")) className = "result";
+      if (className === "key-metric") className = "key-metric";
+      if (className === "subtotal") className = "highlight";
 
-  const margineVariance = calculateVariance(margine2025, margine2024);
-  const ebitdaVariance = calculateVariance(progressivo2025.ebitda, progressivo2024.ebitda);
-  const risultatoVariance = calculateVariance(progressivo2025.risultatoEsercizio, progressivo2024.risultatoEsercizio);
+      dynamicRows.push({
+        voce: row.voce,
+        value2025: formatCurrency(v25),
+        percentage: formatPercentage(percentage, 1),
+        value2024: formatCurrency(v24),
+        varianceEuro: v24 === 0 && v25 === 0 ? "n/a" : formatCurrency(v25 - v24),
+        variance: v24 === 0 && v25 === 0 ? "n/a" : `${variance >= 0 ? '+' : ''}${formatPercentage(variance, 1)}`,
+        className: className
+      });
+    });
+    tableData = dynamicRows;
+  } else {
+    // RENDERING HARDCODED (Awentia)
+    const createRow = (label: string, val25: number, val24: number, isBold = false, className = "") => {
+      const ricavi25 = progressivo2025.totaleRicavi || 1;
+      const percentage = (val25 / ricavi25) * 100;
+      const variance = calculateVariance(val25, val24);
+      return {
+        voce: label,
+        value2025: formatCurrency(val25),
+        percentage: formatPercentage(percentage, 1),
+        value2024: formatCurrency(val24),
+        varianceEuro: val24 === 0 && val25 === 0 ? "n/a" : formatCurrency(val25 - val24),
+        variance: val24 === 0 && val25 === 0 ? "n/a" : `${variance >= 0 ? '+' : ''}${formatPercentage(variance, 1)}`,
+        className: className || (isBold ? "font-bold" : ""),
+      };
+    };
 
-  const margine2025Perc = (margine2025 / progressivo2025.totaleRicavi) * 100;
-  const ebitda2025Perc = (progressivo2025.ebitda / progressivo2025.totaleRicavi) * 100;
-  const risultato2025Perc = (progressivo2025.risultatoEsercizio / progressivo2025.totaleRicavi) * 100;
+    tableData = [
+      createRow("TOTALE RICAVI", progressivo2025.totaleRicavi, progressivo2024.totaleRicavi, true, "total-dark"),
+      emptyRow,
+      createRow("COSTI DIRETTI", progressivo2025.costiDiretti, progressivo2024.costiDiretti, true, "highlight"),
+      createRow("COSTI INDIRETTI", progressivo2025.costiIndiretti, progressivo2024.costiIndiretti, true, "highlight"),
+      createRow("TOTALE COSTI DIRETTI E INDIRETTI", progressivo2025.totaleCostiDirettiIndiretti, progressivo2024.totaleCostiDirettiIndiretti, true, "total-dark"),
+      createRow("MARGINE", progressivo2025.margine || progressivo2025.grossProfit, progressivo2024.margine || progressivo2024.grossProfit, true, "key-metric"),
+      emptyRow,
+      createRow("TOTALE GESTIONE STRUTTURA", progressivo2025.totaleGestioneStruttura, progressivo2024.totaleGestioneStruttura, true, "total-dark"),
+      createRow("EBITDA", progressivo2025.ebitda, progressivo2024.ebitda, true, "key-metric"),
+      emptyRow,
+      createRow("RISULTATO ANTE IMPOSTE", progressivo2025.ebt, progressivo2024.ebt, true, "key-metric"),
+      createRow("RISULTATO DELL'ESERCIZIO", progressivo2025.risultatoEsercizio, progressivo2024.risultatoEsercizio, true, "result"),
+    ];
+  }
 
   return (
-    <div data-testid="page-ce-sintetico">
-      <PageHeader
-        title="CE Sintetico"
-        subtitle={`Conto Economico Sintetico - Principali aggregati economici (Progressivo ${periodLabel})`}
-      />
-
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <KPICard
-          label="Margine Lordo"
-          value={formatPercentage(margine2025Perc)}
-          change={`${margineVariance >= 0 ? '+' : ''}${formatPercentage(margineVariance, 0)} vs 2024`}
-          changeType={margineVariance >= 0 ? "positive" : "negative"}
-        />
-        <KPICard
-          label="EBITDA"
-          value={formatCurrency(progressivo2025.ebitda)}
-          change={`${ebitdaVariance >= 0 ? '+' : ''}${formatPercentage(ebitdaVariance, 0)} vs 2024`}
-          changeType={ebitdaVariance >= 0 ? "positive" : "negative"}
-        />
-        <KPICard
-          label="Risultato Esercizio"
-          value={formatCurrency(progressivo2025.risultatoEsercizio)}
-          change={`${risultatoVariance >= 0 ? '+' : ''}${formatPercentage(risultatoVariance, 0)} vs 2024`}
-          changeType={risultatoVariance >= 0 ? "positive" : "negative"}
-        />
-      </div>
-
-      <DataTable
-        columns={columns}
-        data={data}
-        totalRows={[2, 8, 10, 11, 23, 29]}
-        keyMetricRows={[12, 24, 30]}
-        resultRow={[32]}
-      />
+    <div data-testid="page-ce-sintetico" className="space-y-6">
+      <PageHeader title="CE Sintetico" subtitle={`Conto Economico Sintetico - Principali aggregati (Progressivo ${periodLabel})`} />
+      <DataTable columns={columns} data={tableData} />
     </div>
   );
 }

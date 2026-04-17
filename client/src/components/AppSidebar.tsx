@@ -9,7 +9,7 @@ import {
   SidebarMenuItem,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
-import { Home, FileText, Calendar, TrendingUp, BarChart3, PanelLeftClose, BookOpen, LogOut, Upload } from "lucide-react";
+import { Home, FileText, Calendar, TrendingUp, BarChart3, PanelLeftClose, BookOpen, LogOut, Upload, Settings } from "lucide-react";
 import { useLocation, Link } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
 import immentLogo from "@assets/Imment - logo - web_Orizzontale - colori - chiaro.png";
@@ -23,6 +23,10 @@ const menuItems = [
   { title: "CE Sintetico Mensile", icon: BarChart3, url: "/ce-sintetico-mensile" },
   { title: "Partitari", icon: BookOpen, url: "/partitari" },
   { title: "Importa Dati", icon: Upload, url: "/import" },
+];
+
+const adminMenuItems = [
+  { title: "Impostazioni", icon: Settings, url: "/settings" },
 ];
 
 export default function AppSidebar() {
@@ -85,6 +89,22 @@ export default function AppSidebar() {
           <SidebarGroupContent>
             <SidebarMenu>
               {menuItems.map((item) => (
+                <SidebarMenuItem key={item.title}>
+                  <SidebarMenuButton
+                    asChild
+                    isActive={location === item.url}
+                    className="text-white hover:text-white hover:bg-white/20 data-[active=true]:bg-white/25 data-[active=true]:text-white data-[active=true]:font-semibold data-[active=true]:border-l-[3px] data-[active=true]:border-l-white px-4 py-3.5 mb-2 rounded-[10px] text-[15px]"
+                    data-testid={`nav-${item.title.toLowerCase().replace(/\s+/g, '-')}`}
+                  >
+                    <Link href={item.url} className="flex items-center gap-3">
+                      <item.icon className="w-5 h-5" />
+                      <span>{item.title}</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+
+              {isAdmin && adminMenuItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton
                     asChild

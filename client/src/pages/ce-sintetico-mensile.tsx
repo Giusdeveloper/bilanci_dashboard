@@ -1,13 +1,14 @@
 import PageHeader from "@/components/PageHeader";
 import { Card } from "@/components/ui/card";
-import ChartCard from "@/components/ChartCard";
-import { Line } from "react-chartjs-2";
 import { formatCurrency } from "@/data/financialData";
 import { useFinancialData } from "@/contexts/FinancialDataContext";
 import { useEffect, useState } from "react";
+import { Link } from "wouter";
 
 interface MonthlyData {
   months: string[];
+  isDynamic?: boolean;
+  rows?: any[];
   [key: string]: any;
 }
 
@@ -23,7 +24,7 @@ type ViewMode = 'progressivo2025' | 'puntuale2025' | 'progressivo2024' | 'puntua
 export default function CESinteticoMensile() {
   const { selectedCompany, getCESinteticoMensileData } = useFinancialData();
   const [ceData, setCeData] = useState<CESinteticoMensileData | null>(null);
-  const [viewMode, setViewMode] = useState<ViewMode>('puntuale2025');
+  const [viewMode, setViewMode] = useState<ViewMode>('progressivo2025');
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -56,232 +57,139 @@ export default function CESinteticoMensile() {
     setViewMode(mode);
   };
 
+  const getTabClass = (mode: ViewMode) => {
+    const base = "px-4 py-2 text-sm font-medium rounded-md transition-colors";
+    return viewMode === mode
+      ? `${base} bg-primary text-primary-foreground shadow`
+      : `${base} bg-muted text-muted-foreground hover:bg-muted/80`;
+  };
+
   const currentData = ceData ? ceData[viewMode] : null;
 
-  // Se nessuna azienda è selezionata, mostra un messaggio
   if (!selectedCompany) {
     return (
-      <div data-testid="page-ce-sintetico-mensile" className="p-8">
+      <div className="p-8">
         <PageHeader title="CE Sintetico Mensile" subtitle="Conto Economico Sintetico" />
         <div className="p-8 bg-muted rounded-lg text-center mt-6">
-          <p className="text-lg text-muted-foreground">Seleziona un'azienda per visualizzare i dati</p>
+          <p className="text-lg text-muted-foreground">Seleziona un'azienda per visualizzare i dati.</p>
         </div>
       </div>
     );
   }
 
-  // Se sta caricando, mostra loading
-  if (loading) {
-    return <div className="p-8 text-center">Caricamento dati...</div>;
-  }
+  if (loading) return <div className="p-8 text-center">Caricamento...</div>;
 
-  // Se non ci sono dati, mostra messaggio
   if (!ceData || !currentData) {
     return (
-      <div data-testid="page-ce-sintetico-mensile" className="p-8">
+      <div className="p-8">
         <PageHeader title="CE Sintetico Mensile" subtitle="Dati non disponibili" />
-        <div className="p-8 bg-muted rounded-lg text-center mt-6">
-          <p className="text-lg text-muted-foreground">Nessun dato disponibile per questa vista ({viewMode}).</p>
-        </div>
+        <div className="mt-8 text-center text-muted-foreground">Nessun dato disponibile per questa vista ({viewMode}).</div>
       </div>
     );
   }
 
   const { months } = currentData;
+  const monthUrlMap: { [key: string]: string } = {
+    "Gen": "gennaio", "Feb": "febbraio", "Mar": "marzo", "Apr": "aprile",
+    "Mag": "maggio", "Giu": "giugno", "Lug": "luglio", "Ago": "agosto",
+    "Set": "settembre", "Ott": "ottobre", "Nov": "novembre", "Dic": "dicembre"
+  };
 
-  const createRowData = (label: string, values: number[] | undefined, isPercentage = false, isBold = false) => {
-    const safeValues = values || [];
-    // If no values, return placeholders
-    if (safeValues.length === 0) {
+  const getRowStyle = (className: string) => {
+    switch (className) {
+      case "result": return { row: "bg-yellow-50 dark:bg-yellow-900/20 font-bold", sticky: "bg-[#fefce8] dark:bg-[#1a1600]" };
+      case "key-metric": return { row: "bg-blue-100 dark:bg-blue-900/30 font-bold", sticky: "bg-[#f0f9ff] dark:bg-[#082f49]" };
+      case "total-dark": return { row: "bg-blue-50 dark:bg-blue-950/20 font-bold", sticky: "bg-[#f1f5f9] dark:bg-[#1e293b]" };
+      case "highlight": return { row: "font-semibold", sticky: "bg-[#f8fafc] dark:bg-[#0f172a]" };
+      default: return { row: "hover:bg-muted/50", sticky: "bg-card" };
+    }
+  };
+
+  let displayRows: any[] = [];
+
+  if (currentData.isDynamic && currentData.rows) {
+    // RENDERING DINAMICO UNIVERSALE (Awentia, Sherpa42, Maia)
+    displayRows = currentData.rows
+      .map((row: any) => {
+        const vals = row.valori || [];
+        const total = vals.length > 0 ? vals[vals.length - 1] : 0;
+        
+        let className = row.type || "";
+        if (className === "total") className = "total-dark";
+        if (className === "result") className = "result";
+        if (className === "key-metric") className = "key-metric";
+        if (className === "subtotal") className = "highlight";
+
+        return {
+          voce: row.voce,
+          values: vals.map((v: number) => formatCurrency(v || 0).replace("€", "").trim()),
+          total: formatCurrency(total).replace("€", "").trim(),
+          className: className
+        };
+      });
+  } else {
+    // RENDERING HARDCODED (Awentia)
+    const createRowData = (label: string, values: number[] | undefined, className = "") => {
+      const safeValues = values || new Array(months.length).fill(0);
+      const total = safeValues[safeValues.length - 1] || 0; 
       return {
         voce: label,
-        values: [],
-        total: isPercentage ? "0.0%" : "0",
-        isPercentage,
-        isBold
+        values: safeValues.map((v) => formatCurrency(v).replace("€", "").trim()),
+        total: formatCurrency(total).replace("€", "").trim(),
+        className: className,
       };
-    }
-
-    return {
-      voce: label,
-      values: isPercentage
-        ? safeValues.map((v) => `${v.toFixed(1)}%`)
-        : safeValues.map((v) => formatCurrency(v).replace("€", "").trim()),
-      total: isPercentage
-        ? (safeValues[safeValues.length - 1] || 0).toFixed(1) + "%"
-        : formatCurrency(safeValues[safeValues.length - 1] || 0).replace("€", "").trim(),
-      isPercentage,
-      isBold,
     };
-  };
 
-  const grossProfit = currentData.grossProfit || [];
-  const totaleRicavi = currentData.totaleRicavi || [];
-
-  const marginValues = grossProfit.map((gp: number, i: number) => {
-    const ricavi = totaleRicavi[i] || 0;
-    return ricavi ? (gp / ricavi) * 100 : 0;
-  });
-
-  const data = [
-    createRowData("Ricavi caratteristici", currentData.ricaviCaratteristici),
-    createRowData("Altri ricavi", currentData.altriRicavi),
-    createRowData("TOTALE RICAVI", currentData.totaleRicavi, false, true),
-    { voce: "", values: [], total: "", isPercentage: false, isBold: false },
-    createRowData("Servizi diretti", currentData.serviziDiretti),
-    createRowData("Consulenze dirette", currentData.consulenzeDirette),
-    createRowData("Servizi informatici web", currentData.serviziInformatici),
-    createRowData("Servizi cloud", currentData.serviziCloud),
-    createRowData("COSTI DIRETTI", currentData.costiDiretti, false, true),
-    createRowData("Beni strumentali", currentData.beniIndeducibili),
-    createRowData("Spese per manutenzione", currentData.speseManutenzione || []),
-    createRowData("Altri servizi e prestazioni", currentData.altriServizi),
-    createRowData("COSTI INDIRETTI", currentData.costiIndiretti, false, true),
-    createRowData("TOTALE COSTI DIRETTI E INDIRETTI", currentData.totaleCostiDirettiIndiretti, false, true),
-    createRowData("GROSS PROFIT", currentData.grossProfit, false, true),
-    { voce: "", values: [], total: "", isPercentage: false, isBold: false },
-    createRowData("Ricavi non tipici", currentData.ricaviNonTipici),
-    createRowData("Costi commerciali", currentData.speseCommerciali),
-    createRowData("Personale", currentData.personale),
-    createRowData("Compensi amministratore", currentData.compensiAmministratore),
-    createRowData("Rimborsi amministratore", currentData.rimborsiAmministratore),
-    createRowData("Servizi contabili e paghe", currentData.serviziAmministrativi || currentData.serviziContabiliPaghe),
-    createRowData("Consulenze legali", currentData.consulenzeLegali),
-    createRowData("Consulenze tecniche", currentData.consulenzeTecniche),
-    createRowData("Altre spese di funzionamento", currentData.altreSpeseFunzionamento || []),
-    createRowData("TOTALE STRUTTURA", currentData.totaleGestioneStruttura || currentData.totaleStruttura, false, true),
-    createRowData("EBITDA", currentData.ebitda, false, true),
-    { voce: "", values: [], total: "", isPercentage: false, isBold: false },
-    createRowData("Ammortamenti e svalutazioni", currentData.totaleAmmortamenti || currentData.ammortamentiSvalutazioni),
-    createRowData("Gestione straordinaria", currentData.gestioneStraordinaria),
-    createRowData("Gestione finanziaria", currentData.gestioneFinanziaria),
-    createRowData("TOTALE ALTRE VOCI NON TIPICHE", currentData.totaleAltreVociNonTipiche || [], false, true),
-    createRowData("RISULTATO ANTE IMPOSTE", currentData.ebt || currentData.risultatoAnteImposte, false, true),
-    createRowData("Imposte", currentData.imposteDirette || currentData.imposte),
-    createRowData("RISULTATO DELL'ESERCIZIO", currentData.risultatoEsercizio || currentData.risultato, false, true),
-    { voce: "", values: [], total: "", isPercentage: false, isBold: false },
-    {
-      voce: "Margine Gross Profit %",
-      values: marginValues.map((v: number) => v.toFixed(1) + '%'),
-      total: ((currentData.grossProfit?.[currentData.grossProfit.length - 1] / currentData.totaleRicavi?.[currentData.totaleRicavi.length - 1]) * 100).toFixed(1) + '%',
-      isPercentage: true,
-      isBold: true
-    },
-  ];
-
-  const totalRows = [2, 8, 12, 13, 25, 31];
-  const keyMetricRows = [14, 26, 32];
-  const resultRow = [34];
-
-  const trendData = {
-    labels: months,
-    datasets: [
-      {
-        label: "Margine Gross Profit %",
-        data: marginValues,
-        borderColor: "#335C96",
-        backgroundColor: "rgba(51, 92, 150, 0.1)",
-        tension: 0.4,
-      },
-    ],
-  };
-
-  const chartOptions = {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-      legend: { position: "top" as const },
-    },
-    scales: {
-      y: {
-        beginAtZero: false,
-        ticks: { callback: (value: any) => value + "%" },
-      },
-    },
-  };
-
-  const getTabClass = (mode: ViewMode) => {
-    return viewMode === mode
-      ? "bg-primary text-primary-foreground shadow px-4 py-2 text-sm font-medium rounded-md transition-colors"
-      : "bg-muted text-muted-foreground hover:bg-muted/80 px-4 py-2 text-sm font-medium rounded-md transition-colors";
-  };
+    displayRows = [
+      createRowData("TOTALE RICAVI", currentData.totaleRicavi, "total-dark"),
+      createRowData("COSTI DIRETTI", currentData.costiDiretti, "highlight"),
+      createRowData("COSTI INDIRETTI", currentData.costiIndiretti, "highlight"),
+      createRowData("TOTALE COSTI DIRETTI E INDIRETTI", currentData.totaleCostiDirettiIndiretti, "total-dark"),
+      createRowData("MARGINE", currentData.margine || currentData.grossProfit, "key-metric"),
+      createRowData("TOTALE GESTIONE STRUTTURA", currentData.totaleGestioneStruttura || currentData.totaleStruttura, "total-dark"),
+      createRowData("EBITDA", currentData.ebitda, "key-metric"),
+      createRowData("RISULTATO ANTE IMPOSTE", currentData.ebt || currentData.risultatoAnteImposte, "key-metric"),
+      createRowData("RISULTATO DELL'ESERCIZIO", currentData.risultatoEsercizio || currentData.risultato, "result"),
+    ];
+  }
 
   return (
     <div data-testid="page-ce-sintetico-mensile" className="space-y-6">
       <div className="bg-primary rounded-lg p-6 text-primary-foreground shadow-lg">
         <h1 className="text-2xl font-bold mb-2">CE Sintetico Mensile</h1>
-        <p className="opacity-90">Conto Economico Sintetico - Analisi mensile {viewMode.replace('puntuale', 'Puntuale ')}</p>
+        <p className="opacity-90">Conto Economico Sintetico - Analisi mensile {viewMode.replace('progressivo', 'Progressivo ').replace('puntuale', 'Puntuale ')}.</p>
       </div>
 
       <div className="flex flex-wrap gap-2">
-        <button onClick={() => handleTabChange('puntuale2025')} className={getTabClass('puntuale2025')}>Puntuale 2025</button>
-        <button onClick={() => handleTabChange('puntuale2024')} className={getTabClass('puntuale2024')}>Puntuale 2024</button>
-      </div>
-
-      <div className="mb-8">
-        <ChartCard title={`Trend Margine Gross Profit Mensile (${viewMode})`}>
-          <Line data={trendData} options={chartOptions} />
-        </ChartCard>
+        {['progressivo2025', 'puntuale2025', 'progressivo2024', 'puntuale2024'].map((m) => (
+          <button key={m} onClick={() => handleTabChange(m as ViewMode)} className={getTabClass(m as ViewMode)}>
+            {m.replace('progressivo', 'Progressivo ').replace('puntuale', 'Puntuale ')}
+          </button>
+        ))}
       </div>
 
       <Card className="p-6 overflow-x-auto">
-        <h3 className="text-lg font-bold mb-5">Riepilogo Mensile Sintetico - {viewMode}</h3>
         <div className="overflow-x-auto">
           <table className="w-full border-collapse min-w-max">
             <thead>
               <tr>
-                <th className="bg-muted px-3 py-3 text-sm font-semibold text-muted-foreground border-b-2 border-border text-left sticky left-0 bg-muted z-20 shadow-[2px_0_4px_rgba(0,0,0,0.05)]">
-                  Voce
-                </th>
-                {months.map((month: string) => (
-                  <th key={month} className="bg-muted px-3 py-3 text-sm font-semibold text-muted-foreground border-b-2 border-border text-right whitespace-nowrap">
-                    {month}
+                <th className="bg-muted px-3 py-3 text-sm font-semibold text-muted-foreground border-b-2 border-border text-left sticky left-0 z-20 shadow-[2px_0_4px_rgba(0,0,0,0.05)]">Voce</th>
+                {months.map((m) => (
+                  <th key={m} className="bg-muted px-3 py-3 text-sm font-semibold border-b-2 border-border text-right whitespace-nowrap">
+                    <Link href={`/ce-dettaglio-mensile/${monthUrlMap[m] || 'gennaio'}`} className="text-primary hover:underline">{m}</Link>
                   </th>
                 ))}
-                <th className="bg-muted px-3 py-3 text-sm font-semibold text-muted-foreground border-b-2 border-border text-right font-bold">
-                  {months[months.length - 1]} (Finale)
-                </th>
+                <th className="bg-muted px-3 py-3 text-sm font-bold border-b-2 border-border text-right whitespace-nowrap">Totale</th>
               </tr>
             </thead>
             <tbody>
-              {data.map((row, idx) => {
-                if (row.voce === "") {
-                  return <tr key={idx}><td colSpan={months.length + 2} className="py-1"></td></tr>;
-                }
-
-                const isTotal = totalRows.includes(idx);
-                const isKeyMetric = keyMetricRows.includes(idx);
-                const isResult = resultRow.includes(idx);
-
-                const rowClassName = isResult
-                  ? "bg-yellow-50 dark:bg-yellow-900/20 font-bold"
-                  : isKeyMetric
-                    ? "bg-blue-100 dark:bg-blue-900/30 font-bold"
-                    : isTotal
-                      ? "bg-blue-50 dark:bg-blue-950/20 font-bold"
-                      : row.isBold
-                        ? "font-bold"
-                        : "hover:bg-muted/50";
-
-                // Ensure sticky column has a solid background to prevent transparency overlap
-                let cellBg = "bg-card";
-                if (isResult) cellBg = "bg-[#fefce8] dark:bg-[#1a1600]";
-                else if (isKeyMetric) cellBg = "bg-[#f0f9ff] dark:bg-[#082f49]";
-                else if (isTotal) cellBg = "bg-[#f8fafc] dark:bg-[#0f172a]";
-
+              {displayRows.map((row, idx) => {
+                const styles = getRowStyle(row.className);
                 return (
-                  <tr key={idx} className={rowClassName}>
-                    <td className={`px-3 py-3 text-sm border-b border-border ${row.isBold ? 'font-semibold' : ''} sticky left-0 z-20 ${cellBg} shadow-[2px_0_4px_rgba(0,0,0,0.05)]`}>
-                      {row.voce}
-                    </td>
-                    {row.values.map((value: string, i: number) => (
-                      <td key={i} className="px-3 py-3 text-sm border-b border-border text-right whitespace-nowrap">
-                        {row.isPercentage ? value : `€ ${value}`}
-                      </td>
-                    ))}
-                    <td className={`px-3 py-3 text-sm border-b border-border text-right font-bold whitespace-nowrap ${isResult ? 'bg-yellow-100 dark:bg-yellow-900/30' : isKeyMetric ? 'bg-blue-150 dark:bg-blue-800/40' : isTotal ? 'bg-blue-100 dark:bg-blue-900/30' : 'bg-muted/30'}`}>
-                      {row.isPercentage ? row.total : `€ ${row.total}`}
-                    </td>
+                  <tr key={idx} className={styles.row}>
+                    <td className={`px-3 py-3 text-sm border-b border-border sticky left-0 z-20 ${styles.sticky} shadow-[2px_0_4px_rgba(0,0,0,0.05)]`}>{row.voce}</td>
+                    {row.values.map((v: string, i: number) => <td key={i} className="px-3 py-3 text-sm border-b border-border text-right whitespace-nowrap">€ {v}</td>)}
+                    <td className="px-3 py-3 text-sm border-b border-border text-right font-bold whitespace-nowrap">€ {row.total}</td>
                   </tr>
                 );
               })}
