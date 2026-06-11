@@ -16,6 +16,7 @@ import {
 } from './index.ts';
 import { extractSourceMapping } from './seed/extractSourceMapping.ts';
 import { findSheetName, getSheet } from './workbook.ts';
+import { hasImportFixtures } from '../test/importFixtures.ts';
 
 const BILANCINO_FILE =
   'import_data/Bilancini/Awentia/Bilancini 2026/AWENTIA SRL 30 04 provvisorio.xlsx';
@@ -39,7 +40,7 @@ function loadLedgerFromAnalisiSource() {
   });
 }
 
-describe('Awentia apr 2026 — gate quadratura CFO', () => {
+describe.skipIf(!hasImportFixtures())('Awentia apr 2026 — gate quadratura CFO', () => {
   const wb = readWorkbookData(
     XLSX as never,
     new Uint8Array(readFileSync(BILANCINO_FILE)),

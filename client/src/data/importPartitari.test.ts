@@ -9,6 +9,7 @@ import {
   parseItalianDate,
   previewPartitariImport,
 } from './importPartitari';
+import { importFixtureExists } from '@shared/test/importFixtures';
 
 const CSV_FIXTURE = 'import_data/CASA PROFITTO VELOCE PARTITARI 31 07.csv';
 const XLSX_FIXTURE = 'import_data/PARTITARI_BABYLON_31_12_25.xlsx';
@@ -44,13 +45,13 @@ describe('importPartitari', () => {
     ).toBe(2);
   });
 
-  it('loadPartitariParser rileva export CSV con separatore ;', async () => {
+  it.skipIf(!importFixtureExists(CSV_FIXTURE))('loadPartitariParser rileva export CSV con separatore ;', async () => {
     const file = fileFromPath(CSV_FIXTURE, 'text/csv');
     const parser = await loadPartitariParser(file);
     expect(parser.detectPartitari()).toBe(true);
   });
 
-  it('previewPartitariImport su CSV di esempio', async () => {
+  it.skipIf(!importFixtureExists(CSV_FIXTURE))('previewPartitariImport su CSV di esempio', async () => {
     const file = fileFromPath(CSV_FIXTURE, 'text/csv');
     const preview = await previewPartitariImport(file);
     expect(preview.rowCount).toBeGreaterThan(0);
@@ -61,7 +62,7 @@ describe('importPartitari', () => {
     expect(preview.headers).toContain('Data_registraz');
   });
 
-  it('previewPartitariImport su XLSX di esempio', async () => {
+  it.skipIf(!importFixtureExists(XLSX_FIXTURE))('previewPartitariImport su XLSX di esempio', async () => {
     const file = fileFromPath(
       XLSX_FIXTURE,
       'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',

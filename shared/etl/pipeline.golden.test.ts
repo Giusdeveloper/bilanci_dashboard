@@ -24,6 +24,7 @@ import {
   mappingsForCompany,
 } from './index.ts';
 import { GOLDEN_CASES } from './__fixtures__/goldenKpis.ts';
+import { hasImportFixtures } from '../test/importFixtures.ts';
 
 const validCodes = new Set(buildMasterChart().map((a) => a.code));
 
@@ -32,7 +33,7 @@ function loadWorkbook(file: string) {
   return readWorkbookData(XLSX as never, bytes);
 }
 
-describe('ETL pipeline — golden test (file reali 2025)', () => {
+describe.skipIf(!hasImportFixtures())('ETL pipeline — golden test (file reali 2025)', () => {
   for (const gc of GOLDEN_CASES) {
     describe(`${gc.companySlug} ${gc.year}`, () => {
       const wb = loadWorkbook(gc.file);

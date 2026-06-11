@@ -12,6 +12,7 @@ import {
   parseDataRif,
   parseFilenamePeriod,
 } from './index.ts';
+import { hasImportFixtures } from '../test/importFixtures.ts';
 
 const BILANCINO_FILE = 'import_data/Bilancini/Awentia/Bilancini 2025/AWENTIA srl BI.31.12.25 PROVVISORIO N.2.xlsx';
 const STAMPA_FILE = 'import_data/Bilancini/Awentia/Bilancini 2025/AWENTIA 06 25.xlsx';
@@ -22,9 +23,7 @@ function loadBilancino() {
   return readWorkbookData(XLSX as never, bytes);
 }
 
-describe('extractBilancino — Awentia BI 31.12.2025', () => {
-  const wb = loadBilancino();
-
+describe('parseDataRif / parseFilenamePeriod', () => {
   it('parseDataRif da serial Excel 46022 → dicembre 2025', () => {
     const { year, month } = parseDataRif(46022);
     expect(year).toBe(2025);
@@ -36,6 +35,14 @@ describe('extractBilancino — Awentia BI 31.12.2025', () => {
     expect(year).toBe(2025);
     expect(month).toBe(12);
   });
+
+  it('parseFilenamePeriod da "06 25"', () => {
+    expect(parseFilenamePeriod(STAMPA_FILENAME)).toEqual({ year: 2025, month: 6 });
+  });
+});
+
+describe.skipIf(!hasImportFixtures())('extractBilancino — Awentia BI 31.12.2025', () => {
+  const wb = loadBilancino();
 
   it('riconosce profilo bilancino_studio', () => {
     const detection = detectProfile(wb);
@@ -72,12 +79,8 @@ describe('extractBilancino — Awentia BI 31.12.2025', () => {
   });
 });
 
-describe('extractBilancino — Awentia giugno 2025 (bilancino_stampa)', () => {
+describe.skipIf(!hasImportFixtures())('extractBilancino — Awentia giugno 2025 (bilancino_stampa)', () => {
   const wb = readWorkbookData(XLSX as never, new Uint8Array(readFileSync(STAMPA_FILE)));
-
-  it('parseFilenamePeriod da "06 25"', () => {
-    expect(parseFilenamePeriod(STAMPA_FILENAME)).toEqual({ year: 2025, month: 6 });
-  });
 
   it('riconosce profilo bilancino_stampa', () => {
     const detection = detectProfile(wb);
