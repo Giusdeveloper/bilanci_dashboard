@@ -9,6 +9,7 @@
 import { useEffect, useMemo, useState } from 'react';
 
 import EditorShell from '@/components/EditorShell';
+import LayoutPresentationSection from '@/components/LayoutPresentationSection';
 import ManualFactDialog, { type ManualFactDialogTarget } from '@/components/ManualFactDialog';
 
 import { Card, CardContent } from '@/components/ui/card';
@@ -355,6 +356,8 @@ export default function EditorCEDettaglioPage() {
         </Card>
 
       )}
+
+      <LayoutPresentationSection />
 
       <ManualFactDialog
         open={manualDialogOpen}

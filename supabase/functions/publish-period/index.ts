@@ -10,7 +10,8 @@
 // deno-lint-ignore-file no-explicit-any
 import { createClient } from '@supabase/supabase-js';
 import { buildResolver } from '../../../shared/etl/mapping.ts';
-import { parseDraftMappingChanges, parseDraftManualFactChanges } from '../../../shared/etl/draftChanges.ts';
+import { parseDraftMappingChanges, parseDraftManualFactChanges, parseDraftLayoutChanges } from '../../../shared/etl/draftChanges.ts';
+import { hashSnapshotFacts } from '../../../shared/etl/snapshotHash.ts';
 import { evaluatePublishPeriodGate } from '../../../shared/etl/bilancinoPublishGate.ts';
 import {
   recalculateFromDraft,
@@ -164,6 +165,128 @@ async function loadDraftManualFactChanges(supabase: any, draftEditId: string) {
   );
 }
 
+async function loadDraftLayoutChanges(supabase: any, draftEditId: string) {
+  const { data, error } = await supabase
+    .from('draft_edit_changes')
+    .select('entity_key, new_value')
+    .eq('draft_edit_id', draftEditId)
+    .eq('change_type', 'layout_override');
+  if (error) throw error;
+  return parseDraftLayoutChanges(
+    (data ?? []).map((row: any) => ({
+      entity_key: row.entity_key ?? {},
+      new_value: row.new_value ?? {},
+    })),
+  );
+}
+
+async function applyLayoutOverridesToDb(
+  supabase: any,
+  companyId: string,
+  year: number,
+  overrides: ReturnType<typeof parseDraftLayoutChanges>,
+): Promise<number> {
+  let applied = 0;
+  for (const o of overrides) {
+    const { error } = await supabase
+      .from('report_layout')
+      .update({
+        display_label: o.displayLabel,
+        is_hidden: o.isHidden ?? false,
+      })
+      .eq('company_id', companyId)
+      .eq('report_type', o.reportType)
+      .eq('year', year)
+      .eq('row_index', o.rowIndex);
+    if (error) throw error;
+    applied += 1;
+  }
+  return applied;
+}
+
+async function capturePeriodSnapshot(
+  supabase: any,
+  companyId: string,
+  year: number,
+  month: number,
+) {
+  const { data: facts, error: factsErr } = await supabase
+    .from('financial_facts')
+    .select('category_id, year, month, amount_progressive, amount_period, source_label, import_id')
+    .eq('company_id', companyId)
+    .eq('year', year)
+    .or(`month.eq.${month},month.is.null`);
+  if (factsErr) throw factsErr;
+
+  const { data: layout, error: layoutErr } = await supabase
+    .from('report_layout')
+    .select(
+      'report_type, year, row_index, original_label, display_label, is_hidden, indent_level, row_kind, master_account_id, is_mapped, amount_progressive, profile, import_id',
+    )
+    .eq('company_id', companyId)
+    .eq('year', year)
+    .eq('report_type', 'ce_dettaglio');
+  if (layoutErr) throw layoutErr;
+
+  const factRows = (facts ?? []).map((f: any) => ({
+    category_id: String(f.category_id),
+    year: Number(f.year),
+    month: f.month == null ? null : Number(f.month),
+    amount_progressive: f.amount_progressive == null ? null : Number(f.amount_progressive),
+    amount_period: f.amount_period == null ? null : Number(f.amount_period),
+    source_label: f.source_label == null ? null : String(f.source_label),
+    import_id: f.import_id == null ? null : String(f.import_id),
+  }));
+
+  return {
+    factsHash: hashSnapshotFacts(factRows),
+    snapshotData: {
+      facts: factRows,
+      layout: layout ?? [],
+    },
+  };
+}
+
+async function insertPublishedSnapshot(
+  supabase: any,
+  opts: {
+    companyId: string;
+    year: number;
+    month: number;
+    userId: string;
+    importId: string | null;
+    draftEditId: string;
+    factsHash: string;
+    snapshotData: Record<string, unknown>;
+  },
+): Promise<number> {
+  const { data: latest, error: latestErr } = await supabase
+    .from('published_snapshots')
+    .select('version')
+    .eq('company_id', opts.companyId)
+    .eq('period_year', opts.year)
+    .eq('period_month', opts.month)
+    .order('version', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (latestErr) throw latestErr;
+
+  const version = latest?.version != null ? Number(latest.version) + 1 : 1;
+  const { error } = await supabase.from('published_snapshots').insert({
+    company_id: opts.companyId,
+    period_year: opts.year,
+    period_month: opts.month,
+    version,
+    published_by: opts.userId,
+    import_id: opts.importId,
+    draft_edit_id: opts.draftEditId,
+    facts_hash: opts.factsHash,
+    snapshot_data: opts.snapshotData,
+  });
+  if (error) throw error;
+  return version;
+}
+
 function isOperativoRole(role: string | null | undefined): boolean {
   return role === 'admin' || role === 'amministrazione';
 }
@@ -239,11 +362,12 @@ Deno.serve(async (req: Request) => {
     const year = Number(draft.year);
     const month = Number(draft.month);
 
-    const [balanceChanges, mappingChanges, manualFactOverrides, baseBalances, ledgerMappings, explicitMappings, companySlug] =
+    const [balanceChanges, mappingChanges, manualFactOverrides, layoutOverrides, baseBalances, ledgerMappings, explicitMappings, companySlug] =
       await Promise.all([
         loadDraftBalanceChanges(supabase, draftId),
         loadDraftMappingChanges(supabase, draftId),
         loadDraftManualFactChanges(supabase, draftId),
+        loadDraftLayoutChanges(supabase, draftId),
         loadAccountBalances(supabase, companyId, year, month),
         loadLedgerMappings(supabase, companyId),
         loadCompanyMappings(supabase, companyId),
@@ -326,6 +450,22 @@ Deno.serve(async (req: Request) => {
       });
     }
 
+    const layoutApplied = layoutOverrides.length > 0
+      ? await applyLayoutOverridesToDb(supabase, companyId, year, layoutOverrides)
+      : 0;
+
+    const { factsHash, snapshotData } = await capturePeriodSnapshot(supabase, companyId, year, month);
+    const snapshotVersion = await insertPublishedSnapshot(supabase, {
+      companyId,
+      year,
+      month,
+      userId,
+      importId,
+      draftEditId: draftId,
+      factsHash,
+      snapshotData,
+    });
+
     await supabase.from('audit_log').insert({
       company_id: companyId,
       actor_id: userId,
@@ -338,6 +478,9 @@ Deno.serve(async (req: Request) => {
         month,
         facts_written: factsPublished.facts,
         layout_written: factsPublished.layout,
+        layout_overrides_applied: layoutApplied,
+        snapshot_version: snapshotVersion,
+        facts_hash: factsHash,
         preview_kpis: previewResult.kpis,
         published_kpis: pipelineResult.kpis,
       },
@@ -350,6 +493,9 @@ Deno.serve(async (req: Request) => {
       mappings_applied: (rpcResult as Record<string, number>)?.mappings_applied ?? 0,
       facts_written: factsPublished.facts,
       layout_written: factsPublished.layout,
+      layout_overrides_applied: layoutApplied,
+      snapshot_version: snapshotVersion,
+      facts_hash: factsHash,
       preview_kpis: previewResult.kpis,
       published_kpis: pipelineResult.kpis,
       publishGate,

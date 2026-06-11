@@ -11,6 +11,7 @@ import EditorLedgerBalances from '@/pages/editor/ledger-balances';
 import EditorLedgerMappings from '@/pages/editor/ledger-mappings';
 import EditorBozze from '@/pages/editor/bozze';
 import EditorImport from '@/pages/editor/import';
+import EditorPartitari from '@/pages/editor/partitari';
 
 export default function EditorLayout() {
   return (
@@ -21,6 +22,7 @@ export default function EditorLayout() {
         <Route path="/editor/ce-dettaglio-mensile" component={EditorCEDettaglioMensile} />
         <Route path="/editor/ledger-balances" component={EditorLedgerBalances} />
         <Route path="/editor/ledger-mappings" component={EditorLedgerMappings} />
+        <Route path="/editor/partitari" component={EditorPartitari} />
         <Route path="/editor/bozze" component={EditorBozze} />
         <Route path="/editor/import" component={EditorImport} />
         <Route path="/editor">

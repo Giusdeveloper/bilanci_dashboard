@@ -268,7 +268,7 @@ export async function fetchCEDettaglio(
   const { data, error } = await supabase
     .from('report_layout')
     .select(
-      'row_index, original_label, indent_level, row_kind, is_mapped, amount_progressive, profile, master_chart_of_accounts:master_account_id (code, label, type)',
+      'row_index, original_label, display_label, is_hidden, indent_level, row_kind, is_mapped, amount_progressive, profile, master_chart_of_accounts:master_account_id (code, label, type)',
     )
     .eq('company_id', companyId)
     .eq('year', year)
@@ -281,11 +281,15 @@ export async function fetchCEDettaglio(
   const layout: LayoutInputRow[] = [];
   for (const r of data ?? []) {
     const rec = r as Record<string, unknown>;
+    if (rec.is_hidden === true) continue;
     if (profile === null && typeof rec.profile === 'string') profile = rec.profile;
     const account = pickAccount(rec.master_chart_of_accounts);
+    const originalLabel = typeof rec.original_label === 'string' ? rec.original_label : '';
+    const displayLabel = typeof rec.display_label === 'string' ? rec.display_label : null;
+    const effectiveLabel = displayLabel?.trim() ? displayLabel.trim() : originalLabel;
     layout.push({
       rowIndex: toNum(rec.row_index),
-      originalLabel: typeof rec.original_label === 'string' ? rec.original_label : '',
+      originalLabel: effectiveLabel,
       indentLevel: toNum(rec.indent_level),
       rowKind: (rec.row_kind ?? null) as string | null,
       code: account?.code ?? null,

@@ -27,6 +27,7 @@ Pattern: componenti condivisi `mode: 'read' | 'edit'` + **EditorShell** (periodo
 | `/ce-dettaglio-mensile` | `/editor/ce-dettaglio-mensile` | Idem per mese |
 | `/ledger-balances` | `/editor/ledger-balances` | `balance_normalized` |
 | `/ledger-mappings` | `/editor/ledger-mappings` | Mapping via bozza |
+| `/partitari` | `/editor/partitari` | Sola lettura (S7) |
 | `/import` | `/editor/import` (S6) ✅ | Upload wizard |
 
 Catena dati: `account_balances` + `ledger_account_mappings` → pipeline bilancino → `financial_facts` + `report_layout`.
@@ -38,7 +39,7 @@ Catena dati: `account_balances` + `ledger_account_mappings` → pipeline bilanci
 | `balance_update` | ✅ | Saldi conto |
 | `mapping_update` | ✅ (S5 UI) | Analitica, famiglia, segno |
 | `manual_fact` | ✅ (S6) | Override mirato CE |
-| `layout_override` | S7 | Presentazione righe |
+| `layout_override` | ✅ (S7) | Presentazione righe |
 
 ## Publish unificato
 
@@ -68,9 +69,11 @@ Edge: `publish-period` (Sprint 4). Preview: `recalculate-preview` con merge mapp
 - `/editor/import`, `manual_fact`, audit consultabile (`/settings/audit`)
 - Ruolo `amministrazione`, guida in-app (guida già S6)
 
-### Sprint 7 — Raffinamento (opzionale)
+### Sprint 7 — Raffinamento ✅
 
-- `/editor/partitari`, `layout_override`, snapshot/rollback
+- `/editor/partitari` (mirror read-only)
+- `layout_override` in bozza + sezione presentazione in CE dettaglio editor
+- `published_snapshots` + rollback da `/editor/bozze` (restore da snapshot_data, audit `period_rollback`)
 
 ## MVP (Sprint 4 + 5 ridotto)
 

@@ -28,6 +28,7 @@ import {
   buildBalanceChangesFromGrid,
   buildMappingChangesFromGrid,
   buildManualFactChangesFromOverrides,
+  buildLayoutChangesFromGrid,
   createDraft,
   fetchDraftChanges,
   fetchDrafts,
@@ -40,10 +41,13 @@ import {
   type DraftMappingChangeInput,
   type EditedMappingRow,
   type ManualFactOverride,
+  type LayoutOverrideInput,
+  type PublishedLayoutRow,
   type PeriodLockWarning,
   type RecalculatePreviewResult,
 } from '@/data/draftEdits';
-import { parseDraftMappingChanges, parseDraftManualFactChanges } from '@shared/etl/draftChanges';
+import { parseDraftMappingChanges, parseDraftManualFactChanges, parseDraftLayoutChanges, layoutRowKey } from '@shared/etl/draftChanges';
+import { fetchReportLayoutRows } from '@/data/reportLayout';
 
 export const EDITOR_MONTH_LABELS = [
   '', 'Gennaio', 'Febbraio', 'Marzo', 'Aprile', 'Maggio', 'Giugno',
@@ -79,6 +83,10 @@ export interface EditorContextValue {
   editedManualFacts: Map<string, ManualFactOverride>;
   setManualFactOverride: (override: ManualFactOverride, publishedAmount?: number | null) => void;
   clearManualFactOverride: (categoryCode: string) => void;
+  publishedLayoutRows: PublishedLayoutRow[];
+  editedLayoutOverrides: Map<string, LayoutOverrideInput>;
+  setLayoutOverride: (override: LayoutOverrideInput) => void;
+  clearLayoutOverride: (rowIndex: number) => void;
   activeDraft: DraftEdit | null;
   recentDrafts: DraftEdit[];
   periodLockWarnings: PeriodLockWarning[];
@@ -91,6 +99,7 @@ export interface EditorContextValue {
   modifiedCount: number;
   mappingModifiedCount: number;
   manualFactModifiedCount: number;
+  layoutModifiedCount: number;
   totalModifiedCount: number;
   handleRecalculate: () => Promise<void>;
   handleSaveDraft: () => Promise<void>;
@@ -115,6 +124,8 @@ export function EditorProvider({ children }: { children: ReactNode }) {
   const [editedMappings, setEditedMappings] = useState<Map<string, EditedMappingRow>>(new Map());
   const [editedManualFacts, setEditedManualFacts] = useState<Map<string, ManualFactOverride>>(new Map());
   const [publishedManualAmounts, setPublishedManualAmounts] = useState<Map<string, number | null>>(new Map());
+  const [publishedLayoutRows, setPublishedLayoutRows] = useState<PublishedLayoutRow[]>([]);
+  const [editedLayoutOverrides, setEditedLayoutOverrides] = useState<Map<string, LayoutOverrideInput>>(new Map());
   const [activeDraft, setActiveDraft] = useState<DraftEdit | null>(null);
   const [recentDrafts, setRecentDrafts] = useState<DraftEdit[]>([]);
   const [periodLockWarnings, setPeriodLockWarnings] = useState<PeriodLockWarning[]>([]);
@@ -228,6 +239,8 @@ export function EditorProvider({ children }: { children: ReactNode }) {
       setEditedMappings(new Map());
       setEditedManualFacts(new Map());
       setPublishedManualAmounts(new Map());
+      setPublishedLayoutRows([]);
+      setEditedLayoutOverrides(new Map());
       setActiveDraft(null);
       setPreview(null);
       setPeriodLockWarnings([]);
@@ -236,20 +249,23 @@ export function EditorProvider({ children }: { children: ReactNode }) {
 
     setLoading(true);
     try {
-      const [rows, mappings, draft] = await Promise.all([
+      const [rows, mappings, draft, layoutRows] = await Promise.all([
         fetchLedgerBalances(selectedCompany.id, year, month),
         fetchLedgerMappings(selectedCompany.id),
         fetchOpenDraftForPeriod(selectedCompany.id, year, month),
+        fetchReportLayoutRows(selectedCompany.id, year),
       ]);
 
       setPublishedRows(rows);
       setPublishedMappings(mappings);
+      setPublishedLayoutRows(layoutRows);
       setActiveDraft(draft);
       setPeriodLockWarnings(await fetchPeriodLockWarnings(selectedCompany.id, year, month, draft?.id ?? null));
 
       const balanceMap = new Map(rows.map((r) => [r.accountCode, r.balanceNormalized]));
       const mappingMap = new Map(mappings.map((m) => [m.accountCode, toEditedMappingRow(m)]));
       const manualMap = new Map<string, ManualFactOverride>();
+      const layoutMap = new Map<string, LayoutOverrideInput>();
 
       if (draft) {
         const changes = await fetchDraftChanges(draft.id);
@@ -288,6 +304,16 @@ export function EditorProvider({ children }: { children: ReactNode }) {
         )) {
           manualMap.set(mf.categoryCode, mf);
         }
+        for (const lo of parseDraftLayoutChanges(
+          changes
+            .filter((c) => c.changeType === 'layout_override')
+            .map((c) => ({
+              entity_key: c.entityKey,
+              new_value: (c.newValue ?? {}) as Record<string, unknown>,
+            })),
+        )) {
+          layoutMap.set(layoutRowKey(lo.reportType, lo.year, lo.rowIndex), lo);
+        }
         if (draft.previewSnapshot) {
           setPreview(draft.previewSnapshot as unknown as RecalculatePreviewResult);
         } else {
@@ -302,6 +328,7 @@ export function EditorProvider({ children }: { children: ReactNode }) {
       setEditedBalances(balanceMap);
       setEditedMappings(mappingMap);
       setEditedManualFacts(manualMap);
+      setEditedLayoutOverrides(layoutMap);
 
       const needsBaselinePreview = !draft?.previewSnapshot && rows.length > 0;
       if (needsBaselinePreview) {
@@ -376,7 +403,24 @@ export function EditorProvider({ children }: { children: ReactNode }) {
 
   const manualFactModifiedCount = editedManualFacts.size;
 
-  const totalModifiedCount = modifiedCount + mappingModifiedCount + manualFactModifiedCount;
+  const layoutModifiedCount = useMemo(() => {
+    const pubMap = new Map(
+      publishedLayoutRows.map((r) => [layoutRowKey(r.reportType, r.year, r.rowIndex), r]),
+    );
+    let n = 0;
+    for (const [key, edited] of Array.from(editedLayoutOverrides.entries())) {
+      const pub = pubMap.get(key);
+      if (!pub) continue;
+      const pubDisplay = pub.displayLabel ?? null;
+      const pubHidden = pub.isHidden ?? false;
+      const newDisplay = edited.displayLabel ?? null;
+      const newHidden = edited.isHidden ?? false;
+      if (pubDisplay !== newDisplay || pubHidden !== newHidden) n += 1;
+    }
+    return n;
+  }, [publishedLayoutRows, editedLayoutOverrides]);
+
+  const totalModifiedCount = modifiedCount + mappingModifiedCount + manualFactModifiedCount + layoutModifiedCount;
 
   useEffect(() => {
     skipEditRecalcRef.current = true;
@@ -465,6 +509,24 @@ export function EditorProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
+  const setLayoutOverride = useCallback((override: LayoutOverrideInput) => {
+    setEditedLayoutOverrides((prev) => {
+      const next = new Map(prev);
+      next.set(layoutRowKey(override.reportType, override.year, override.rowIndex), override);
+      return next;
+    });
+  }, []);
+
+  const clearLayoutOverride = useCallback((rowIndex: number) => {
+    setEditedLayoutOverrides((prev) => {
+      const next = new Map(prev);
+      for (const key of Array.from(next.keys())) {
+        if (key.endsWith(`|${rowIndex}`)) next.delete(key);
+      }
+      return next;
+    });
+  }, []);
+
   const handleRecalculate = useCallback(async () => {
     if (!selectedCompany || year == null || month == null || publishedRows.length === 0) return;
     setRecalculating(true);
@@ -520,7 +582,8 @@ export function EditorProvider({ children }: { children: ReactNode }) {
         Array.from(editedManualFacts.values()),
         publishedManualAmounts,
       );
-      const changes = [...balanceChanges, ...mappingChanges, ...manualChanges];
+      const layoutChanges = buildLayoutChangesFromGrid(publishedLayoutRows, editedLayoutOverrides);
+      const changes = [...balanceChanges, ...mappingChanges, ...manualChanges, ...layoutChanges];
 
       let snapshotPreview = preview;
       if (changes.length > 0 || !snapshotPreview) {
@@ -576,6 +639,8 @@ export function EditorProvider({ children }: { children: ReactNode }) {
     editedMappings,
     editedManualFacts,
     publishedManualAmounts,
+    publishedLayoutRows,
+    editedLayoutOverrides,
     preview,
     runRecalculatePreview,
     loadRecentDrafts,
@@ -634,7 +699,8 @@ export function EditorProvider({ children }: { children: ReactNode }) {
           Array.from(editedManualFacts.values()),
           publishedManualAmounts,
         );
-        const changes = [...balanceChanges, ...mappingChanges, ...manualChanges];
+        const layoutChanges = buildLayoutChangesFromGrid(publishedLayoutRows, editedLayoutOverrides);
+        const changes = [...balanceChanges, ...mappingChanges, ...manualChanges, ...layoutChanges];
         const snapshot = preview
           ? { kpis: preview.kpis, warnings: preview.warnings, counts: preview.counts, publishGate: preview.publishGate, facts: preview.facts }
           : undefined;
@@ -672,6 +738,9 @@ export function EditorProvider({ children }: { children: ReactNode }) {
     editedBalances,
     publishedMappings,
     editedMappings,
+    editedManualFacts,
+    publishedLayoutRows,
+    editedLayoutOverrides,
     periodLockWarnings,
     loadPeriodData,
     loadRecentDrafts,
@@ -704,6 +773,10 @@ export function EditorProvider({ children }: { children: ReactNode }) {
       editedManualFacts,
       setManualFactOverride,
       clearManualFactOverride,
+      publishedLayoutRows,
+      editedLayoutOverrides,
+      setLayoutOverride,
+      clearLayoutOverride,
       activeDraft,
       recentDrafts,
       periodLockWarnings,
@@ -716,6 +789,7 @@ export function EditorProvider({ children }: { children: ReactNode }) {
       modifiedCount,
       mappingModifiedCount,
       manualFactModifiedCount,
+      layoutModifiedCount,
       totalModifiedCount,
       handleRecalculate,
       handleSaveDraft,
@@ -738,6 +812,10 @@ export function EditorProvider({ children }: { children: ReactNode }) {
     editedManualFacts,
     setManualFactOverride,
     clearManualFactOverride,
+    publishedLayoutRows,
+    editedLayoutOverrides,
+    setLayoutOverride,
+    clearLayoutOverride,
     activeDraft,
     recentDrafts,
     periodLockWarnings,
@@ -750,6 +828,7 @@ export function EditorProvider({ children }: { children: ReactNode }) {
     modifiedCount,
     mappingModifiedCount,
     manualFactModifiedCount,
+    layoutModifiedCount,
     totalModifiedCount,
     handleRecalculate,
     handleSaveDraft,

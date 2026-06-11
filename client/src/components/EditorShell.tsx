@@ -30,6 +30,7 @@ const EDITOR_NAV = [
   { href: '/editor/ce-dettaglio-mensile', label: 'CE Mensile' },
   { href: '/editor/ledger-balances', label: 'Saldi' },
   { href: '/editor/ledger-mappings', label: 'Mapping' },
+  { href: '/editor/partitari', label: 'Partitari' },
   { href: '/editor/bozze', label: 'Bozze' },
   { href: '/editor/import', label: 'Import' },
 ] as const;
@@ -68,6 +69,7 @@ export default function EditorShell({ title, subtitle, children }: EditorShellPr
     modifiedCount,
     mappingModifiedCount,
     manualFactModifiedCount,
+    layoutModifiedCount,
     totalModifiedCount,
     handleRecalculate,
     handleSaveDraft,
@@ -181,6 +183,7 @@ export default function EditorShell({ title, subtitle, children }: EditorShellPr
             {modifiedCount > 0 && mappingModifiedCount > 0 && ' · '}
             {mappingModifiedCount > 0 && `${mappingModifiedCount} mapping`}
             {manualFactModifiedCount > 0 && `${manualFactModifiedCount > 0 && (modifiedCount > 0 || mappingModifiedCount > 0) ? ' · ' : ''}${manualFactModifiedCount} override CE`}
+            {layoutModifiedCount > 0 && `${layoutModifiedCount > 0 && (modifiedCount > 0 || mappingModifiedCount > 0 || manualFactModifiedCount > 0) ? ' · ' : ''}${layoutModifiedCount} layout`}
           </span>
         )}
       </div>
