@@ -5,8 +5,10 @@
 ### 1. **Configura i Secrets**
 Vai su GitHub > Settings > Secrets and variables > Actions e aggiungi:
 
-- `VITE_SUPABASE_URL`: URL del tuo progetto Supabase
-- `VITE_SUPABASE_ANON_KEY`: Chiave anonima di Supabase
+- `VITE_SUPABASE_URL`: `https://caubhppwypkymsixsrco.supabase.co`
+- `VITE_SUPABASE_ANON_KEY`: **Publishable key** Supabase (`sb_publishable_...`), **non** la legacy anon JWT
+
+Copia la Publishable key da [Supabase Dashboard → API Keys](https://supabase.com/dashboard/project/caubhppwypkymsixsrco/settings/api-keys). Dettagli in [.github/SECRETS_SETUP.md](.github/SECRETS_SETUP.md).
 
 ### 2. **Abilita GitHub Pages**
 1. Vai su GitHub > Settings > Pages
@@ -57,6 +59,12 @@ L'applicazione è disponibile su:
 1. Controlla la console del browser per errori
 2. Verifica che Supabase sia accessibile
 3. Controlla che le credenziali siano corrette
+
+### **Login: "Legacy API keys are disabled"**
+1. Il bundle GitHub Pages contiene ancora la vecchia chiave `anon` (JWT `eyJ...`)
+2. Aggiorna il secret `VITE_SUPABASE_ANON_KEY` con la **Publishable key** (`sb_publishable_...`)
+3. Esegui un nuovo deploy (push su `main` o re-run workflow **Build Client**)
+4. Il workflow fallisce in CI se rileva ancora una JWT legacy — vedi [.github/SECRETS_VERIFY.md](.github/SECRETS_VERIFY.md)
 
 ## ✅ Checklist Deploy
 

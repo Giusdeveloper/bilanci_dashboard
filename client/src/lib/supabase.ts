@@ -2,6 +2,12 @@ import { createClient } from '@supabase/supabase-js'
 
 // Configurazione Supabase: le credenziali DEVONO arrivare dalle variabili d'ambiente.
 // Nessun valore di fallback hardcoded: se mancano, l'app si ferma subito con un errore chiaro.
+//
+// VITE_SUPABASE_ANON_KEY deve contenere la **Publishable key** del progetto (non la legacy anon JWT).
+// Formato atteso: `sb_publishable_<random>_<checksum>`.
+// Le chiavi legacy `anon` (JWT che iniziano con `eyJ`) sono disabilitate su molti progetti Supabase
+// e causano l'errore "Legacy API keys are disabled" in auth/API.
+// Dashboard: Project Settings → API Keys → Publishable key.
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
 

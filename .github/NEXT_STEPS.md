@@ -70,7 +70,7 @@ Il tuo sito dovrebbe essere accessibile su:
 ### Il sito non si carica
 - Verifica che il workflow di deploy sia completato
 - Controlla i log su **Actions** per eventuali errori
-- Assicurati che i secrets (`VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`) siano configurati
+- Assicurati che i secrets (`VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`) siano configurati; `VITE_SUPABASE_ANON_KEY` deve essere la Publishable key `sb_publishable_...` (vedi `.github/SECRETS_VERIFY.md`)
 
 ### Il sito carica ma le funzionalità non funzionano
 - Verifica che i secrets Supabase siano configurati correttamente
