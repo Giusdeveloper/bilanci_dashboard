@@ -2,234 +2,170 @@ import { useParams, Link } from "wouter";
 import PageHeader from "@/components/PageHeader";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import DataTable from "@/components/DataTable";
-import { formatCurrency, formatPercentage, calculateVariance } from "@/data/financialData";
+import { formatCurrency, formatPercentage } from "@/data/financialData";
+import { fetchCEDettaglio } from "@/data/financialReads";
+import {
+  buildSingleMonthDetailRows,
+  MONTH_NAMES_FULL,
+  monthFromSlug,
+} from "@/data/financialShaping";
+import type { CEDettaglioModel } from "@shared/queries";
 import { ArrowLeft } from "lucide-react";
 import { useFinancialData } from "@/contexts/FinancialDataContext";
-import { useEffect, useState } from "react";
+import { useCompanyPeriods } from "@/hooks/useCompanyPeriods";
+import { useEffect, useMemo, useState } from "react";
 
-const monthMapping: { [key: string]: number } = {
-  "gennaio": 0, "febbraio": 1, "marzo": 2, "aprile": 3,
-  "maggio": 4, "giugno": 5, "luglio": 6, "agosto": 7,
-  "settembre": 8, "ottobre": 9, "novembre": 10, "dicembre": 11
-};
+function resolveYearFromSearch(): number | null {
+  const raw = new URLSearchParams(window.location.search).get("anno");
+  if (!raw) return null;
+  const year = parseInt(raw, 10);
+  return Number.isFinite(year) ? year : null;
+}
 
-const monthNames = ["Gennaio", "Febbraio", "Marzo", "Aprile", "Maggio", "Giugno", "Luglio", "Agosto", "Settembre", "Ottobre", "Novembre", "Dicembre"];
-
-export default function CEDettaglioMeseSpecifico() {
-  const { selectedCompany, getCEDettaglioMensileData } = useFinancialData();
+export default function CEDettaglioMese() {
+  const { selectedCompany } = useFinancialData();
+  const companyId = selectedCompany?.id ?? null;
+  const { periods, loading: periodsLoading, monthsForYear } = useCompanyPeriods(companyId);
   const params = useParams<{ mese: string }>();
-  const meseLower = params.mese?.toLowerCase() || "";
-  const monthIndex = monthMapping[meseLower];
-  const [ceData, setCeData] = useState<any>(null);
+  const monthNum = monthFromSlug(params.mese ?? "");
+  const monthName = monthNum ? MONTH_NAMES_FULL[monthNum - 1] : null;
+
+  const [selectedYear, setSelectedYear] = useState<number | null>(() => resolveYearFromSearch());
+  const [model, setModel] = useState<CEDettaglioModel | null>(null);
+  const [prevModel, setPrevModel] = useState<CEDettaglioModel | null>(null);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const loadData = async () => {
-      if (!selectedCompany) {
-        setCeData(null);
-        return;
-      }
+    setSelectedYear(resolveYearFromSearch());
+  }, [params.mese]);
 
-      setLoading(true);
-      try {
-        const data = await getCEDettaglioMensileData(selectedCompany.id);
-        if (data && data.length > 0 && data[0].data) {
-          setCeData(data[0].data);
-        } else {
-          setCeData(null);
+  useEffect(() => {
+    if (!periods || periods.years.length === 0) return;
+    setSelectedYear((prev) => {
+      if (prev && periods.years.includes(prev)) return prev;
+      return periods.years[0];
+    });
+  }, [periods]);
+
+  const yearNum = selectedYear;
+  const prevYear = yearNum !== null ? yearNum - 1 : null;
+  const availableMonths = yearNum !== null ? monthsForYear(yearNum) : [];
+  const monthAvailable = monthNum !== undefined && availableMonths.includes(monthNum);
+
+  useEffect(() => {
+    if (!companyId || yearNum === null || monthNum === undefined) {
+      setModel(null);
+      setPrevModel(null);
+      return;
+    }
+
+    let cancelled = false;
+    setLoading(true);
+    setError(null);
+
+    const loads = [fetchCEDettaglio(companyId, yearNum)];
+    if (prevYear !== null && periods?.years.includes(prevYear)) {
+      loads.push(fetchCEDettaglio(companyId, prevYear));
+    }
+
+    Promise.all(loads)
+      .then(([current, previous]) => {
+        if (cancelled) return;
+        setModel(current);
+        setPrevModel(previous ?? null);
+      })
+      .catch((e) => {
+        if (!cancelled) {
+          console.error("CE Dettaglio Mese Load Error:", e);
+          setError("Impossibile caricare i dati del mese.");
+          setModel(null);
+          setPrevModel(null);
         }
-      } catch (error) {
-        console.error('Errore nel caricamento dati mese:', error);
-        setCeData(null);
-      } finally {
-        setLoading(false);
-      }
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
     };
+  }, [companyId, yearNum, monthNum, prevYear, periods?.years]);
 
-    loadData();
-  }, [selectedCompany, getCEDettaglioMensileData]);
+  const hasPrevYear = !!prevModel && prevModel.rows.length > 0;
 
-  if (monthIndex === undefined) {
+  const tableRows = useMemo(() => {
+    if (!model || monthNum === undefined) return [];
+    return buildSingleMonthDetailRows(
+      model,
+      monthNum,
+      formatCurrency,
+      formatPercentage,
+      hasPrevYear ? prevModel : null,
+    );
+  }, [model, monthNum, hasPrevYear, prevModel]);
+
+  if (monthNum === undefined || !monthName) {
     return (
       <div className="p-8">
-        <PageHeader title="Mese Non Trovato" subtitle="Data invalida" />
+        <PageHeader title="Mese non trovato" subtitle="Il mese richiesto non è valido." />
         <Link href="/ce-dettaglio-mensile">
-          <a className="text-primary hover:underline">Torna indietro</a>
+          <a className="text-primary hover:underline">Torna a CE Dettaglio Mensile</a>
         </Link>
       </div>
     );
   }
 
-  const monthName = monthNames[monthIndex];
-
-  if (loading) return <div className="p-8 text-center">Caricamento...</div>;
-
-  if (!selectedCompany || !ceData) {
+  if (!selectedCompany) {
     return (
       <div className="p-8">
-        <PageHeader title={`Analisi ${monthName}`} subtitle="Dati non disponibili" />
-        <div className="mt-8 text-center text-muted-foreground">Nessun dato disponibile.</div>
+        <PageHeader title={`Analisi ${monthName}`} subtitle="Seleziona un'azienda" />
+        <div className="mt-8 text-center text-muted-foreground">Seleziona un'azienda per visualizzare i dati.</div>
       </div>
     );
   }
 
-  const puntuale2025 = ceData.puntuale2025;
-  const puntuale2024 = ceData.puntuale2024;
-  const hasData2024 = !!puntuale2024 && puntuale2024.rows?.length > 0;
-
-  let displayData: any[] = [];
-  const emptyRow = hasData2024
-    ? { voce: "", valueCurrent: "", percentage: "", valuePrevious: "", varianceEuro: "", variance: "" }
-    : { voce: "", valueCurrent: "", percentage: "" };
-
-  if (puntuale2025?.isDynamic && puntuale2025.rows) {
-    const ricaviMese = puntuale2025.rows.find((r: any) => r.voce.toUpperCase().includes('TOTALE RICAVI'))?.valori?.[monthIndex] || 1;
-
-    displayData = puntuale2025.rows.map((row: any) => {
-      const val25 = row.valori?.[monthIndex] || 0;
-      const val24 = 0;
-      const perc = (val25 / ricaviMese) * 100;
-      
-      const rowData: any = {
-        voce: row.voce,
-        valueCurrent: formatCurrency(val25),
-        percentage: formatPercentage(perc, 1),
-        className: row.type === 'result' ? 'result' : 
-                   row.type === 'key-metric' ? 'key-metric' : 
-                   row.type === 'total' ? 'total-dark' : 
-                   row.type === 'subtotal' ? 'highlight' : ''
-      };
-
-      if (hasData2024) {
-        rowData.valuePrevious = formatCurrency(val24);
-        rowData.varianceEuro = formatCurrency(val25 - val24);
-        rowData.variance = "n/a";
-      }
-
-      return rowData;
-    });
-  } else {
-    const getValue = (dataset: any, key: string) => {
-      if (!dataset || !dataset[key]) return 0;
-      return dataset[key][monthIndex] || 0;
-    };
-
-    const createRow = (label: string, key: string, isBold = false, className = "") => {
-      const val25 = getValue(puntuale2025, key);
-      const val24 = getValue(puntuale2024, key);
-      const ricavi25 = getValue(puntuale2025, 'totaleRicavi')?.[monthIndex] || 1;
-
-      const perc = (val25 / ricavi25) * 100;
-      const varEuro = val25 - val24;
-      const varPerc = calculateVariance(val25, val24);
-
-      const row: any = {
-        voce: label,
-        valueCurrent: formatCurrency(val25),
-        percentage: formatPercentage(perc, 1),
-        className: className || (isBold ? "font-bold" : "")
-      };
-
-      if (hasData2024) {
-        row.valuePrevious = formatCurrency(val24);
-        row.varianceEuro = (val25 === 0 && val24 === 0) ? "n/a" : formatCurrency(varEuro);
-        row.variance = (val25 === 0 && val24 === 0) ? "n/a" : ((varPerc > 0 ? "+" : "") + formatPercentage(varPerc, 1));
-      }
-
-      return row;
-    };
-
-    displayData = [
-      createRow("Ricavi caratteristici", "ricaviCaratteristici"),
-      createRow("Altri ricavi", "altriRicavi"),
-      createRow("TOTALE RICAVI", "totaleRicavi", true, "total-dark"),
-      emptyRow,
-      createRow("Servizi diretti", "serviziDiretti"),
-      createRow("Consulenze dirette", "consulenzeDirette"),
-      createRow("Servizi informatici web", "serviziInformatici"),
-      createRow("Servizi cloud", "serviziCloud"),
-      createRow("COSTI DIRETTI", "costiDiretti", true, "highlight"),
-      createRow("Altri servizi e prestazioni", "altriServizi"),
-      createRow("COSTI INDIRETTI", "costiIndiretti", true, "highlight"),
-      createRow("TOTALE COSTI DIRETTI E INDIRETTI", "totaleCostiDirettiIndiretti", true, "total-dark"),
-      createRow("GROSS PROFIT", "grossProfit", true, "key-metric"),
-      emptyRow,
-      createRow("Autofatture", "autofatture"),
-      createRow("Rimborsi spese", "rimborsiSpese"),
-      createRow("Altri proventi", "altriProventi"),
-      createRow("ALTRI RICAVI NON TIPICI", "ricaviNonTipici", true, "highlight"),
-      emptyRow,
-      createRow("Spese viaggio", "speseViaggio"),
-      createRow("Pedaggi autostradali", "pedaggi"),
-      createRow("Pubblicità", "pubblicita"),
-      createRow("Materiale pubblicitario", "materialePubblicitario"),
-      createRow("Omaggi", "omaggi"),
-      createRow("Spese di rappresentanza", "speseRappresentanza"),
-      createRow("Mostre e fiere", "mostreFiere"),
-      createRow("Servizi commerciali", "serviziCommerciali"),
-      createRow("Carburante", "carburante"),
-      createRow("SPESE COMMERCIALI", "speseCommerciali", true, "total-dark"),
-      emptyRow,
-      createRow("Beni indeducibili", "beniIndeducibili"),
-      createRow("Spese generali", "speseGenerali"),
-      createRow("Materiale vario e di consumo", "materialeConsumo"),
-      createRow("Spese di pulizia", "spesePulizia"),
-      createRow("Utenze", "utenze"),
-      createRow("Assicurazioni", "assicurazioni"),
-      createRow("Rimanenze", "rimanenze"),
-      createRow("Tasse e valori bollati", "tasseValori"),
-      createRow("Sanzioni e multe", "sanzioniMulte"),
-      createRow("Compensi amministratore", "compensiAmministratore"),
-      createRow("Rimborsi amministratore", "rimborsiAmministratore"),
-      createRow("Personale", "personale"),
-      createRow("Servizi amministrativi contabilità", "serviziAmministrativi"),
-      createRow("Servizi amministrativi paghe", "serviziAmministrativiPaghe"),
-      createRow("Consulenze tecniche", "consulenzeTecniche"),
-      createRow("Consulenze legali", "consulenzeLegali"),
-      createRow("Locazioni e noleggi", "locazioniNoleggi"),
-      createRow("Servizi indeducibili", "serviziIndeducibili"),
-      createRow("Utili e perdite su cambi", "utiliPerditeCambi"),
-      createRow("Perdite su crediti", "perditeSuCrediti"),
-      createRow("Licenze d'uso", "licenzeUso"),
-      createRow("Utenze telefoniche e cellulari", "utenzeTelefoniche"),
-      createRow("Altri oneri", "altriOneri"),
-      createRow("Abbuoni e arrotondamenti", "abbuoniArrotondamenti"),
-      createRow("SPESE DI STRUTTURA", "speseStruttura", true, "total-dark"),
-      emptyRow,
-      createRow("TOTALE GESTIONE STRUTTURA", "totaleGestioneStruttura", true, "total-dark"),
-      createRow("EBITDA", "ebitda", true, "key-metric"),
-      emptyRow,
-      createRow("Ammortamenti immateriali", "ammortamentiImmateriali"),
-      createRow("Ammortamenti materiali", "ammortamentiMateriali"),
-      createRow("Svalutazioni e accantonamenti", "svalutazioni"),
-      createRow("AMMORTAMENTI, ACCANT. SVALUTAZIONI", "totaleAmmortamenti", true, "total-dark"),
-      emptyRow,
-      createRow("Gestione straordinaria", "gestioneStraordinaria"),
-      createRow("EBIT", "ebit", true, "key-metric"),
-      emptyRow,
-      createRow("Spese e commissioni bancarie", "speseCommissioniBancarie"),
-      createRow("Interessi passivi su mutui", "interessiPassiviMutui"),
-      createRow("Altri interessi", "altriInteressi"),
-      createRow("GESTIONE FINANZIARIA", "gestioneFinanziaria", true, "total-dark"),
-      emptyRow,
-      createRow("EBT (Risultato ante imposte)", "ebt", true, "key-metric"),
-      createRow("Imposte dirette", "imposteDirette"),
-      createRow("RISULTATO DI ESERCIZIO (UTILE / PERDITA)", "risultatoEsercizio", true, "result"),
-    ];
+  if (periodsLoading || loading) {
+    return <div className="p-8 text-center">Caricamento...</div>;
   }
 
-  const columns = hasData2024 ? [
-    { key: "voce", label: "Voce", align: "left" as const },
-    { key: "valueCurrent", label: `${monthName} 2025`, align: "right" as const },
-    { key: "percentage", label: "% Incidenza", align: "right" as const },
-    { key: "valuePrevious", label: `${monthName} 2024`, align: "right" as const },
-    { key: "varianceEuro", label: "Var €", align: "right" as const },
-    { key: "variance", label: "Var %", align: "right" as const },
-  ] : [
-    { key: "voce", label: "Voce", align: "left" as const },
-    { key: "valueCurrent", label: `${monthName} 2025`, align: "right" as const },
-    { key: "percentage", label: "% Incidenza", align: "right" as const },
-  ];
+  if (error) {
+    return <div className="p-8 text-center text-destructive">{error}</div>;
+  }
+
+  if (!model || !yearNum || !monthAvailable) {
+    return (
+      <div className="p-8">
+        <PageHeader
+          title={`Analisi ${monthName}`}
+          subtitle="Dati non disponibili"
+        />
+        <div className="mt-8 text-center text-muted-foreground">
+          Nessun dato puntuale disponibile per {monthName} {yearNum ?? ""}.
+        </div>
+        <div className="mt-4 text-center">
+          <Link href="/ce-dettaglio-mensile">
+            <a className="text-primary hover:underline">Torna a CE Dettaglio Mensile</a>
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  const columns = hasPrevYear
+    ? [
+        { key: "voce", label: "Voce", align: "left" as const },
+        { key: "valueCurrent", label: `${monthName} ${yearNum}`, align: "right" as const },
+        { key: "percentage", label: "% Incidenza", align: "right" as const },
+        { key: "valuePrevious", label: `${monthName} ${prevYear}`, align: "right" as const },
+        { key: "varianceEuro", label: "Var €", align: "right" as const },
+        { key: "variance", label: "Var %", align: "right" as const },
+      ]
+    : [
+        { key: "voce", label: "Voce", align: "left" as const },
+        { key: "valueCurrent", label: `${monthName} ${yearNum}`, align: "right" as const },
+        { key: "percentage", label: "% Incidenza", align: "right" as const },
+      ];
 
   return (
     <div data-testid="page-ce-mese-specifico">
@@ -243,16 +179,20 @@ export default function CEDettaglioMeseSpecifico() {
       </div>
 
       <PageHeader
-        title={`Conto Economico - ${monthName} 2025`}
-        subtitle={`Analisi puntuale del mese di ${monthName}${hasData2024 ? ` con confronto rispetto a ${monthName} 2024` : ''}`}
+        title={`Conto Economico - ${monthName} ${yearNum}`}
+        subtitle={
+          hasPrevYear
+            ? `Analisi puntuale del mese di ${monthName} con confronto rispetto a ${monthName} ${prevYear}`
+            : `Analisi puntuale del mese di ${monthName}`
+        }
       />
 
       <Card>
         <CardHeader>
-          <CardTitle>Dettaglio Mensile</CardTitle>
+          <CardTitle>Dettaglio mensile puntuale</CardTitle>
         </CardHeader>
         <CardContent>
-          <DataTable columns={columns} data={displayData} />
+          <DataTable columns={columns} data={tableRows} />
         </CardContent>
       </Card>
     </div>

@@ -17,3 +17,11 @@ vite.config.ts.*
 
 # OS
 Thumbs.db
+
+# Logs
+*.log
+output.log
+output_check.log
+
+tmp/
+~$*.xlsx

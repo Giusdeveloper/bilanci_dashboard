@@ -16,7 +16,7 @@
 1. Clicca su **New repository secret**
 2. Aggiungi `VITE_SUPABASE_URL`:
    - **Name**: `VITE_SUPABASE_URL`
-   - **Secret**: `https://caubhppwypkymsixsrco.supabase.co` (o il tuo URL Supabase)
+   - **Secret**: `https://<SUPABASE_PROJECT_REF>.supabase.co` (o il tuo URL Supabase)
 3. Clicca **Add secret**
 4. Aggiungi `VITE_SUPABASE_ANON_KEY`:
    - **Name**: `VITE_SUPABASE_ANON_KEY`

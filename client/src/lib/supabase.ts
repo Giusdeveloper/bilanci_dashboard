@@ -1,56 +1,37 @@
 import { createClient } from '@supabase/supabase-js'
 
-// Configurazione Supabase
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://caubhppwypkymsixsrco.supabase.co'
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNhdWJocHB3eXBreW1zaXhzcmNvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjEyMTkwODcsImV4cCI6MjA3Njc5NTA4N30.OqfYc2Xj4YULWrINf_eS6Hhj-SJf_iO8Ejp6KHDlBxI'
+// Configurazione Supabase: le credenziali DEVONO arrivare dalle variabili d'ambiente.
+// Nessun valore di fallback hardcoded: se mancano, l'app si ferma subito con un errore chiaro.
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
 
-// Verifica che le variabili d'ambiente siano configurate (solo in sviluppo)
-// NOTA: Quando Vite è usato come middleware da Express, le variabili potrebbero non essere
-// esposte correttamente al client. In questo caso, usiamo i valori di default che sono
-// comunque validi per il progetto Supabase.
-// Mostra warning solo se siamo in sviluppo E la variabile non esiste E stiamo usando il default
-const envVarExists = typeof import.meta.env.VITE_SUPABASE_URL !== 'undefined'
-const isUsingDefaultUrl = supabaseUrl === 'https://caubhppwypkymsixsrco.supabase.co'
+if (!supabaseUrl || !supabaseAnonKey) {
+  const missing = [
+    !supabaseUrl ? 'VITE_SUPABASE_URL' : null,
+    !supabaseAnonKey ? 'VITE_SUPABASE_ANON_KEY' : null,
+  ]
+    .filter(Boolean)
+    .join(', ')
 
-// Mostra warning solo se:
-// 1. Siamo in sviluppo
-// 2. La variabile NON esiste nel client (import.meta.env)
-// 3. Stiamo usando il valore di default
-// Questo può succedere se il server non è stato riavviato dopo aver aggiunto le variabili
-if (import.meta.env.DEV && !envVarExists && isUsingDefaultUrl) {
-  console.warn('⚠️ Variabile VITE_SUPABASE_URL non trovata nel client.')
-  console.warn('💡 Se hai aggiunto le variabili al file .env, riavvia il server di sviluppo (Ctrl+C e poi npm run dev)')
-  console.warn('💡 Le variabili sono presenti nel file .env ma Vite non le ha ancora caricate.')
+  throw new Error(
+    `Configurazione Supabase mancante: ${missing}. ` +
+      'Imposta queste variabili in un file .env (vedi .env.example) e riavvia il server di sviluppo.'
+  )
 }
 
-// Crea il client Supabase con gestione errori migliorata
+// Client Supabase.
+//
+// NOTA: rimosso il wrapper `global.fetch` con `AbortSignal.timeout(5000)`.
+// Quel timeout fisso abortiva OGNI richiesta (incluso il refresh del token e le
+// query) dopo 5s, causando fragilità su reti lente o avvii a freddo. Lasciamo a
+// supabase-js la gestione di timeout/retry; la gestione errori vive nei chiamanti.
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
     persistSession: true,
     autoRefreshToken: true,
     detectSessionInUrl: true,
-    // Disabilita il refresh automatico se Supabase non è disponibile
     storage: typeof window !== 'undefined' ? window.localStorage : undefined,
   },
-  global: {
-    fetch: (url, options = {}) => {
-      return fetch(url, {
-        ...options,
-        // Aggiungi timeout per evitare attese infinite
-        signal: AbortSignal.timeout(5000) // 5 secondi (ridotto per rispondere più velocemente)
-      }).catch((error) => {
-        if (error.name === 'AbortError' || error.message?.includes('ERR_NAME_NOT_RESOLVED')) {
-          // Se Supabase non è disponibile, logga solo in sviluppo
-          if (import.meta.env.DEV) {
-            console.warn('⚠️ Supabase non raggiungibile. L\'app funzionerà in modalità offline.')
-            console.warn('💡 Verifica che il progetto Supabase sia attivo e non in pausa')
-          }
-        }
-        // Throwa l'errore per permettere alla gestione errori di useAuth di gestirlo
-        throw error
-      })
-    }
-  }
 })
 
 // Tipi TypeScript per il database
@@ -58,13 +39,14 @@ export interface Company {
   id: string
   name: string
   slug: string
+  ce_profile?: string | null
   created_at: string
 }
 
 export interface User {
   id: string
   email: string
-  role: 'admin' | 'client'
+  role: 'admin' | 'client' | 'amministrazione'
   company_id: string | null
   created_at: string
 }

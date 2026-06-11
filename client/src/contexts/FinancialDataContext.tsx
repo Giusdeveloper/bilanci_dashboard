@@ -11,14 +11,9 @@ interface FinancialDataContextType {
   setLoading: (loading: boolean) => void
   loadFinancialData: (companyId: string, dataType: string, year?: number, month?: number) => Promise<any>
   saveFinancialData: (companyId: string, dataType: string, data: any, year: number, month?: number) => Promise<any>
-  deleteFinancialData: (companyId: string, year: number) => Promise<void>
-  getDashboardData: (companyId: string) => Promise<any>
-  getCEDettaglioData: (companyId: string) => Promise<FinancialData[] | null>
-  getCEDettaglioMensileData: (companyId: string) => Promise<FinancialData[] | null>
-  getCESinteticoData: (companyId: string) => Promise<FinancialData[] | null>
-  getCESinteticoMensileData: (companyId: string) => Promise<FinancialData[] | null>
-  getPartitariData: (companyId: string) => Promise<FinancialData[] | null>
-  getSourceData: (companyId: string) => Promise<FinancialData[] | null>
+  deleteFinancialData: (companyId: string, year: number, dataType?: string | string[], month?: number) => Promise<void>
+  getCEDettaglioMensileData: (companyId: string, year?: number, month?: number) => Promise<FinancialData[] | null>
+  getSourceData: (companyId: string, year?: number, month?: number) => Promise<FinancialData[] | null>
   loadCompanies: () => Promise<void>
 }
 
@@ -114,7 +109,10 @@ export function FinancialDataProvider({ children }: { children: ReactNode }) {
       if (year) query = query.eq('year', year)
       if (month !== undefined) query = query.eq('month', month)
 
-      const { data, error } = await query.order('created_at', { ascending: false })
+      const { data, error } = await query
+        .order('year', { ascending: false })
+        .order('month', { ascending: false })
+        .order('created_at', { ascending: false })
 
       if (error) {
         console.error('Errore nel caricamento dati finanziari:', error)
@@ -155,91 +153,14 @@ export function FinancialDataProvider({ children }: { children: ReactNode }) {
     return result
   }
 
-  // Ottieni i dati per la dashboard
-  const getDashboardData = useCallback(async (companyId: string) => {
-    try {
-      // Strategia sistemica: Recupera l'ultimo dato disponibile in assoluto
-      // Ordina per anno (decrescente) e poi per mese (decrescente)
-      // In questo modo otteniamo sempre i dati più recenti caricati per l'azienda
-      const { data, error } = await supabase
-        .from('financial_data')
-        .select('*')
-        .eq('company_id', companyId)
-        .eq('data_type', 'dashboard')
-        .order('year', { ascending: false })
-        .order('month', { ascending: false, nullsFirst: false }) // nullsFirst: false mette i mesi nulli (annuali) dopo i mesi specifici se necessario, o viceversa. 
-        // Nota: Su Supabase/Postgres l'ordinamento dei null dipende dalla configurazione, ma specificare l'ordine temporale è la chiave.
-        // Se vogliamo dare priorità al dato mensile più recente:
-        .limit(1)
-
-      if (error) {
-        console.error('Errore nel caricamento dati dashboard:', error)
-        return null
-      }
-
-      if (data && data.length > 0) {
-        const record = data[0];
-        console.log(`📊 Dati dashboard caricati per azienda ${companyId}:`, {
-          anno: record.year,
-          mese: record.month,
-          tipo: record.data_type
-        });
-      } else {
-        console.log(`⚠️ Nessun dato dashboard trovato per azienda ${companyId}`);
-      }
-
-      return data
-    } catch (err) {
-      console.error('Errore generale getDashboardData:', err)
-      return null
-    }
-  }, [])
-
-  // Ottieni i dati per CE Dettaglio
-  const getCEDettaglioData = async (companyId: string) => {
-    return await loadFinancialData(companyId, 'ce-dettaglio', 2025)
-  }
-
   // Ottieni i dati per CE Dettaglio Mensile
-  const getCEDettaglioMensileData = useCallback(async (companyId: string) => {
-    // Recupera l'ultimo dato disponibile per questa vista
-    const { data, error } = await supabase
-      .from('financial_data')
-      .select('*')
-      .eq('company_id', companyId)
-      .eq('data_type', 'ce-dettaglio-mensile')
-      .order('year', { ascending: false })
-      .order('month', { ascending: false, nullsFirst: false })
-      .limit(1)
-
-    if (error) {
-      console.error('Errore getCEDettaglioMensileData:', error)
-      return null
-    }
-    return data
-  }, [])
-
-  // Ottieni i dati per CE Sintetico
-  const getCESinteticoData = async (companyId: string) => {
-    return await loadFinancialData(companyId, 'ce-sintetico', 2025)
-  }
-
-  // Ottieni i dati per CE Sintetico Mensile
-  const getCESinteticoMensileData = async (companyId: string) => {
-    return await loadFinancialData(companyId, 'ce-sintetico-mensile', 2025)
-  }
-
-  // Ottieni i dati per Partitari
-  const getPartitariData = async (companyId: string) => {
-    return await loadFinancialData(companyId, 'partitari', 2025)
-  }
+  const getCEDettaglioMensileData = useCallback(async (companyId: string, year?: number, month?: number) => {
+    return await loadFinancialData(companyId, 'ce-dettaglio-mensile', year, month)
+  }, [loadFinancialData])
 
   // Ottieni i dati per Source
-  const getSourceData = useCallback(async (companyId: string) => {
-    // I dati Source sono salvati con data_type='source'
-    // Recuperiamo l'ultimo disponibile
-    const data = await loadFinancialData(companyId, 'source')
-    return data
+  const getSourceData = useCallback(async (companyId: string, year?: number, month?: number) => {
+    return await loadFinancialData(companyId, 'source', year, month)
   }, [loadFinancialData])
 
   // Wrapper per setSelectedCompany che salva nel localStorage
@@ -251,13 +172,26 @@ export function FinancialDataProvider({ children }: { children: ReactNode }) {
   // Elimina dati finanziari
   const deleteFinancialData = async (
     companyId: string,
-    year: number
+    year: number,
+    dataType?: string | string[],
+    month?: number
   ) => {
-    const { error } = await supabase
+    let query = supabase
       .from('financial_data')
       .delete()
       .eq('company_id', companyId)
       .eq('year', year)
+
+    if (dataType) {
+        if (Array.isArray(dataType)) {
+            query = query.in('data_type', dataType)
+        } else {
+            query = query.eq('data_type', dataType)
+        }
+    }
+    if (month !== undefined) query = query.eq('month', month)
+
+    const { error } = await query
 
     if (error) {
       console.error('Errore nella cancellazione dati finanziari:', error)
@@ -305,13 +239,8 @@ export function FinancialDataProvider({ children }: { children: ReactNode }) {
         loadFinancialData,
         saveFinancialData,
         deleteFinancialData,
-        getDashboardData,
-        getCEDettaglioData,
         getCEDettaglioMensileData,
-        getCESinteticoData,
-        getCESinteticoMensileData,
         getSourceData,
-        getPartitariData,
         loadCompanies,
       }}
     >

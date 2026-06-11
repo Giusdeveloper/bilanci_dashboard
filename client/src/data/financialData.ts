@@ -1868,16 +1868,7 @@ export function formatPercentage(value: number | null | undefined, decimals: num
   return `${value.toFixed(decimals)}%`;
 }
 
-export function calculateVariance(current: number | null | undefined, previous: number | null | undefined): number {
-  if (current === null || current === undefined || previous === null || previous === undefined) {
-    return 0;
-  }
-  if (previous === 0) return 0;
-  return ((current - previous) / Math.abs(previous)) * 100;
-}
-
-export function getVarianceType(variance: number): 'positive' | 'negative' | 'neutral' {
-  if (variance > 5) return 'positive';
-  if (variance < -5) return 'negative';
-  return 'neutral';
-}
+// Retro-compatibilità: le formule KPI/varianze sono state estratte in un modulo
+// PURO condiviso (`shared/domain/kpiFormulas`). Qui ri-esportiamo per non rompere
+// gli import esistenti, senza duplicare la logica.
+export { calculateVariance, getVarianceType } from '../../../shared/domain/kpiFormulas';

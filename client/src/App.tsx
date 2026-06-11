@@ -29,9 +29,15 @@ import NotFound from "@/pages/not-found";
 import ImportData from "@/pages/import-data"; // Nuova pagina import
 import SourcePage from "@/pages/source"; // Nuova pagina source
 import Settings from "@/pages/settings"; // Nuova pagina settings
+import LedgerBalances from "@/pages/ledger-balances";
+import LedgerMappings from "@/pages/ledger-mappings";
+import EditorLayout from "@/pages/editor/EditorLayout";
+import EditorBilancioRedirect from "@/pages/editor-bilancio";
+import GuidaUtilizzo from "@/pages/guida";
+import SettingsAudit from "@/pages/settings-audit";
 
 function Router() {
-  const { user, loading, isAdmin } = useAuth();
+  const { user, loading, isAdmin, isEditorStaff } = useAuth();
   const { selectedCompany } = useFinancialData();
 
   // Mostra loading durante il caricamento dell'autenticazione
@@ -58,15 +64,16 @@ function Router() {
   // Se Supabase non è disponibile, usa un utente mock per permettere l'uso dell'app
   const effectiveUser = user || (isSupabaseAvailable ? null : { email: 'offline@local', role: 'admin' } as any);
   const effectiveIsAdmin = isAdmin || !isSupabaseAvailable;
+  const effectiveIsEditorStaff = isEditorStaff || !isSupabaseAvailable;
 
   return (
     <div className="flex-1 w-full overflow-auto">
       <div className="sticky top-0 z-50 bg-background border-b px-4 py-3 md:px-6 md:py-4 flex items-center gap-3 md:hidden">
         <SidebarTrigger data-testid="button-sidebar-toggle" className="min-h-[44px] min-w-[44px]" />
-        <h1 className="text-lg font-semibold">Awentia Bilanci</h1>
+        <h1 className="text-lg font-bold font-heading text-imm-blue-dark uppercase tracking-tight">Dashboard Bilanci</h1>
       </div>
       <div className="p-4 md:p-8">
-        {effectiveIsAdmin && <CompanySelector />}
+        {effectiveIsEditorStaff && <CompanySelector />}
         {!effectiveIsAdmin && selectedCompany && (
           <div className="mb-6 p-4 bg-muted rounded-lg">
             <div className="flex items-center gap-2">
@@ -94,8 +101,14 @@ function Router() {
           <Route path="/partitari" component={Partitari} />
           <Route path="/source" component={SourcePage} />
           <Route path="/github" component={GitHubSync} />
-          <Route path="/import" component={ImportData} />
+          <Route path="/import">{() => <ImportData />}</Route>
+          <Route path="/ledger-balances" component={LedgerBalances} />
+          <Route path="/ledger-mappings" component={LedgerMappings} />
+          <Route path="/editor/*" component={EditorLayout} />
+          <Route path="/editor-bilancio" component={EditorBilancioRedirect} />
           <Route path="/settings" component={Settings} />
+          <Route path="/settings/audit" component={SettingsAudit} />
+          <Route path="/guida" component={GuidaUtilizzo} />
           <Route component={NotFound} />
         </Switch>
       </div>
