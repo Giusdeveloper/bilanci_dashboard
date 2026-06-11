@@ -42,33 +42,32 @@ function loadLedgerFromAnalisiSource() {
   });
 }
 
-if (hasImportFixtures()) {
-  describe('Awentia apr 2026 — gate quadratura CFO', () => {
-    let extracted: BilancinoExtractResult;
-    let pipeline: BilancinoPipelineResult;
+describe.skipIf(!hasImportFixtures())('Awentia apr 2026 — gate quadratura CFO', () => {
+  let extracted: BilancinoExtractResult;
+  let pipeline: BilancinoPipelineResult;
 
-    beforeAll(() => {
-      const wb = readWorkbookData(
-        XLSX as never,
-        new Uint8Array(readFileSync(BILANCINO_FILE)),
-      );
-      extracted = extractBilancino(
-        wb,
-        detectProfile(wb).profile,
-        'AWENTIA SRL 30 04 provvisorio.xlsx',
-      );
-      const validCodes = new Set(buildMasterChart().map((a) => a.code));
-      const labelResolver = buildResolver(mappingsForCompany('awentia'), validCodes);
-      pipeline = runBilancinoPipeline({
-        workbook: wb,
-        ledgerMappings: loadLedgerFromAnalisiSource(),
-        labelResolver,
-        extract: extracted,
-        companySlug: 'awentia',
-      });
+  beforeAll(() => {
+    const wb = readWorkbookData(
+      XLSX as never,
+      new Uint8Array(readFileSync(BILANCINO_FILE)),
+    );
+    extracted = extractBilancino(
+      wb,
+      detectProfile(wb).profile,
+      'AWENTIA SRL 30 04 provvisorio.xlsx',
+    );
+    const validCodes = new Set(buildMasterChart().map((a) => a.code));
+    const labelResolver = buildResolver(mappingsForCompany('awentia'), validCodes);
+    pipeline = runBilancinoPipeline({
+      workbook: wb,
+      ledgerMappings: loadLedgerFromAnalisiSource(),
+      labelResolver,
+      extract: extracted,
+      companySlug: 'awentia',
     });
+  });
 
-    it('classifica i 4 storni come costi con importo negativo', () => {
+  it('classifica i 4 storni come costi con importo negativo', () => {
       for (const code of STORNO_ACCOUNTS) {
         const acc = extracted.accounts.find((a) => a.accountCode === code);
         expect(acc, code).toBeDefined();
@@ -93,9 +92,8 @@ if (hasImportFixtures()) {
       expect(pipeline.kpis.altriRicavi ?? 0).toBe(0);
     });
 
-    it('gate publish passa senza remap a ricavi', () => {
-      expect(pipeline.publishGate?.blocked).toBe(false);
-      expect(pipeline.publishGate?.quadratureChecks.every((c) => c.ok)).toBe(true);
-    });
+  it('gate publish passa senza remap a ricavi', () => {
+    expect(pipeline.publishGate?.blocked).toBe(false);
+    expect(pipeline.publishGate?.quadratureChecks.every((c) => c.ok)).toBe(true);
   });
-}
+});

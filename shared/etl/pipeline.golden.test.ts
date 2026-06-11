@@ -36,10 +36,9 @@ function loadWorkbook(file: string) {
   return readWorkbookData(XLSX as never, bytes);
 }
 
-if (hasImportFixtures()) {
-  describe('ETL pipeline — golden test (file reali 2025)', () => {
-    for (const gc of GOLDEN_CASES) {
-      describe(`${gc.companySlug} ${gc.year}`, () => {
+describe.skipIf(!hasImportFixtures())('ETL pipeline — golden test (file reali 2025)', () => {
+  for (const gc of GOLDEN_CASES) {
+    describe(`${gc.companySlug} ${gc.year}`, () => {
         let wb: WorkbookData;
         let detection: ProfileDetection;
         let resolver: ReturnType<typeof buildResolver>;
@@ -87,7 +86,6 @@ if (hasImportFixtures()) {
           expect(again.facts.length).toBe(result.facts.length);
           expect(again.kpis).toEqual(result.kpis);
         });
-      });
-    }
-  });
-}
+    });
+  }
+});
