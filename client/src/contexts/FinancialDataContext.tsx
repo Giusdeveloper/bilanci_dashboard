@@ -20,7 +20,7 @@ interface FinancialDataContextType {
 const FinancialDataContext = createContext<FinancialDataContextType | undefined>(undefined)
 
 export function FinancialDataProvider({ children }: { children: ReactNode }) {
-  const { user, isAdmin } = useAuth()
+  const { user, isAdmin, isEditorStaff } = useAuth()
   const [companies, setCompanies] = useState<Company[]>([])
   const [selectedCompany, setSelectedCompany] = useState<Company | null>(null)
   const [loading, setLoading] = useState(true)
@@ -49,8 +49,8 @@ export function FinancialDataProvider({ children }: { children: ReactNode }) {
         .select('*')
         .order('name')
 
-      // Se l'utente è un client, può vedere solo la sua azienda
-      if (!isAdmin && user.company_id) {
+      // Solo i client con company_id vedono un'unica azienda
+      if (user.role === 'client' && user.company_id) {
         query = query.eq('id', user.company_id)
       }
 
@@ -65,12 +65,12 @@ export function FinancialDataProvider({ children }: { children: ReactNode }) {
 
       // Logica di selezione automatica
       if (data && data.length > 0) {
-        if (!isAdmin) {
+        if (user.role === 'client') {
           // Per i client, seleziona sempre l'unica azienda disponibile
           console.log('🏢 Selezione automatica azienda per client:', data[0].name)
           setSelectedCompany(data[0])
-        } else if (!hasInitialized.current) {
-          // Per gli admin, prova a caricare dal localStorage
+        } else if (isEditorStaff && !hasInitialized.current) {
+          // Admin e amministrazione: ripristina dal localStorage
           try {
             const savedCompany = localStorage.getItem('selectedCompany')
             if (savedCompany) {
@@ -91,7 +91,7 @@ export function FinancialDataProvider({ children }: { children: ReactNode }) {
     } finally {
       setLoading(false)
     }
-  }, [user, isAdmin])
+  }, [user, isEditorStaff])
 
   useEffect(() => {
     loadCompanies()
