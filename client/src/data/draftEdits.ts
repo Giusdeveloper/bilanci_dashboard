@@ -9,8 +9,11 @@
 import { buildBalanceUpdateChanges, buildMappingUpdateChanges } from '@shared/etl/draftChanges';
 import {
   buildManualFactChange,
+  buildLayoutOverrideChanges,
   parseDraftManualFactChanges,
   type ManualFactOverride,
+  type LayoutOverrideInput,
+  type PublishedLayoutRow,
 } from '@shared/etl/draftChanges';
 
 import { supabase } from '@/lib/supabase';
@@ -19,10 +22,10 @@ import { supabase } from '@/lib/supabase';
 
 export type DraftEditStatus = 'draft' | 'pending_review' | 'published' | 'rejected';
 
-export type DraftChangeType = 'balance_update' | 'mapping_update' | 'manual_fact';
+export type DraftChangeType = 'balance_update' | 'mapping_update' | 'manual_fact' | 'layout_override';
 
-export type { ManualFactOverride };
-export { buildManualFactChange, parseDraftManualFactChanges };
+export type { ManualFactOverride, LayoutOverrideInput, PublishedLayoutRow };
+export { buildManualFactChange, parseDraftManualFactChanges, buildLayoutOverrideChanges };
 
 
 
@@ -783,6 +786,14 @@ export function buildManualFactChangesFromOverrides(
       o.motivazione,
     ),
   );
+}
+
+/** Costruisce change layout_override da griglia editata vs published. */
+export function buildLayoutChangesFromGrid(
+  published: PublishedLayoutRow[],
+  edited: Map<string, LayoutOverrideInput>,
+): DraftChangeInput[] {
+  return buildLayoutOverrideChanges(published, edited);
 }
 
 /** Invoca Edge Function recalculate-preview (staff operativo, no write DB). */

@@ -3,8 +3,10 @@ import {
   applyBalanceChangesToMap,
   applyManualFactOverrides,
   buildBalanceUpdateChanges,
+  buildLayoutOverrideChanges,
   buildManualFactChange,
   buildMappingUpdateChanges,
+  effectiveLayoutLabel,
 } from './draftChanges.ts';
 
 describe('buildBalanceUpdateChanges', () => {
@@ -123,5 +125,67 @@ describe('buildMappingUpdateChanges', () => {
     expect(changes).toHaveLength(1);
     expect(changes[0].changeType).toBe('mapping_update');
     expect(changes[0].newValue).toMatchObject({ analitica_label: 'Altri ricavi' });
+  });
+});
+
+describe('buildLayoutOverrideChanges', () => {
+  const published = [
+    {
+      rowIndex: 1,
+      reportType: 'ce_dettaglio',
+      year: 2025,
+      originalLabel: 'Ricavi vendite',
+      displayLabel: null,
+      isHidden: false,
+    },
+  ];
+
+  it('produce delta quando cambia display_label', () => {
+    const edited = new Map([
+      [
+        'ce_dettaglio|2025|1',
+        {
+          rowIndex: 1,
+          reportType: 'ce_dettaglio',
+          year: 2025,
+          displayLabel: 'Ricavi personalizzati',
+          isHidden: false,
+        },
+      ],
+    ]);
+    const changes = buildLayoutOverrideChanges(published, edited);
+    expect(changes).toHaveLength(1);
+    expect(changes[0].changeType).toBe('layout_override');
+    expect(changes[0].newValue).toMatchObject({ display_label: 'Ricavi personalizzati' });
+  });
+
+  it('produce delta quando is_hidden diventa true', () => {
+    const edited = new Map([
+      [
+        'ce_dettaglio|2025|1',
+        {
+          rowIndex: 1,
+          reportType: 'ce_dettaglio',
+          year: 2025,
+          displayLabel: null,
+          isHidden: true,
+        },
+      ],
+    ]);
+    const changes = buildLayoutOverrideChanges(published, edited);
+    expect(changes).toHaveLength(1);
+    expect(changes[0].newValue).toMatchObject({ is_hidden: true });
+  });
+});
+
+describe('effectiveLayoutLabel', () => {
+  it('usa display_label se presente', () => {
+    expect(
+      effectiveLayoutLabel({ originalLabel: 'Orig', displayLabel: 'Custom' }),
+    ).toBe('Custom');
+  });
+
+  it('fallback su original_label', () => {
+    expect(effectiveLayoutLabel({ originalLabel: 'Orig', displayLabel: null })).toBe('Orig');
   });
 });

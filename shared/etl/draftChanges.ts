@@ -2,7 +2,7 @@
  * draftChanges — costruzione delta bozza da griglia editabile (puro, testabile).
  */
 
-export type DraftChangeType = 'balance_update' | 'mapping_update' | 'manual_fact';
+export type DraftChangeType = 'balance_update' | 'mapping_update' | 'manual_fact' | 'layout_override';
 
 export interface DraftChangePayload {
   changeType: DraftChangeType;
@@ -279,4 +279,137 @@ export function applyManualFactOverrides<T extends {
   }
 
   return result;
+}
+
+export interface PublishedLayoutRow {
+  rowIndex: number;
+  reportType: string;
+  year: number;
+  originalLabel: string;
+  displayLabel?: string | null;
+  isHidden?: boolean;
+}
+
+export interface LayoutOverrideInput {
+  rowIndex: number;
+  reportType: string;
+  year: number;
+  displayLabel?: string | null;
+  isHidden?: boolean;
+}
+
+function layoutPresentationSnapshot(row: PublishedLayoutRow): Record<string, unknown> {
+  return {
+    display_label: row.displayLabel ?? null,
+    is_hidden: row.isHidden ?? false,
+    original_label: row.originalLabel,
+  };
+}
+
+function layoutPresentationEqual(a: PublishedLayoutRow, b: LayoutOverrideInput): boolean {
+  const pubDisplay = a.displayLabel ?? null;
+  const pubHidden = a.isHidden ?? false;
+  const newDisplay = b.displayLabel ?? null;
+  const newHidden = b.isHidden ?? false;
+  return pubDisplay === newDisplay && pubHidden === newHidden;
+}
+
+export function layoutRowKey(reportType: string, year: number, rowIndex: number): string {
+  return `${reportType}|${year}|${rowIndex}`;
+}
+
+/** Costruisce change layout_override rispetto al layout published. */
+export function buildLayoutOverrideChanges(
+  published: PublishedLayoutRow[],
+  edited: Map<string, LayoutOverrideInput>,
+): DraftChangePayload[] {
+  const pubMap = new Map(published.map((p) => [layoutRowKey(p.reportType, p.year, p.rowIndex), p]));
+  const changes: DraftChangePayload[] = [];
+
+  for (const [, newRow] of Array.from(edited.entries())) {
+    const key = layoutRowKey(newRow.reportType, newRow.year, newRow.rowIndex);
+    const oldRow = pubMap.get(key);
+    if (!oldRow) continue;
+    if (layoutPresentationEqual(oldRow, newRow)) continue;
+
+    changes.push({
+      changeType: 'layout_override',
+      entityTable: 'report_layout',
+      entityKey: {
+        row_index: newRow.rowIndex,
+        report_type: newRow.reportType,
+        year: newRow.year,
+      },
+      fieldName: 'presentation',
+      oldValue: layoutPresentationSnapshot(oldRow),
+      newValue: {
+        display_label: newRow.displayLabel ?? null,
+        is_hidden: newRow.isHidden ?? false,
+        original_label: oldRow.originalLabel,
+      },
+    });
+  }
+
+  return changes;
+}
+
+/** Parse change layout_override da draft_edit_changes. */
+export function parseDraftLayoutChanges(
+  rows: Array<{ entity_key: Record<string, unknown>; new_value: Record<string, unknown> }>,
+): LayoutOverrideInput[] {
+  const overrides: LayoutOverrideInput[] = [];
+  for (const row of rows) {
+    const rowIndex = Number(row.entity_key?.row_index);
+    const reportType = String(row.entity_key?.report_type ?? 'ce_dettaglio');
+    const year = Number(row.entity_key?.year);
+    if (!Number.isFinite(rowIndex) || !Number.isFinite(year)) continue;
+    const nv = row.new_value ?? {};
+    overrides.push({
+      rowIndex,
+      reportType,
+      year,
+      displayLabel: nv.display_label == null ? null : String(nv.display_label),
+      isHidden: nv.is_hidden === true,
+    });
+  }
+  return overrides;
+}
+
+/** Applica override presentazione su righe layout (in memoria). */
+export function applyLayoutOverrides<T extends {
+  rowIndex: number;
+  reportType?: string;
+  year?: number;
+  originalLabel: string;
+  displayLabel?: string | null;
+  isHidden?: boolean;
+}>(
+  rows: T[],
+  overrides: LayoutOverrideInput[],
+  defaultReportType = 'ce_dettaglio',
+): T[] {
+  if (overrides.length === 0) return rows;
+  const byKey = new Map(
+    overrides.map((o) => [layoutRowKey(o.reportType, o.year, o.rowIndex), o]),
+  );
+  return rows.map((row) => {
+    const reportType = row.reportType ?? defaultReportType;
+    const year = row.year ?? overrides[0]?.year ?? 0;
+    const override = byKey.get(layoutRowKey(reportType, year, row.rowIndex));
+    if (!override) return row;
+    return {
+      ...row,
+      displayLabel: override.displayLabel ?? null,
+      isHidden: override.isHidden ?? false,
+    };
+  });
+}
+
+/** Etichetta effettiva per UI (display_label o original_label). */
+export function effectiveLayoutLabel(row: {
+  originalLabel: string;
+  displayLabel?: string | null;
+}): string {
+  const custom = row.displayLabel?.trim();
+  return custom && custom.length > 0 ? custom : row.originalLabel;
 }

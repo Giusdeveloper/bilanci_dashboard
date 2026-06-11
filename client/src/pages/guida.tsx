@@ -346,8 +346,15 @@ const GUIDE_SECTIONS: GuideSection[] = [
 
         <GuideCallout variant="warning">
           Dopo la pubblicazione i dati compaiono nelle pagine consultazione (Dashboard, CE Dettaglio,
-          Saldi…) per tutti gli utenti autorizzati. L&apos;operazione non è annullabile dall&apos;interfaccia:
-          per correzioni successive crea una nuova bozza sullo stesso periodo.
+          Saldi…) per tutti gli utenti autorizzati. Ogni publish crea uno snapshot versionato: da{" "}
+          <GuideLink href="/editor/bozze">Bozze</GuideLink> puoi ripristinare una versione precedente
+          del periodo (rollback su facts + layout, registrato in audit).
+        </GuideCallout>
+
+        <GuideCallout variant="info">
+          In editor, la tab <GuideLink href="/editor/partitari">Partitari</GuideLink> mostra il registro
+          contabile in sola lettura (stesso periodo selezionato nella barra). Le correzioni strutturali
+          passano da Saldi e Mapping, non dal partitario.
         </GuideCallout>
       </div>
     ),

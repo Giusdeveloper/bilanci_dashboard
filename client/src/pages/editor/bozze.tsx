@@ -16,6 +16,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { DRAFT_STATUS_LABELS } from '@/data/draftEdits';
+import PublishedSnapshotsPanel from '@/components/PublishedSnapshotsPanel';
 import { EDITOR_MONTH_LABELS, useEditor } from '@/contexts/EditorContext';
 
 function statusBadgeVariant(status: string): 'default' | 'secondary' | 'destructive' | 'outline' {
@@ -82,6 +83,8 @@ export default function EditorBozzePage() {
           )}
         </CardContent>
       </Card>
+
+      <PublishedSnapshotsPanel />
     </EditorShell>
   );
 }
