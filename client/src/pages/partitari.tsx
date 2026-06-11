@@ -14,6 +14,7 @@ import {
 import PageHeader from "@/components/PageHeader";
 import { ChevronDown, X, Search } from "lucide-react";
 import { useFinancialData } from "@/contexts/FinancialDataContext";
+import { fetchPartitariPeriods } from "@/data/financialReads";
 
 interface PartitariData {
   headers: string[];
@@ -43,14 +44,82 @@ export default function Partitari() {
   const [filters, setFilters] = useState<Record<string, Set<string>>>({});
   const [searchTerms, setSearchTerms] = useState<Record<string, string>>({});
   const [globalSearch, setGlobalSearch] = useState("");
+  const [availablePeriods, setAvailablePeriods] = useState<{ year: number; month: number }[]>([]);
+  const [selectedYear, setSelectedYear] = useState<string>("");
+  const [selectedMonth, setSelectedMonth] = useState<string>("");
 
-  // Default to December 2025 as per latest data
-  const [selectedYear, setSelectedYear] = useState<string>("2025");
-  const [selectedMonth, setSelectedMonth] = useState<string>("12");
+  const companyId = selectedCompany?.id ?? null;
+
+  const availableYears = useMemo(() => {
+    const years = new Set(availablePeriods.map((p) => p.year));
+    return Array.from(years).sort((a, b) => b - a);
+  }, [availablePeriods]);
+
+  const yearNum = selectedYear ? parseInt(selectedYear, 10) : null;
+
+  const monthsForSelectedYear = useMemo(() => {
+    if (yearNum === null) return [];
+    return availablePeriods
+      .filter((p) => p.year === yearNum)
+      .map((p) => p.month)
+      .sort((a, b) => a - b);
+  }, [availablePeriods, yearNum]);
+
+  const monthOptions = useMemo(
+    () => MONTHS.filter((m) => monthsForSelectedYear.includes(parseInt(m.value, 10))),
+    [monthsForSelectedYear],
+  );
+
+  // Reset alla selezione di una nuova azienda (pattern dashboard).
+  useEffect(() => {
+    setAvailablePeriods([]);
+    setSelectedYear("");
+    setSelectedMonth("");
+    setPartitariData([]);
+    setPartitariHeaders([]);
+    setFilters({});
+    setSearchTerms({});
+    setGlobalSearch("");
+  }, [companyId]);
+
+  useEffect(() => {
+    if (!companyId) return;
+
+    let cancelled = false;
+    fetchPartitariPeriods(companyId)
+      .then((periods) => {
+        if (!cancelled) setAvailablePeriods(periods);
+      })
+      .catch((error) => {
+        if (!cancelled) {
+          console.error("Errore nel caricamento periodi partitari:", error);
+          setAvailablePeriods([]);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [companyId]);
+
+  // Quando arrivano i periodi, seleziona l'anno più recente.
+  useEffect(() => {
+    if (availableYears.length > 0) {
+      setSelectedYear((prev) => (prev ? prev : availableYears[0].toString()));
+    }
+  }, [availableYears]);
+
+  // Al cambio anno (o arrivo periodi), mese = ultimo disponibile per quell'anno.
+  useEffect(() => {
+    if (yearNum === null) return;
+    const lastMonth =
+      monthsForSelectedYear.length > 0 ? monthsForSelectedYear[monthsForSelectedYear.length - 1] : 1;
+    setSelectedMonth(lastMonth.toString());
+  }, [yearNum, availablePeriods]);
 
   useEffect(() => {
     const loadData = async () => {
-      if (!selectedCompany) {
+      if (!selectedCompany || yearNum === null || !selectedMonth) {
         setPartitariData([]);
         setPartitariHeaders([]);
         return;
@@ -61,8 +130,8 @@ export default function Partitari() {
         const data = await loadFinancialData(
           selectedCompany.id,
           'partitari',
-          parseInt(selectedYear),
-          selectedMonth === "all" ? undefined : parseInt(selectedMonth)
+          yearNum,
+          parseInt(selectedMonth, 10),
         );
 
         if (data && data.length > 0 && data[0].data) {
@@ -83,7 +152,7 @@ export default function Partitari() {
     };
 
     loadData();
-  }, [selectedCompany, loadFinancialData, selectedYear, selectedMonth]);
+  }, [selectedCompany, loadFinancialData, yearNum, selectedMonth]);
 
   // Get unique values for each column
   const uniqueValues = useMemo(() => {
@@ -219,24 +288,27 @@ export default function Partitari() {
       <div className="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
         {/* Filters Section */}
         <div className="flex flex-wrap items-center gap-3 flex-1">
-          <Select value={selectedYear} onValueChange={setSelectedYear}>
+          <Select value={selectedYear} onValueChange={setSelectedYear} disabled={availableYears.length === 0}>
             <SelectTrigger className="w-[100px] h-9">
               <SelectValue placeholder="Anno" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="2025">2025</SelectItem>
-              <SelectItem value="2024">2024</SelectItem>
-              <SelectItem value="2023">2023</SelectItem>
+              {availableYears.map((year) => (
+                <SelectItem key={year} value={year.toString()}>{year}</SelectItem>
+              ))}
             </SelectContent>
           </Select>
 
-          <Select value={selectedMonth} onValueChange={setSelectedMonth}>
+          <Select
+            value={selectedMonth}
+            onValueChange={setSelectedMonth}
+            disabled={monthOptions.length === 0}
+          >
             <SelectTrigger className="w-[130px] h-9">
               <SelectValue placeholder="Mese" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">Tutti i mesi</SelectItem>
-              {MONTHS.map((m) => (
+              {monthOptions.map((m) => (
                 <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>
               ))}
             </SelectContent>
@@ -278,9 +350,14 @@ export default function Partitari() {
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
             Caricamento dati in corso...
           </div>
+        ) : availablePeriods.length === 0 ? (
+          <div className="p-12 text-center text-muted-foreground space-y-2">
+            <p>Nessun partitario importato per {selectedCompany.name}.</p>
+            <p className="text-sm">Importa un export PARTITARIO da Importa Dati.</p>
+          </div>
         ) : (partitariData.length === 0) ? (
           <div className="p-12 text-center text-muted-foreground">
-            Dati non disponibili per il periodo selezionato ({selectedMonth === 'all' ? 'Tutto l\'anno' : MONTHS.find(m => m.value === selectedMonth)?.label} {selectedYear})
+            Dati non disponibili per il periodo selezionato ({MONTHS.find(m => m.value === selectedMonth)?.label ?? selectedMonth} {selectedYear})
           </div>
         ) : (
           <div className="overflow-x-auto overflow-y-auto max-h-[calc(100vh-300px)] table-scroll-container border rounded-md">

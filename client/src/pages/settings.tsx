@@ -58,7 +58,7 @@ export default function Settings() {
   // Form states
   const [newUserEmail, setNewUserEmail] = useState("");
   const [newUserPassword, setNewUserPassword] = useState("");
-  const [newUserRole, setNewUserRole] = useState<"admin" | "client">("client");
+  const [newUserRole, setNewUserRole] = useState<"admin" | "client" | "amministrazione">("client");
   const [newUserCompany, setNewUserCompany] = useState<string>("");
   const [newCompanyName, setNewCompanyName] = useState("");
 
@@ -291,6 +291,7 @@ export default function Settings() {
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="client">Cliente (Azienda Specifica)</SelectItem>
+                          <SelectItem value="amministrazione">Amministrazione (Editor + Import)</SelectItem>
                           <SelectItem value="admin">Amministratore (Tutto)</SelectItem>
                         </SelectContent>
                       </Select>
@@ -354,14 +355,22 @@ export default function Settings() {
                         <TableCell className="font-medium">{u.email}</TableCell>
                         <TableCell>
                           <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
-                            u.role === "admin" ? "bg-yellow-100 text-yellow-800" : "bg-blue-100 text-blue-800"
+                            u.role === "admin"
+                              ? "bg-yellow-100 text-yellow-800"
+                              : u.role === "amministrazione"
+                                ? "bg-purple-100 text-purple-800"
+                                : "bg-blue-100 text-blue-800"
                           }`}>
-                            {u.role === "admin" ? "ADMIN" : "CLIENT"}
+                            {u.role === "admin"
+                              ? "ADMIN"
+                              : u.role === "amministrazione"
+                                ? "AMMINISTRAZIONE"
+                                : "CLIENT"}
                           </span>
                         </TableCell>
                         <TableCell>
-                          {u.role === "admin" 
-                            ? "Tutte le aziende" 
+                          {u.role === "admin" || u.role === "amministrazione"
+                            ? "Tutte le aziende"
                             : (companies.find(c => c.id === u.company_id)?.name || "Nessuna")}
                         </TableCell>
                         <TableCell className="text-right">

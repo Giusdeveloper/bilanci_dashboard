@@ -1,0 +1,7 @@
+{
+  "imports": {
+    "xlsx": "npm:xlsx@0.18.5",
+    "@supabase/supabase-js": "npm:@supabase/supabase-js@2",
+    "zod": "npm:zod@3"
+  }
+}

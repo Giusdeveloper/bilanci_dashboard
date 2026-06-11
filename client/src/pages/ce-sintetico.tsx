@@ -1,160 +1,170 @@
 import PageHeader from "@/components/PageHeader";
 import DataTable from "@/components/DataTable";
-import { formatCurrency, formatPercentage, calculateVariance } from "@/data/financialData";
+import { formatCurrency, formatPercentage } from "@/data/financialData";
+import { buildMacroTableRows } from "@/data/financialShaping";
+import { fetchCESintetico } from "@/data/financialReads";
+import { resolveCompanyCeProfileId } from "@/data/companyCeProfile";
+import type { CESinteticoModel, DashboardPeriod } from "@shared/queries";
+import { DASHBOARD_PERIOD_OPTIONS, normalizeDashboardPeriod } from "@shared/domain/periodMath";
 import { useFinancialData } from "@/contexts/FinancialDataContext";
+import { useCompanyPeriods } from "@/hooks/useCompanyPeriods";
 import { useEffect, useState } from "react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
+import { Separator } from "@/components/ui/separator";
 
-interface CESinteticoData {
-  progressivo2025: any;
-  progressivo2024: any;
-}
+const monthNames = ["", "Gennaio", "Febbraio", "Marzo", "Aprile", "Maggio", "Giugno", "Luglio", "Agosto", "Settembre", "Ottobre", "Novembre", "Dicembre"];
 
 export default function CESintetico() {
-  const { selectedCompany, getCESinteticoData } = useFinancialData();
-  const [ceData, setCeData] = useState<CESinteticoData | null>(null);
+  const { selectedCompany } = useFinancialData();
+  const companyId = selectedCompany?.id ?? null;
+  const ceProfileId = resolveCompanyCeProfileId(selectedCompany);
+  const { periods, loading: periodsLoading, monthsAvailableForYear, monthsForYear } = useCompanyPeriods(companyId);
+
+  const [model, setModel] = useState<CESinteticoModel | null>(null);
   const [loading, setLoading] = useState(false);
-  const [periodLabel, setPeriodLabel] = useState("Dic");
+  const [error, setError] = useState<string | null>(null);
+
+  const [selectedYear, setSelectedYear] = useState<string>("");
+  const [selectedMonth, setSelectedMonth] = useState<string>("");
+  const [selectedPeriod, setSelectedPeriod] = useState<DashboardPeriod>("YTD");
 
   useEffect(() => {
-    const loadData = async () => {
-      if (!selectedCompany) {
-        setCeData(null);
-        return;
-      }
+    setModel(null);
+    setSelectedYear("");
+    setSelectedMonth("");
+    setSelectedPeriod("YTD");
+    setError(null);
+  }, [companyId]);
 
-      setLoading(true);
-      try {
-        const data = await getCESinteticoData(selectedCompany.id);
-        if (data && data.length > 0 && data[0].data) {
-          setCeData(data[0].data as CESinteticoData);
-          if (data[0].month) {
-            const monthNames = ["", "Gen", "Feb", "Mar", "Apr", "Mag", "Giu", "Lug", "Ago", "Set", "Ott", "Nov", "Dic"];
-            setPeriodLabel(monthNames[data[0].month] || "Dic");
-          }
-        } else {
-          setCeData(null);
+  useEffect(() => {
+    if (periods && periods.years.length > 0) {
+      setSelectedYear((prev) => (prev ? prev : periods.years[0].toString()));
+    }
+  }, [periods]);
+
+  const yearNum = selectedYear ? parseInt(selectedYear) : null;
+  const monthsAvailable = yearNum !== null ? monthsAvailableForYear(yearNum) : 0;
+  const hasMonthly = monthsAvailable > 0;
+
+  useEffect(() => {
+    if (yearNum === null) return;
+    const months = monthsForYear(yearNum);
+    const lastMonth = months.length > 0 ? months[months.length - 1] : 12;
+    setSelectedMonth(lastMonth.toString());
+    if (months.length === 0) setSelectedPeriod("YTD");
+  }, [yearNum, periods]);
+
+  useEffect(() => {
+    if (!companyId || yearNum === null || !selectedMonth) return;
+    let cancelled = false;
+    setLoading(true);
+    setError(null);
+    fetchCESintetico(companyId, yearNum, {
+      period: selectedPeriod,
+      month: parseInt(selectedMonth),
+      ceProfileId,
+    })
+      .then((m) => {
+        if (!cancelled) setModel(m);
+      })
+      .catch((e) => {
+        if (!cancelled) {
+          console.error("CE Sintetico Load Error:", e);
+          setError("Impossibile caricare il Conto Economico sintetico.");
+          setModel(null);
         }
-      } catch (error) {
-        console.error('Errore nel caricamento dati CE Sintetico:', error);
-        setCeData(null);
-      } finally {
-        setLoading(false);
-      }
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
     };
-
-    loadData();
-  }, [selectedCompany, getCESinteticoData]);
+  }, [companyId, yearNum, selectedMonth, selectedPeriod, ceProfileId]);
 
   if (!selectedCompany) {
-    return (
-      <div data-testid="page-ce-sintetico">
-        <PageHeader title="CE Sintetico" subtitle="Conto Economico Sintetico" />
-        <div className="p-8 bg-muted rounded-lg text-center mt-6">
-          <p className="text-lg text-muted-foreground">Seleziona un'azienda per visualizzare i dati.</p>
-        </div>
-      </div>
-    );
+    return <div className="p-8 text-center text-muted-foreground">Seleziona un'azienda per visualizzare i dati.</div>;
+  }
+  if (periodsLoading || (loading && !model)) {
+    return <div className="p-8 text-center">Analisi Sintetica in corso...</div>;
+  }
+  if (periods && periods.years.length === 0) {
+    return <div className="p-8 text-center text-muted-foreground">Nessun dato disponibile per questa azienda.</div>;
+  }
+  if (error) {
+    return <div className="p-8 text-center text-destructive">{error}</div>;
+  }
+  if (!model) {
+    return <div className="p-8 text-center text-muted-foreground">Dati non disponibili per questa selezione.</div>;
   }
 
-  if (loading) return <div className="p-8 text-center">Caricamento...</div>;
+  const { years } = model;
+  const [t0, t1, t2] = years;
+  const monthName = monthNames[model.monthReference]?.substring(0, 3) ?? "";
+  const periodLabel = selectedPeriod === 'YTD' ? `(Gen-${monthName})` : `(${selectedPeriod})`;
 
-  if (!ceData || !ceData.progressivo2025) {
-    return (
-      <div className="p-8 text-center text-muted-foreground">Dati non disponibili per CE Sintetico.</div>
-    );
-  }
-
-  const { progressivo2025, progressivo2024 } = ceData;
-  const columns = [
-    { key: "voce", label: "Voce", align: "left" as const },
-    { key: "value2025", label: `2025 (Gen-${periodLabel})`, align: "right" as const },
-    { key: "percentage", label: "% sui Ricavi", align: "right" as const },
-    { key: "value2024", label: `2024 (Gen-${periodLabel})`, align: "right" as const },
-    { key: "varianceEuro", label: "Var €", align: "right" as const },
-    { key: "variance", label: "Var %", align: "right" as const },
-  ];
-
-  let tableData: any[] = [];
-  const emptyRow = { voce: "", value2025: "", percentage: "", value2024: "", varianceEuro: "", variance: "" };
-
-  if (progressivo2025.isDynamic && progressivo2025.rows) {
-    // RENDERING DINAMICO UNIVERSALE (Awentia, Sherpa42, Maia)
-    const totalRicavi = progressivo2025.totaleRicavi || 1;
-    const dynamicRows: any[] = [];
-    const emptyRow = { voce: "", value2025: "", percentage: "", value2024: "", varianceEuro: "", variance: "", className: "" };
-
-    progressivo2025.rows.forEach((row: any) => {
-      const cleanLabel = row.voce.trim();
-      const upperLabel = cleanLabel.toUpperCase().replace(/\s+/g, '');
-      const noise = ["CONTOECONOMICO", "DICEMBRE", "GENNAIO", "FEBBRAIO", "MARZO", "APRILE", "MAGGIO", "GIUGNO", "LUGLIO", "AGOSTO", "SETTEMBRE", "OTTOBRE", "NOVEMBRE"];
-      if (upperLabel.includes("CONTOECONOMICO") || noise.includes(upperLabel) || /^\d{2,4}$/.test(upperLabel)) return;
-
-      const v25 = typeof row.value2025 === 'number' ? row.value2025 : 0;
-      const v24 = typeof row.value2024 === 'number' ? row.value2024 : 0;
-      const percentage = (v25 / totalRicavi) * 100;
-      const variance = calculateVariance(v25, v24);
-      
-      const labelUpper = row.voce.toUpperCase();
-      
-      // Add spacer before key sections
-      if (labelUpper.includes("EBITDA") || labelUpper.includes("EBIT") || labelUpper.includes("RISULTATO")) {
-        dynamicRows.push(emptyRow);
-      }
-
-      let className = row.type || "";
-      if (className === "total") className = "total-dark";
-      if (className === "result" || labelUpper.includes("RISULTATO")) className = "result";
-      if (className === "key-metric") className = "key-metric";
-      if (className === "subtotal") className = "highlight";
-
-      dynamicRows.push({
-        voce: row.voce,
-        value2025: formatCurrency(v25),
-        percentage: formatPercentage(percentage, 1),
-        value2024: formatCurrency(v24),
-        varianceEuro: v24 === 0 && v25 === 0 ? "n/a" : formatCurrency(v25 - v24),
-        variance: v24 === 0 && v25 === 0 ? "n/a" : `${variance >= 0 ? '+' : ''}${formatPercentage(variance, 1)}`,
-        className: className
-      });
-    });
-    tableData = dynamicRows;
-  } else {
-    // RENDERING HARDCODED (Awentia)
-    const createRow = (label: string, val25: number, val24: number, isBold = false, className = "") => {
-      const ricavi25 = progressivo2025.totaleRicavi || 1;
-      const percentage = (val25 / ricavi25) * 100;
-      const variance = calculateVariance(val25, val24);
-      return {
-        voce: label,
-        value2025: formatCurrency(val25),
-        percentage: formatPercentage(percentage, 1),
-        value2024: formatCurrency(val24),
-        varianceEuro: val24 === 0 && val25 === 0 ? "n/a" : formatCurrency(val25 - val24),
-        variance: val24 === 0 && val25 === 0 ? "n/a" : `${variance >= 0 ? '+' : ''}${formatPercentage(variance, 1)}`,
-        className: className || (isBold ? "font-bold" : ""),
-      };
-    };
-
-    tableData = [
-      createRow("TOTALE RICAVI", progressivo2025.totaleRicavi, progressivo2024.totaleRicavi, true, "total-dark"),
-      emptyRow,
-      createRow("COSTI DIRETTI", progressivo2025.costiDiretti, progressivo2024.costiDiretti, true, "highlight"),
-      createRow("COSTI INDIRETTI", progressivo2025.costiIndiretti, progressivo2024.costiIndiretti, true, "highlight"),
-      createRow("TOTALE COSTI DIRETTI E INDIRETTI", progressivo2025.totaleCostiDirettiIndiretti, progressivo2024.totaleCostiDirettiIndiretti, true, "total-dark"),
-      createRow("MARGINE", progressivo2025.margine || progressivo2025.grossProfit, progressivo2024.margine || progressivo2024.grossProfit, true, "key-metric"),
-      emptyRow,
-      createRow("TOTALE GESTIONE STRUTTURA", progressivo2025.totaleGestioneStruttura, progressivo2024.totaleGestioneStruttura, true, "total-dark"),
-      createRow("EBITDA", progressivo2025.ebitda, progressivo2024.ebitda, true, "key-metric"),
-      emptyRow,
-      createRow("RISULTATO ANTE IMPOSTE", progressivo2025.ebt, progressivo2024.ebt, true, "key-metric"),
-      createRow("RISULTATO DELL'ESERCIZIO", progressivo2025.risultatoEsercizio, progressivo2024.risultatoEsercizio, true, "result"),
-    ];
-  }
+  const availableYears = periods?.years.map((y) => y.toString()) ?? [];
+  const tableRows = buildMacroTableRows(model.rows, years, formatCurrency, formatPercentage);
 
   return (
-    <div data-testid="page-ce-sintetico" className="space-y-6">
-      <PageHeader title="CE Sintetico" subtitle={`Conto Economico Sintetico - Principali aggregati (Progressivo ${periodLabel})`} />
-      <DataTable columns={columns} data={tableData} />
+    <div className="space-y-6 animate-in fade-in duration-500">
+      <PageHeader title="CE Sintetico" subtitle={`Conto Economico Sintetico - Analisi Multi-Anno ${periodLabel}`} />
+
+      {/* FILTRI */}
+      <div className="flex flex-wrap items-center gap-4 bg-muted/30 p-3 rounded-xl border mb-6 w-fit animate-in fade-in slide-in-from-bottom-4 duration-700 fill-mode-both">
+        <div className="flex items-center gap-2">
+          <Label className="text-[10px] uppercase font-bold text-muted-foreground">Anno</Label>
+          <Select value={selectedYear} onValueChange={setSelectedYear}>
+            <SelectTrigger className="w-[90px] h-8 text-xs font-bold"><SelectValue /></SelectTrigger>
+            <SelectContent>{availableYears.map(y => <SelectItem key={y} value={y}>{y}</SelectItem>)}</SelectContent>
+          </Select>
+        </div>
+        <Separator orientation="vertical" className="h-6" />
+        <div className="flex items-center gap-2">
+          <Label className="text-[10px] uppercase font-bold text-muted-foreground">Fino a</Label>
+          <Select value={selectedMonth} onValueChange={setSelectedMonth} disabled={!hasMonthly}>
+            <SelectTrigger className="w-[110px] h-8 text-xs font-bold"><SelectValue /></SelectTrigger>
+            <SelectContent>{monthNames.slice(1).map((m, i) => <SelectItem key={m} value={(i + 1).toString()}>{m}</SelectItem>)}</SelectContent>
+          </Select>
+        </div>
+        <Separator orientation="vertical" className="h-6" />
+        <div className="flex items-center gap-2">
+          <Label className="text-[10px] uppercase font-bold text-muted-foreground">Periodo</Label>
+          <Select
+            value={normalizeDashboardPeriod(selectedPeriod)}
+            onValueChange={(v) => setSelectedPeriod(v as DashboardPeriod)}
+            disabled={!hasMonthly}
+          >
+            <SelectTrigger className="w-[180px] h-8 text-xs font-bold"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              {DASHBOARD_PERIOD_OPTIONS.map(({ value, label }) => (
+                <SelectItem key={value} value={value}>{label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        {!hasMonthly && (
+          <span className="text-[10px] uppercase font-bold text-amber-600 bg-amber-100 px-2 py-1 rounded">
+            Dati solo annuali
+          </span>
+        )}
+      </div>
+
+      <div className="animate-in fade-in slide-in-from-bottom-4 duration-700 delay-200 fill-mode-both">
+        <DataTable
+          title="Riepilogo Macro-Aggregati"
+          columns={[
+            { key: "voce", label: "Voce", align: "left" as const, className: "font-bold" },
+            { key: `val${t0}`, label: `${t0}`, align: "right" as const },
+            { key: "percentage", label: `% Ricavi ${t0}`, align: "right" as const },
+            { key: `val${t1}`, label: `${t1}`, align: "right" as const },
+            { key: `val${t2}`, label: `${t2}`, align: "right" as const },
+            { key: "variance", label: `Var % (${t0}/${t1})`, align: "right" as const },
+          ]}
+          data={tableRows}
+        />
+      </div>
     </div>
   );
 }

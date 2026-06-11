@@ -1,23 +1,23 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { useFinancialData } from '../contexts/FinancialDataContext';
-import PageHeader from '../components/PageHeader';
 import { Card } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
-import { Search } from "lucide-react";
-import { formatCurrency } from "@/data/financialData";
+import { Label } from "@/components/ui/label";
+import { fetchLedgerYears, fetchSourceMatrix } from '@/data/ledgerReads';
 
 type ViewMode = 'current' | 'previous';
 
 const SourcePage = () => {
-    const { selectedCompany, getSourceData } = useFinancialData();
+    const { selectedCompany } = useFinancialData();
     const [data, setData] = useState<any[][]>([]);
     const [loading, setLoading] = useState(false);
+    const [years, setYears] = useState<number[]>([]);
+    const [year, setYear] = useState<number | null>(null);
     const [viewMode, setViewMode] = useState<ViewMode>("current");
     const [searchQuery, setSearchQuery] = useState("");
     const [filters, setFilters] = useState<Record<string, string>>({});
 
-    // Metadata per la struttura della matrice
     const [structure, setStructure] = useState({
         headerRowIndex: 0,
         dataStartIndex: 0,
@@ -26,25 +26,26 @@ const SourcePage = () => {
     });
 
     useEffect(() => {
-        if (selectedCompany) loadSourceData();
+        if (!selectedCompany) return;
+        fetchLedgerYears(selectedCompany.id).then((y) => {
+            setYears(y);
+            setYear(y[0] ?? new Date().getFullYear());
+        });
     }, [selectedCompany]);
 
-    const loadSourceData = async () => {
-        if (!selectedCompany) return;
+    useEffect(() => {
+        if (!selectedCompany || year == null) return;
         setLoading(true);
-        try {
-            const result = await getSourceData(selectedCompany.id);
-            if (result && result.length > 0) {
-                const rows = result[0].data as any[][];
-                setData(rows);
-                analyzeMatrix(rows);
-            } else {
+        fetchSourceMatrix(selectedCompany.id, year)
+            .then((rows) => {
+                setData(rows as any[][]);
+                analyzeMatrix(rows as any[][]);
+            })
+            .catch(() => {
                 setData([]);
-            }
-        } finally {
-            setLoading(false);
-        }
-    };
+            })
+            .finally(() => setLoading(false));
+    }, [selectedCompany, year]);
 
     const analyzeMatrix = (rows: any[][]) => {
         if (!rows || rows.length < 1) return;
@@ -90,7 +91,6 @@ const SourcePage = () => {
         });
     };
 
-    // 1. Definiamo quali colonne mostrare per la vista corrente
     const activeViewIndices = useMemo(() => {
         const { dataStartIndex, splitIndex, hasSplit } = structure;
         if (data.length === 0) return [];
@@ -104,7 +104,6 @@ const SourcePage = () => {
 
         const allIndices = [...contextCols, ...dataCols];
 
-        // Filtro per nascondere colonne totalmente vuote (escludendo le prime 4 di contesto)
         return allIndices.filter(i => {
             if (i < 4) return true;
             return data.slice(structure.headerRowIndex + 1).some(row => {
@@ -129,12 +128,10 @@ const SourcePage = () => {
         }).filter(Boolean) as any[];
     }, [headers, activeViewIndices]);
 
-    // 2. Filtriamo le righe
     const bodyRows = useMemo(() => {
         if (data.length === 0) return [];
         
         return data.slice(structure.headerRowIndex + 1).filter(row => {
-            // Regola di validità: identità + almeno un valore numerico nella vista attiva
             const hasIdentity = String(row[0] || "").trim() !== "" || String(row[1] || "").trim() !== "";
             const hasValue = activeViewIndices.some(i => {
                 if (i < structure.dataStartIndex) return false;
@@ -142,10 +139,8 @@ const SourcePage = () => {
                 return row[i] !== null && row[i] !== "" && !isNaN(val) && val !== 0;
             });
             
-            // Filtro globale
             const matchesSearch = !searchQuery || row.some(cell => String(cell || "").toLowerCase().includes(searchQuery.toLowerCase()));
             
-            // Filtri a discesa
             const matchesDropdown = filterableColumns.every(f => {
                 const val = filters[f.name];
                 return !val || val === "all" || String(row[f.index]).trim() === val;
@@ -176,16 +171,43 @@ const SourcePage = () => {
 
     if (!selectedCompany) return <div className="p-8 text-center">Seleziona un'azienda.</div>;
     if (loading) return <div className="p-8 text-center">Caricamento...</div>;
-    if (data.length === 0) return <div className="p-8 text-center">Nessun dato sorgente.</div>;
+    if (data.length === 0) {
+        return (
+            <div className="p-8 text-center space-y-2">
+                <p>Nessun dato sorgente.</p>
+                <p className="text-sm text-muted-foreground">
+                    Importa bilancini e completa i mapping conti in Mapping conti.
+                </p>
+            </div>
+        );
+    }
 
     return (
         <div className="h-[calc(100vh-2rem)] flex flex-col p-4 space-y-4">
             <div className="bg-primary rounded-lg p-4 text-primary-foreground shadow-lg">
-                <h1 className="text-xl font-bold">Source Data: {selectedCompany.name}</h1>
-                <p className="text-sm opacity-90">Visualizzazione fedele dei dati grezzi Excel</p>
+                <h1 className="text-xl font-bold">Source: {selectedCompany.name}</h1>
+                <p className="text-sm opacity-90">
+                    Mapping conti e saldi mensili da bilancino ({year ?? '—'})
+                </p>
             </div>
 
-            <div className="flex items-center gap-4">
+            <div className="flex flex-wrap items-end gap-4">
+                <div className="space-y-1 min-w-[120px]">
+                    <Label className="text-xs">Anno</Label>
+                    <Select
+                        value={year != null ? String(year) : undefined}
+                        onValueChange={(v) => setYear(Number(v))}
+                    >
+                        <SelectTrigger className="h-9">
+                            <SelectValue placeholder="Anno" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {years.map((y) => (
+                                <SelectItem key={y} value={String(y)}>{y}</SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                </div>
                 <Input placeholder="Cerca..." className="max-w-md" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} />
                 {structure.hasSplit && (
                     <div className="flex bg-muted p-1 rounded-md">
@@ -262,7 +284,7 @@ const SourcePage = () => {
                                         }
 
                                         return (
-                                            <td key={i} className={`p-2 whitespace-nowrap ${isNumeric ? 'text-right' : 'text-left'} ${isSticky2 ? 'truncate max-w-[250px]' : ''} ${stickyClass} ${widthClass}`}>
+                                            <td key={i} className={`p-2 whitespace-nowrap ${isNumeric && typeof cell === 'number' ? 'text-right' : 'text-left'} ${isSticky2 ? 'truncate max-w-[250px]' : ''} ${stickyClass} ${widthClass}`}>
                                                 {isNumeric && typeof cell === 'number' ? `€ ${formatValue(cell)}` : formatValue(cell)}
                                             </td>
                                         );

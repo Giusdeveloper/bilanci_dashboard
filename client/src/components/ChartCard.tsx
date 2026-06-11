@@ -8,8 +8,8 @@ interface ChartCardProps {
 
 export default function ChartCard({ title, children }: ChartCardProps) {
   return (
-    <Card className="p-6" data-testid={`chart-card-${title.toLowerCase().replace(/\s+/g, '-')}`}>
-      <h3 className="text-lg font-bold mb-5" data-testid="text-chart-title">
+    <Card className="p-6 border-border/50 shadow-sm" data-testid={`chart-card-${title.toLowerCase().replace(/\s+/g, '-')}`}>
+      <h3 className="text-lg font-bold mb-6 font-heading text-imm-blue-dark tracking-tight" data-testid="text-chart-title">
         {title}
       </h3>
       <div className="h-[300px]" data-testid="chart-container">

@@ -6,12 +6,29 @@ export default {
   theme: {
     extend: {
       borderRadius: {
-        lg: ".5625rem", /* 9px */
-        md: ".375rem", /* 6px */
-        sm: ".1875rem", /* 3px */
+        lg: "8px",
+        md: "6px",
+        sm: "4px",
       },
       colors: {
-        // Flat / base colors (regular buttons)
+        // Imment Brand Colors
+        imm: {
+          blue: "#5195FF",
+          "blue-mid": "#234980",
+          "blue-dark": "#0E2D54",
+          magenta: "#D30083",
+          "magenta-dark": "#9E005C",
+          "magenta-light": "#E553B5",
+          teal: "#05D8C8",
+          "teal-dark": "#07998B",
+          "teal-light": "#86E2D9",
+          yellow: "#FADE29",
+          "yellow-dark": "#FFBA16",
+          "yellow-light": "#FFE780",
+          neutral: "#F3F6F9",
+          "neutral-mid": "#E8ECF3",
+        },
+        // Flat / base colors (shadcn mappings)
         background: "hsl(var(--background) / <alpha-value>)",
         foreground: "hsl(var(--foreground) / <alpha-value>)",
         border: "hsl(var(--border) / <alpha-value>)",
@@ -83,9 +100,10 @@ export default {
         },
       },
       fontFamily: {
-        sans: ["var(--font-sans)"],
-        serif: ["var(--font-serif)"],
-        mono: ["var(--font-mono)"],
+        sans: ["'Inter Tight'", "system-ui", "-apple-system", "sans-serif"],
+        heading: ["'Syne'", "system-ui", "-apple-system", "sans-serif"],
+        serif: ["Georgia", "serif"],
+        mono: ["Menlo", "monospace"],
       },
       keyframes: {
         "accordion-down": {
