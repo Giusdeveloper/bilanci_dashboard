@@ -92,7 +92,7 @@ const CORS = {
 
   'Access-Control-Allow-Origin': '*',
 
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-ingest-secret',
 
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 
@@ -316,35 +316,57 @@ Deno.serve(async (req: Request) => {
 
 
 
-    const authHeader = req.headers.get('Authorization') ?? '';
+    const ingestSecretHeader = req.headers.get('X-Ingest-Secret') ?? '';
 
-    const jwt = authHeader.replace(/^Bearer\s+/i, '').trim();
+    const expectedIngestSecret = Deno.env.get('INGEST_WEBHOOK_SECRET') ?? '';
 
-    if (!jwt) return json({ error: 'Autenticazione richiesta.' }, 401);
+    const isIngestWebhook = Boolean(
+
+      expectedIngestSecret.length > 0
+
+      && ingestSecretHeader.length > 0
+
+      && ingestSecretHeader === expectedIngestSecret,
+
+    );
 
 
 
-    const userId = decodeJwtSub(jwt);
+    let userId: string | null = null;
 
-    if (!userId) return json({ error: 'Token non valido o scaduto.' }, 401);
+    if (!isIngestWebhook) {
+
+      const authHeader = req.headers.get('Authorization') ?? '';
+
+      const jwt = authHeader.replace(/^Bearer\s+/i, '').trim();
+
+      if (!jwt) return json({ error: 'Autenticazione richiesta.' }, 401);
 
 
 
-    const { data: profile, error: profErr } = await supabase
+      userId = decodeJwtSub(jwt);
 
-      .from('bilanci_users')
+      if (!userId) return json({ error: 'Token non valido o scaduto.' }, 401);
 
-      .select('role')
 
-      .eq('id', userId)
 
-      .maybeSingle();
+      const { data: profile, error: profErr } = await supabase
 
-    if (profErr) return json({ error: profErr.message }, 500);
+        .from('bilanci_users')
 
-    if (!profile || (profile.role !== 'admin' && profile.role !== 'amministrazione')) {
+        .select('role')
 
-      return json({ error: 'Permesso negato: ruolo operativo richiesto per importare bilanci.' }, 403);
+        .eq('id', userId)
+
+        .maybeSingle();
+
+      if (profErr) return json({ error: profErr.message }, 500);
+
+      if (!profile || (profile.role !== 'admin' && profile.role !== 'amministrazione')) {
+
+        return json({ error: 'Permesso negato: ruolo operativo richiesto per importare bilanci.' }, 403);
+
+      }
 
     }
 
@@ -365,6 +387,11 @@ Deno.serve(async (req: Request) => {
     const publishFacts = String(form.get('publish_facts') ?? '').toLowerCase() === 'true';
 
     const replaceExisting = String(form.get('replace_existing') ?? '').toLowerCase() === 'true';
+
+    const importSourceRaw = String(form.get('import_source') ?? 'ui');
+    const importSource = isIngestWebhook
+      ? (importSourceRaw === 'email' || importSourceRaw === 'n8n' ? importSourceRaw : 'email')
+      : 'ui';
 
 
 
@@ -593,6 +620,8 @@ Deno.serve(async (req: Request) => {
         warnings: result.warnings,
 
         balances: toBalanceRows(extracted),
+
+        importSource: importSource as 'ui' | 'email' | 'api' | 'n8n',
 
       });
 

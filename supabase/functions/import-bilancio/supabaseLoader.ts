@@ -42,6 +42,7 @@ export interface BilancinoPersistInput {
   templateProfile: string;
   warnings: Warning[];
   balances: BilancinoBalanceRow[];
+  importSource?: 'ui' | 'email' | 'api' | 'n8n';
 }
 
 export interface BilancinoPersistCounts {
@@ -311,6 +312,7 @@ export async function persistBilancinoPlan(
         file_hash: input.fileHash,
         template_profile: input.templateProfile,
         status: 'completed',
+        source: input.importSource ?? 'ui',
         updated_at: new Date().toISOString(),
       },
       { onConflict: 'file_hash' },

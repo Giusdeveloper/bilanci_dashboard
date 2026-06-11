@@ -479,17 +479,17 @@ flowchart LR
 
 ---
 
-### Sprint 3 — "Editor MVP + Email PoC" (2 settimane)
+### Sprint 3 — "Editor MVP + Email PoC" (parziale)
 
 **Obiettivo:** prima edit manuale pubblicabile + prima email automatica.
 
-| Task | Deliverable |
-|------|-------------|
-| Griglia edit `account_balances` | Draft locale → preview → publish |
-| RPC `publish_draft_edit` | Transazione atomica + audit |
-| n8n workflow PoC | Forwarding o IMAP → Storage → `import-bilancio` |
-| `email_ingest_rules` seed | Almeno 2 aziende pilota |
-| Notifica admin su failure | Email/Slack da n8n |
+| Task | Stato |
+|------|-------|
+| Griglia edit `account_balances` | ✅ (Sprint 4–6) |
+| RPC `publish_draft_edit` | ✅ |
+| n8n workflow PoC | ✅ `n8n/workflows/bilanci-email-ingest-poc.json` + Edge `email-ingest` |
+| `email_ingest_rules` seed | ✅ Awentia + Maia |
+| Notifica admin su failure | 📋 in n8n (branch errore nel workflow) |
 
 **Definition of done:** admin corregge un saldo, pubblica, dashboard aggiornata; email con allegato crea import in coda review.
 
