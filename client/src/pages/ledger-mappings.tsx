@@ -55,7 +55,7 @@ function useQueryParams() {
 }
 
 export default function LedgerMappings() {
-  const { isAdmin } = useAuth();
+  const { isEditorStaff } = useAuth();
   const { companies, selectedCompany, setSelectedCompany } = useFinancialData();
   const { toast } = useToast();
   const query = useQueryParams();
@@ -291,10 +291,10 @@ export default function LedgerMappings() {
     }
   };
 
-  if (!isAdmin) {
+  if (!isEditorStaff) {
     return (
       <div className="p-6">
-        <PageHeader title="Mapping conti" subtitle="Accesso riservato agli amministratori" />
+        <PageHeader title="Mapping conti" subtitle="Accesso riservato al personale operativo" />
       </div>
     );
   }

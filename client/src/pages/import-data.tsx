@@ -426,6 +426,46 @@ export default function ImportData({ embedded = false, editorMode = false }: { e
             <PageHeader title="Importa Dati" subtitle="Excel analisi CE, bilancino mensile e export partitario" />
             )}
 
+            {step === "upload" && (
+                <Card className="border-none shadow-md bg-white/60 backdrop-blur-sm">
+                    <CardHeader className="pb-2">
+                        <CardTitle className="font-heading text-imm-blue-dark text-base flex items-center gap-2">
+                            <Info className="h-4 w-4 text-imm-signal-teal" />
+                            Come funziona l&apos;import
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4 text-sm text-imm-blue-dark/85 leading-relaxed">
+                        <ol className="list-decimal space-y-1.5 pl-5">
+                            {!embedded && (
+                                <li>Seleziona l&apos;azienda su cui importare i dati.</li>
+                            )}
+                            <li>Scegli il tipo file (automatico consigliato per bilancino o analisi CE).</li>
+                            <li>Carica il file Excel/CSV: parte l&apos;anteprima con KPI, quadratura e avvisi mapping.</li>
+                            <li>Verifica anno e mese rilevati, poi conferma per scrivere i saldi in piattaforma.</li>
+                            <li>
+                                Per correzioni e pubblicazione del periodo passa all&apos;{" "}
+                                <Link href="/editor/dashboard" className="font-medium text-imm-blue-dark underline decoration-imm-signal-teal/50 underline-offset-2 hover:text-imm-signal-teal">
+                                    Editor bilancio
+                                </Link>
+                                .
+                            </li>
+                        </ol>
+                        <div className="rounded-lg border border-imm-yellow/40 bg-imm-yellow/10 px-3 py-2.5 text-sm text-imm-blue-dark">
+                            <span className="font-medium">Nuova azienda?</span>{" "}
+                            Se devi importare i bilancini di una società non ancora presente, devi prima
+                            crearla:{" "}
+                            <Link
+                                href="/settings"
+                                className="font-semibold text-imm-blue-dark underline decoration-imm-signal-teal/60 underline-offset-2 hover:text-imm-signal-teal"
+                            >
+                                clicca qui
+                            </Link>{" "}
+                            (Impostazioni → Aziende).
+                        </div>
+                    </CardContent>
+                </Card>
+            )}
+
             {(periodDraft || openDrafts.length > 0) && (
                 <div className="flex items-start gap-3 bg-amber-50 border border-amber-200 rounded-xl p-4">
                     <AlertTriangle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />

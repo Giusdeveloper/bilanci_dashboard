@@ -80,9 +80,10 @@ const GUIDE_SECTIONS: GuideSection[] = [
         <div>
           <p className="mb-2 font-semibold text-imm-blue-dark">1. Accedi come amministratore</p>
           <p>
-            Solo gli utenti con profilo <strong>ADMINISTRATOR</strong> vedono il selettore azienda,
+            Gli utenti con profilo <strong>ADMINISTRATOR</strong> vedono il selettore azienda,
             l&apos;hub <GuideLink href="/editor/dashboard">Editor bilancio</GuideLink>, le voci di
-            consultazione e questa guida. Gli altri utenti consultano solo dashboard e report pubblicati.
+            amministrazione, Impostazioni e questa guida. I clienti consultano solo dashboard e report
+            della propria società.
           </p>
         </div>
 
@@ -109,6 +110,10 @@ const GUIDE_SECTIONS: GuideSection[] = [
               — area operativa con tab gialle per modificare saldi, mapping e pubblicare un periodo.
               La voce resta evidenziata in giallo su tutte le pagine dell&apos;editor.
             </li>
+            <li>
+              <GuideLink href="/settings">Impostazioni</GuideLink> — creazione aziende, utenti ed
+              eliminazione società (vedi sezione <strong>Creare una nuova azienda</strong>).
+            </li>
           </ul>
         </div>
 
@@ -125,6 +130,84 @@ const GUIDE_SECTIONS: GuideSection[] = [
           La tab attiva nell&apos;editor ha sfondo <strong>giallo</strong> (Dashboard, CE Dettaglio, Saldi,
           Mapping, Bozze). Da qualsiasi tab puoi aprire la{" "}
           <GuideLink href="/guida">Guida</GuideLink> con il link in alto a destra nella barra di navigazione.
+        </GuideCallout>
+      </div>
+    ),
+  },
+  {
+    id: "nuova-azienda",
+    title: "Creare una nuova azienda",
+    description: "Onboarding società, utenti cliente ed eliminazione",
+    content: (
+      <div className="space-y-4 text-sm leading-relaxed">
+        <p>
+          Prima di importare bilancini o lavorare in editor, la società deve esistere in piattaforma.
+          Creazione ed eliminazione aziende si fanno da{" "}
+          <GuideLink href="/settings">Impostazioni</GuideLink>.
+        </p>
+
+        <div>
+          <p className="mb-2 font-semibold text-imm-blue-dark">Procedura: nuova azienda</p>
+          <ol className="list-decimal space-y-2 pl-5">
+            <li>
+              Apri <GuideLink href="/settings">Impostazioni</GuideLink> dalla sidebar (voce visibile solo
+              agli amministratori).
+            </li>
+            <li>
+              Seleziona la scheda <strong>Aziende</strong>.
+            </li>
+            <li>
+              Clicca <strong>Nuova Azienda</strong>, inserisci il nome legale (es. «Nuova Azienda Srl»)
+              e conferma con <strong>Crea Azienda</strong>.
+            </li>
+            <li>
+              Lo <strong>slug</strong> viene generato automaticamente dal nome (minuscolo, spazi → trattini,
+              senza caratteri speciali). Compare in tabella insieme a nome, ID e data creazione.
+            </li>
+            <li>
+              Torna al selettore in alto e scegli la società appena creata: da lì puoi procedere con{" "}
+              <GuideLink href="/import">Importa Dati</GuideLink> o l&apos;{" "}
+              <GuideLink href="/editor/dashboard">Editor bilancio</GuideLink>.
+            </li>
+          </ol>
+        </div>
+
+        <div>
+          <p className="mb-2 font-semibold text-imm-blue-dark">Dopo la creazione: utente cliente (opzionale)</p>
+          <p className="mb-2">
+            Se la società deve consultare solo i propri report pubblicati, crea un account dedicato:
+          </p>
+          <ol className="list-decimal space-y-2 pl-5">
+            <li>In <GuideLink href="/settings">Impostazioni</GuideLink>, scheda <strong>Utenti</strong>.</li>
+            <li>
+              <strong>Nuovo Utente</strong> → email, password, ruolo <strong>Cliente (Azienda Specifica)</strong>.
+            </li>
+            <li>Assegna l&apos;azienda appena creata dal menu a tendina.</li>
+            <li>Comunica le credenziali al cliente: vedrà solo dashboard e report della propria società.</li>
+          </ol>
+        </div>
+
+        <div>
+          <p className="mb-2 font-semibold text-imm-blue-dark">Eliminare un&apos;azienda</p>
+          <p>
+            Sempre in <strong>Impostazioni → Aziende</strong>, usa l&apos;icona cestino sulla riga della
+            società. Compare un dialog di conferma: l&apos;operazione è{" "}
+            <strong>irreversibile</strong> e rimuove import, saldi, mapping, bozze editor, layout CE e
+            gli altri dati collegati. Gli utenti cliente associati perdono l&apos;associazione all&apos;azienda
+            (non vengono eliminati).
+          </p>
+        </div>
+
+        <GuideCallout variant="warning">
+          Non eliminare un&apos;azienda con dati già pubblicati se non sei certo del ripristino: valuta
+          prima un export o la consultazione del{" "}
+          <GuideLink href="/settings/audit">Registro audit</GuideLink>.
+        </GuideCallout>
+
+        <GuideCallout variant="tip">
+          Per società con profilo CE dedicato (famiglie analitiche custom), dopo la creazione verifica in
+          editor che famiglie e mapping di template siano allineati al primo import. Per onboarding
+          multiplo contatta l&apos;amministratore di sistema se servono seed da template Awentia/Maia.
         </GuideCallout>
       </div>
     ),
@@ -367,6 +450,17 @@ const GUIDE_SECTIONS: GuideSection[] = [
       <div className="space-y-5 text-sm leading-relaxed">
         <div>
           <p className="font-semibold text-imm-blue-dark">
+            Chi può creare una nuova azienda?
+          </p>
+          <p className="mt-1 text-imm-blue-dark/80">
+            Gli amministratori, da{" "}
+            <GuideLink href="/settings">Impostazioni → Aziende</GuideLink>. I clienti vedono solo
+            la propria società.
+          </p>
+        </div>
+
+        <div>
+          <p className="font-semibold text-imm-blue-dark">
             Qual è la differenza tra consultazione e Editor bilancio?
           </p>
           <p className="mt-1 text-imm-blue-dark/80">
@@ -461,14 +555,14 @@ const GUIDE_SECTIONS: GuideSection[] = [
 ];
 
 export default function GuidaUtilizzo() {
-  const { isAdmin } = useAuth();
+  const { isEditorStaff } = useAuth();
 
-  if (!isAdmin) {
+  if (!isEditorStaff) {
     return (
       <div className="p-6 animate-in fade-in duration-500 font-sans">
         <PageHeader
           title="Guida utilizzo"
-          subtitle="Accesso riservato agli amministratori"
+          subtitle="Accesso riservato al personale operativo"
         />
       </div>
     );

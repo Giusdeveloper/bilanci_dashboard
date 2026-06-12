@@ -29,7 +29,7 @@ import { EDITOR_MONTH_LABELS } from '@/contexts/EditorContext';
 const ALL = '__all__';
 
 export default function SettingsAuditPage() {
-  const { isAdmin, isEditorStaff } = useAuth();
+  const { isEditorStaff } = useAuth();
   const { companies } = useFinancialData();
   const [entries, setEntries] = useState<AuditLogEntry[]>([]);
   const [loading, setLoading] = useState(false);
@@ -205,11 +205,6 @@ export default function SettingsAuditPage() {
         <p className="text-sm text-imm-blue-dark/60 text-center">Nessun evento corrisponde ai filtri selezionati.</p>
       )}
 
-      {!isAdmin && (
-        <p className="text-xs text-imm-blue-dark/50">
-          Accesso in modalità amministrazione: sola consultazione del registro audit.
-        </p>
-      )}
     </div>
   );
 }

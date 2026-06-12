@@ -45,10 +45,20 @@ import {
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { Plus, Users, Building2, Shield, Trash2, Key, RefreshCw } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 export default function Settings() {
   const { user, isAdmin } = useAuth();
-  const { companies, createCompany, loadCompanies } = useFinancialData();
+  const { companies, createCompany, deleteCompany, loadCompanies } = useFinancialData();
   const [users, setUsers] = useState<AppUser[]>([]);
   const [loadingUsers, setLoadingUsers] = useState(false);
   const [isAddingUser, setIsAddingUser] = useState(false);
@@ -58,12 +68,14 @@ export default function Settings() {
   // Form states
   const [newUserEmail, setNewUserEmail] = useState("");
   const [newUserPassword, setNewUserPassword] = useState("");
-  const [newUserRole, setNewUserRole] = useState<"admin" | "client" | "amministrazione">("client");
+  const [newUserRole, setNewUserRole] = useState<"admin" | "client">("client");
   const [newUserCompany, setNewUserCompany] = useState<string>("");
   const [newCompanyName, setNewCompanyName] = useState("");
 
   const [isSubmittingUser, setIsSubmittingUser] = useState(false);
   const [isSubmittingCompany, setIsSubmittingCompany] = useState(false);
+  const [companyToDelete, setCompanyToDelete] = useState<Company | null>(null);
+  const [isDeletingCompany, setIsDeletingCompany] = useState(false);
 
   useEffect(() => {
     if (isAdmin) {
@@ -203,6 +215,34 @@ export default function Settings() {
     }
   };
 
+  const handleDeleteCompany = async () => {
+    if (!companyToDelete) return;
+
+    setIsDeletingCompany(true);
+    try {
+      await deleteCompany(companyToDelete.id);
+      toast({
+        title: "Azienda eliminata",
+        description: `${companyToDelete.name} e i dati collegati sono stati rimossi.`,
+      });
+      setCompanyToDelete(null);
+      await loadCompanies();
+      await fetchUsers();
+    } catch (error: any) {
+      toast({
+        title: "Errore eliminazione azienda",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setIsDeletingCompany(false);
+    }
+  };
+
+  const assignedClientsForDelete = companyToDelete
+    ? users.filter((u) => u.company_id === companyToDelete.id)
+    : [];
+
   if (!isAdmin) {
     return (
       <div className="flex items-center justify-center h-[60vh]">
@@ -291,8 +331,7 @@ export default function Settings() {
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="client">Cliente (Azienda Specifica)</SelectItem>
-                          <SelectItem value="amministrazione">Amministrazione (Editor + Import)</SelectItem>
-                          <SelectItem value="admin">Amministratore (Tutto)</SelectItem>
+                          <SelectItem value="admin">Amministratore</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
@@ -355,17 +394,13 @@ export default function Settings() {
                         <TableCell className="font-medium">{u.email}</TableCell>
                         <TableCell>
                           <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
-                            u.role === "admin"
+                            u.role === "admin" || u.role === "amministrazione"
                               ? "bg-yellow-100 text-yellow-800"
-                              : u.role === "amministrazione"
-                                ? "bg-purple-100 text-purple-800"
-                                : "bg-blue-100 text-blue-800"
+                              : "bg-blue-100 text-blue-800"
                           }`}>
-                            {u.role === "admin"
+                            {u.role === "admin" || u.role === "amministrazione"
                               ? "ADMIN"
-                              : u.role === "amministrazione"
-                                ? "AMMINISTRAZIONE"
-                                : "CLIENT"}
+                              : "CLIENT"}
                           </span>
                         </TableCell>
                         <TableCell>
@@ -398,7 +433,7 @@ export default function Settings() {
             <CardHeader className="flex flex-row items-center justify-between">
               <div>
                 <CardTitle>Gestione Aziende</CardTitle>
-                <CardDescription>Visualizza e aggiungi nuove aziende alla piattaforma.</CardDescription>
+                <CardDescription>Visualizza, aggiungi ed elimina aziende dalla piattaforma.</CardDescription>
               </div>
               <Dialog open={isAddingCompany} onOpenChange={setIsAddingCompany}>
                 <DialogTrigger asChild>
@@ -441,10 +476,18 @@ export default function Settings() {
                     <TableHead>Slug</TableHead>
                     <TableHead>ID</TableHead>
                     <TableHead className="text-right">Data Creazione</TableHead>
+                    <TableHead className="text-right">Azioni</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {companies.map((c) => (
+                  {companies.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                        Nessuna azienda registrata.
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                  companies.map((c) => (
                     <TableRow key={c.id}>
                       <TableCell className="font-medium">{c.name}</TableCell>
                       <TableCell className="font-mono text-xs">{c.slug}</TableCell>
@@ -452,14 +495,62 @@ export default function Settings() {
                       <TableCell className="text-right text-xs">
                         {new Date(c.created_at).toLocaleDateString('it-IT')}
                       </TableCell>
+                      <TableCell className="text-right">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="text-destructive hover:bg-destructive/10"
+                          onClick={() => setCompanyToDelete(c)}
+                          title="Elimina azienda"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </TableCell>
                     </TableRow>
-                  ))}
+                  ))
+                  )}
                 </TableBody>
               </Table>
             </CardContent>
           </Card>
         </TabsContent>
       </Tabs>
+
+      <AlertDialog open={!!companyToDelete} onOpenChange={(open) => !open && setCompanyToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Eliminare {companyToDelete?.name}?</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-2 text-sm text-muted-foreground">
+                <p>
+                  L&apos;operazione è irreversibile. Verranno eliminati import, saldi, mapping,
+                  bozze editor, layout CE e gli altri dati collegati a questa azienda.
+                </p>
+                {assignedClientsForDelete.length > 0 && (
+                  <p className="text-amber-700">
+                    {assignedClientsForDelete.length} utente/i cliente perderanno l&apos;associazione
+                    all&apos;azienda:{" "}
+                    {assignedClientsForDelete.map((u) => u.email).join(", ")}.
+                  </p>
+                )}
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeletingCompany}>Annulla</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={isDeletingCompany}
+              onClick={(e) => {
+                e.preventDefault();
+                void handleDeleteCompany();
+              }}
+            >
+              {isDeletingCompany ? "Eliminazione..." : "Elimina azienda"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <Card className="bg-blue-50 border-blue-200">
         <CardHeader>

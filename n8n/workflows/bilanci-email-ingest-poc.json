@@ -2,38 +2,88 @@
   "name": "Bilanci — Email ingest PoC",
   "nodes": [
     {
+      "parameters": {
+        "content": "## Setup — Bilanci Email Ingest PoC\n\n### Variabili n8n (Settings → Variables)\n| Variabile | Descrizione |\n|-----------|-------------|\n| `BILANCI_INGEST_URL` | `https://caubhppwypkymsixsrco.supabase.co/functions/v1/email-ingest` |\n| `BILANCI_INGEST_SECRET` | Stesso valore di `INGEST_WEBHOOK_SECRET` (Supabase Edge Functions) |\n| `BILANCI_SUPABASE_ANON_KEY` | Publishable key Supabase (header `apikey`) |\n| `BILANCI_ADMIN_EMAIL` | Email admin per notifiche successo/errore |\n\n### Credenziali\n- **Gmail OAuth2** su trigger e nodi Gmail (casella bilanci@…)\n\n### Test manuale\nEsegui il ramo **Test manuale** con un file binario (.xlsx/.csv) allegato al nodo.",
+        "height": 340,
+        "width": 520,
+        "color": 4
+      },
+      "id": "sticky-setup",
+      "name": "Setup",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [-40, 40]
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "event": "messageReceived",
+        "simple": true,
+        "filters": {
+          "q": "has:attachment (filename:xlsx OR filename:xls OR filename:csv) is:unread"
+        },
+        "options": {
+          "downloadAttachments": true,
+          "dataPropertyAttachmentsPrefixName": "attachment_"
+        },
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        }
+      },
+      "id": "trigger-gmail",
+      "name": "Gmail — nuova email",
+      "type": "n8n-nodes-base.gmailTrigger",
+      "typeVersion": 1.4,
+      "position": [240, 520]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const outputs = [];\n\nfor (const item of $input.all()) {\n  const email = item.json;\n  const binaries = item.binary ?? {};\n\n  const from = typeof email.from === 'string'\n    ? email.from\n    : email.from?.text ?? email.from?.value?.[0]?.address ?? '';\n  const to = typeof email.to === 'string'\n    ? email.to\n    : email.to?.text ?? (email.to?.value ?? []).map((v) => v.address).filter(Boolean).join(',') ?? '';\n  const subject = email.subject ?? '';\n  const messageId = email.id ?? email.messageId ?? '';\n\n  for (const [key, bin] of Object.entries(binaries)) {\n    const fileName = (bin.fileName || key).toLowerCase();\n    if (!/\\.(xlsx|xls|csv)$/i.test(fileName)) continue;\n\n    outputs.push({\n      json: {\n        email_from: from,\n        email_subject: subject,\n        email_to: to,\n        email_message_id: messageId,\n        dry_run: 'true',\n        binaryPropertyName: 'file',\n      },\n      binary: {\n        file: {\n          ...bin,\n          fileName: bin.fileName || key,\n        },\n      },\n    });\n  }\n}\n\nreturn outputs;"
+      },
+      "id": "expand-attachments",
+      "name": "Espandi allegati",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [480, 520]
+    },
+    {
       "parameters": {},
       "id": "trigger-manual",
       "name": "Test manuale",
       "type": "n8n-nodes-base.manualTrigger",
       "typeVersion": 1,
-      "position": [240, 300]
+      "position": [240, 160]
     },
     {
       "parameters": {
         "mode": "runOnceForEachItem",
-        "jsCode": "// Configura in n8n Settings → Variables:\n// BILANCI_INGEST_URL, BILANCI_INGEST_SECRET, BILANCI_SUPABASE_ANON_KEY\n\nconst item = $input.item;\nconst binaryKeys = Object.keys(item.binary ?? {});\nif (binaryKeys.length === 0) {\n  throw new Error('Nessun allegato: aggiungi un file binario al trigger di test');\n}\nconst key = binaryKeys[0];\nreturn {\n  json: {\n    email_from: item.json.from ?? 'test@imment.it',\n    email_subject: item.json.subject ?? 'Test bilancino Awentia',\n    email_to: item.json.to ?? 'bilanci+awentia@imment.it',\n    email_message_id: item.json.messageId ?? `manual-${Date.now()}`,\n    dry_run: 'true',\n    binaryPropertyName: key,\n  },\n  binary: item.binary,\n};"
+        "jsCode": "const item = $input.item;\nconst binaryKeys = Object.keys(item.binary ?? {});\nif (binaryKeys.length === 0) {\n  throw new Error('Nessun allegato: aggiungi un file binario al trigger di test');\n}\nconst key = binaryKeys[0];\nreturn {\n  json: {\n    email_from: item.json.from ?? 'test@imment.it',\n    email_subject: item.json.subject ?? 'Test bilancino Awentia',\n    email_to: item.json.to ?? 'bilanci+awentia@imment.it',\n    email_message_id: item.json.messageId ?? `manual-${Date.now()}`,\n    dry_run: 'true',\n    binaryPropertyName: key,\n  },\n  binary: item.binary,\n};"
       },
       "id": "prep-payload",
       "name": "Prepara payload",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [460, 300]
+      "position": [480, 160]
     },
     {
       "parameters": {
         "method": "POST",
-        "url": "={{ $env.BILANCI_INGEST_URL || 'https://caubhppwypkymsixsrco.supabase.co/functions/v1/email-ingest' }}",
+        "url": "={{ $vars.BILANCI_INGEST_URL || 'https://caubhppwypkymsixsrco.supabase.co/functions/v1/email-ingest' }}",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
             {
               "name": "X-Ingest-Secret",
-              "value": "={{ $env.BILANCI_INGEST_SECRET }}"
+              "value": "={{ $vars.BILANCI_INGEST_SECRET }}"
             },
             {
               "name": "apikey",
-              "value": "={{ $env.BILANCI_SUPABASE_ANON_KEY }}"
+              "value": "={{ $vars.BILANCI_SUPABASE_ANON_KEY }}"
             }
           ]
         },
@@ -41,11 +91,26 @@
         "contentType": "multipart-form-data",
         "bodyParameters": {
           "parameters": [
-            { "name": "email_from", "value": "={{ $json.email_from }}" },
-            { "name": "email_subject", "value": "={{ $json.email_subject }}" },
-            { "name": "email_to", "value": "={{ $json.email_to }}" },
-            { "name": "email_message_id", "value": "={{ $json.email_message_id }}" },
-            { "name": "dry_run", "value": "={{ $json.dry_run }}" }
+            {
+              "name": "email_from",
+              "value": "={{ $json.email_from }}"
+            },
+            {
+              "name": "email_subject",
+              "value": "={{ $json.email_subject }}"
+            },
+            {
+              "name": "email_to",
+              "value": "={{ $json.email_to }}"
+            },
+            {
+              "name": "email_message_id",
+              "value": "={{ $json.email_message_id }}"
+            },
+            {
+              "name": "dry_run",
+              "value": "={{ $json.dry_run }}"
+            }
           ]
         },
         "sendBinaryData": true,
@@ -56,85 +121,163 @@
       "id": "http-email-ingest",
       "name": "POST email-ingest",
       "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
-      "position": [680, 300]
+      "typeVersion": 4.4,
+      "position": [720, 340],
+      "onError": "continueErrorOutput"
     },
     {
       "parameters": {
         "conditions": {
-          "boolean": [
+          "options": {
+            "version": 2,
+            "leftValue": "",
+            "caseSensitive": true,
+            "typeValidation": "strict"
+          },
+          "combinator": "and",
+          "conditions": [
             {
-              "value1": "={{ $json.ok }}",
-              "value2": true
+              "id": "check-ok",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              },
+              "leftValue": "={{ $json.ok }}",
+              "rightValue": ""
             }
           ]
-        }
+        },
+        "options": {}
       },
       "id": "if-ok",
       "name": "Import OK?",
       "type": "n8n-nodes-base.if",
-      "typeVersion": 2,
-      "position": [900, 300]
+      "typeVersion": 2.3,
+      "position": [960, 280]
     },
     {
       "parameters": {
-        "assignments": {
-          "assignments": [
-            {
-              "id": "log-ok",
-              "name": "status",
-              "value": "Anteprima OK — revisione admin",
-              "type": "string"
-            }
-          ]
-        },
+        "authentication": "oAuth2",
+        "resource": "message",
+        "operation": "send",
+        "sendTo": "={{ $vars.BILANCI_ADMIN_EMAIL }}",
+        "subject": "=✅ Bilanci ingest OK — {{ $json.company_slug || 'anteprima' }}",
+        "emailType": "text",
+        "message": "=Anteprima bilancino generata.\n\nAzienda: {{ $json.company_slug }}\nInbound ID: {{ $json.inbound_id }}\nOggetto email: {{ $json.email_subject || $('Espandi allegati').item.json.email_subject || $('Prepara payload').item.json.email_subject }}\n\n{{ $json.message }}",
         "options": {}
       },
-      "id": "log-success",
-      "name": "Log successo",
-      "type": "n8n-nodes-base.set",
-      "typeVersion": 3.4,
-      "position": [1120, 200]
+      "id": "notify-success",
+      "name": "Notifica successo",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [1200, 200]
     },
     {
       "parameters": {
-        "assignments": {
-          "assignments": [
-            {
-              "id": "log-err",
-              "name": "status",
-              "value": "=Errore ingest: {{ $json.error || 'unknown' }}",
-              "type": "string"
-            }
-          ]
-        },
+        "authentication": "oAuth2",
+        "resource": "message",
+        "operation": "send",
+        "sendTo": "={{ $vars.BILANCI_ADMIN_EMAIL }}",
+        "subject": "=❌ Bilanci ingest errore — {{ $('Espandi allegati').item.json.email_subject || $('Prepara payload').item.json.email_subject || 'email' }}",
+        "emailType": "text",
+        "message": "=Errore durante l'ingest del bilancino.\n\nOggetto: {{ $('Espandi allegati').item.json.email_subject || $('Prepara payload').item.json.email_subject || 'n/d' }}\nErrore: {{ $json.error || $json.message || $json.statusMessage || 'unknown' }}\n\nDettagli: {{ JSON.stringify($json) }}",
         "options": {}
       },
-      "id": "log-error",
-      "name": "Log errore",
-      "type": "n8n-nodes-base.set",
-      "typeVersion": 3.4,
-      "position": [1120, 400]
+      "id": "notify-error",
+      "name": "Notifica errore ingest",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [1200, 480]
     }
   ],
   "connections": {
+    "Gmail — nuova email": {
+      "main": [
+        [
+          {
+            "node": "Espandi allegati",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Espandi allegati": {
+      "main": [
+        [
+          {
+            "node": "POST email-ingest",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
     "Test manuale": {
-      "main": [[{ "node": "Prepara payload", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Prepara payload",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Prepara payload": {
-      "main": [[{ "node": "POST email-ingest", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "POST email-ingest",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "POST email-ingest": {
-      "main": [[{ "node": "Import OK?", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Import OK?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Notifica errore ingest",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Import OK?": {
       "main": [
-        [{ "node": "Log successo", "type": "main", "index": 0 }],
-        [{ "node": "Log errore", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Notifica successo",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Notifica errore ingest",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     }
   },
   "pinData": {},
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Europe/Rome"
+  },
   "meta": {
     "templateCredsSetupCompleted": false,
     "instanceId": "bilanci-email-ingest-poc"

@@ -114,13 +114,13 @@ export const useAuth = () => {
     }
   }, [])
 
-  const isAdmin = useMemo(() => user?.role === 'admin', [user?.role])
-  const isAmministrazione = useMemo(() => user?.role === 'amministrazione', [user?.role])
-  const isEditorStaff = useMemo(
+  const isClient = useMemo(() => user?.role === 'client', [user?.role])
+  /** Unico ruolo operativo con permessi completi (admin; legacy `amministrazione` trattato uguale). */
+  const isAdmin = useMemo(
     () => user?.role === 'admin' || user?.role === 'amministrazione',
     [user?.role],
   )
-  const isClient = useMemo(() => user?.role === 'client', [user?.role])
+  const isEditorStaff = isAdmin
 
   return useMemo(() => ({
     user,
@@ -130,8 +130,7 @@ export const useAuth = () => {
     signUp,
     signOut,
     isAdmin,
-    isAmministrazione,
     isEditorStaff,
     isClient,
-  }), [user, session, loading, signIn, signUp, signOut, isAdmin, isAmministrazione, isEditorStaff, isClient])
+  }), [user, session, loading, signIn, signUp, signOut, isAdmin, isEditorStaff, isClient])
 }

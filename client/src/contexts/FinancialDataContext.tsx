@@ -7,6 +7,7 @@ interface FinancialDataContextType {
   selectedCompany: Company | null
   setSelectedCompany: (company: Company | null) => void
   createCompany: (name: string) => Promise<Company | null>
+  deleteCompany: (companyId: string) => Promise<void>
   loading: boolean
   setLoading: (loading: boolean) => void
   loadFinancialData: (companyId: string, dataType: string, year?: number, month?: number) => Promise<any>
@@ -227,6 +228,22 @@ export function FinancialDataProvider({ children }: { children: ReactNode }) {
     }
   }
 
+  const deleteCompany = async (companyId: string): Promise<void> => {
+    // Tabelle legacy senza ON DELETE CASCADE sul FK verso companies
+    for (const table of ['financial_data', 'account_mappings', 'raw_imports'] as const) {
+      const { error } = await supabase.from(table).delete().eq('company_id', companyId)
+      if (error) throw error
+    }
+
+    const { error } = await supabase.from('companies').delete().eq('id', companyId)
+    if (error) throw error
+
+    setCompanies((prev) => prev.filter((c) => c.id !== companyId))
+    if (selectedCompany?.id === companyId) {
+      handleSetSelectedCompany(null)
+    }
+  }
+
   return (
     <FinancialDataContext.Provider
       value={{
@@ -234,6 +251,7 @@ export function FinancialDataProvider({ children }: { children: ReactNode }) {
         selectedCompany,
         setSelectedCompany: handleSetSelectedCompany,
         createCompany,
+        deleteCompany,
         loading,
         setLoading,
         loadFinancialData,

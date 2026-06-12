@@ -141,11 +141,6 @@ export default function AppSidebar() {
                     ADMINISTRATOR
                   </div>
                 )}
-                {!isAdmin && isEditorStaff && (
-                  <div className="text-[10px] text-imm-yellow/90 font-bold mt-1 tracking-tighter">
-                    AMMINISTRAZIONE
-                  </div>
-                )}
               </div>
             )}
           </div>
@@ -181,11 +176,8 @@ export default function AppSidebar() {
                     renderAdminNavItem(item, location),
                   )}
                   {renderAdminNavItem(adminEditorItem, location, true)}
-                  {isAdmin && adminUtilityItems.map((item) =>
+                  {adminUtilityItems.map((item) =>
                     renderAdminNavItem(item, location),
-                  )}
-                  {!isAdmin && (
-                    renderAdminNavItem({ title: "Guida utilizzo", icon: HelpCircle, url: "/guida" }, location)
                   )}
                 </>
               )}
